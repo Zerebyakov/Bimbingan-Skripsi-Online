@@ -7,7 +7,8 @@ import Mahasiswa from "../models/Mahasiswa.js";
 import Dosen from "../models/Dosen.js";
 import BabSubmission from "../models/BabSubmission.js";
 import User from "../models/User.js";
-
+import ProgramStudi from "../models/ProgramStudi.js";
+import argon2 from 'argon2'
 
 
 // Dashboard admin - statistik global
@@ -231,3 +232,30 @@ export const assignDosenPembimbing = async (req, res) => {
         });
     }
 };
+
+
+// Ambil Semua Data Dosen
+export const getAllDosen = async (req, res) => {
+    try {
+        const dosens = await User.findAll({
+            attributes: ['id_user', 'email', 'role', 'status', 'createdAt'],
+            include: {
+                model: Dosen,
+                include: [{
+                    model: ProgramStudi
+                }]
+            }
+        });
+        res.status(200).json({
+            success: true,
+            data: dosens
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+
+}

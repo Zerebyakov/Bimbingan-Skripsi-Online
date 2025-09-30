@@ -1,5 +1,5 @@
 import express from 'express'
-import { assignDosenPembimbing, createUser, getAllUsers, getDashboardStats, getKonfigurasi, updateKonfigurasi } from '../controllers/AdminController.js';
+import { assignDosenPembimbing, createUser, getAllDosen, getAllUsers, getDashboardStats, getKonfigurasi, updateKonfigurasi } from '../controllers/AdminController.js';
 import { logActivity } from '../middleware/loggingMiddleware.js';
 import { verifyAdmin, verifySession } from '../middleware/authMiddleware.js';
 import { validateAssignDosen, validateCreateUser, validateKonfigurasi, validatePagination } from '../middleware/validationMiddleware.js';
@@ -32,6 +32,8 @@ router.post('/users',
     logActivity('CREATE_USER', req => `Admin membuat user ${req.body.email}`),
     createUser
 );
+
+router.get('/dosen', getAllDosen);
 
 // Assign dosen pembimbing
 router.put('/pengajuan/:id_pengajuan/assign-dosen',

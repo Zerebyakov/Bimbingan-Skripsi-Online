@@ -2,6 +2,13 @@ import KartuBimbingan from "../models/KartuBimbingan.js";
 import LaporanAkhir from "../models/LaporanAkhir.js";
 import path from 'path'
 import multer from "multer";
+import Mahasiswa from "../models/Mahasiswa.js";
+import Dosen from "../models/Dosen.js";
+import BabSubmission from "../models/BabSubmission.js";
+import Message from "../models/Message.js";
+import Notifikasi from "../models/Notifikasi.js";
+import PengajuanJudul from "../models/PengajuanJudul.js";
+import LogAktivitas from "../models/LogAktivitas.js";
 
 // Setup multer untuk upload file
 const storage = multer.diskStorage({
