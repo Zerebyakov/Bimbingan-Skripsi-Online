@@ -3,41 +3,43 @@ import { baseUrl } from "../components/api/myAPI";
 import axios from "axios";
 
 const AuthContext = createContext();
-export const AuthProvider = ({children}) =>{
-    const [user, setUser] = useState('');
-    const [loading, setLoading] = useState('')
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true)
 
     const getMe = async () => {
         try {
-            const res = await axios.get(`${baseUrl}auth/profile`,{
+            const res = await axios.get(`${baseUrl}auth/profile`, {
                 withCredentials: true
             });
             setUser(res.data.data);
         } catch (error) {
-            setUser(null)
+            setUser(null);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     };
-
     const logout = async () => {
         try {
-            await axios.post(`${baseUrl}auth/logout`,{
+            await axios.post(`${baseUrl}auth/logout`, {}, {
                 withCredentials: true
             });
-            setUser(null)
+            setUser(null);
         } catch (error) {
-            console.error('Logout Error', error)
+            console.error("Logout Error", error);
         }
     };
 
+    useEffect(()=>{
+        getMe();
+    },[])
 
     return (
-        <AuthContext.Provider value={{user, setUser, getMe, loading, logout}}>
+        <AuthContext.Provider value={{ user, setUser, getMe, loading, logout }}>
             {children}
         </AuthContext.Provider>
     )
 }
 
 
-export const useAuth = ()=> useContext(AuthContext);
+export const useAuth = () => useContext(AuthContext);

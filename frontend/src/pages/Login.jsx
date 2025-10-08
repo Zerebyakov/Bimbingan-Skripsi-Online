@@ -16,28 +16,32 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setLoading(true);
+        setError('');
+
         try {
             const response = await axios.post(`${baseUrl}auth/login`, {
                 email,
                 password
-            }, {
-                withCredentials: true
-            });
-            setUser(response.data.data);
-            console.log(response)
+            }, { withCredentials: true });
 
+            setUser(response.data.data);
             const role = response.data.data.role;
             if (role === 'admin') {
-                navigate('/admin/dashboard')
+                navigate('/admin/dashboard');
             } else if (role === 'dosen') {
-                navigate('/dosen/dashboard')
+                navigate('/dosen/dashboard');
             } else if (role === 'mahasiswa') {
-                navigate('/mahasiswa/dashboard')
+                navigate('/mahasiswa/dashboard');
             }
+
         } catch (error) {
-            setError(error.response?.data?.message || 'Canno Login')
+            setError(error.response?.data?.message || 'Cannot Login');
+        } finally {
+            setLoading(false);
         }
-    }
+    };
+
     return (
         <div>
             <div className="flex justify-center items-center h-screen bg-gray-100">
