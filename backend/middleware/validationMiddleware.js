@@ -119,6 +119,10 @@ export const validateAssignDosen = [
         .optional()
         .isInt()
         .withMessage('ID dosen pembimbing 2 harus berupa angka'),
+    body('dosenId3')
+        .optional()
+        .isInt()
+        .withMessage('ID dosen pembimbing 2 harus berupa angka'),
     handleValidationErrors
 ];
 

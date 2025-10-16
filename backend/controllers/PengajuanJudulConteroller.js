@@ -25,7 +25,8 @@ export const getAllPengajuanJudul = async (req, res) => {
             include: [
                 { model: Mahasiswa, include: [{ model: ProgramStudi }] },
                 { model: Dosen, as: 'Pembimbing1', attributes: ['nama'] },
-                { model: Dosen, as: 'Pembimbing2', attributes: ['nama'] }
+                { model: Dosen, as: 'Pembimbing2', attributes: ['nama'] },
+                { model: Dosen, as: 'Pembimbing3', attributes: ['nama'] },
             ],
             order: [['createdAt', 'DESC']],
             limit: parseInt(limit),
@@ -63,6 +64,7 @@ export const getPengajuanJudulById = async (req, res) => {
                 { model: Mahasiswa, include: [{ model: ProgramStudi }] },
                 { model: Dosen, as: 'Pembimbing1' },
                 { model: Dosen, as: 'Pembimbing2' },
+                { model: Dosen, as: 'Pembimbing3' },
                 { model: BabSubmission },
                 { model: KartuBimbingan },
                 { model: LaporanAkhir }

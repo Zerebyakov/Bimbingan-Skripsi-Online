@@ -197,7 +197,7 @@ export const createUser = async (req, res) => {
 export const assignDosenPembimbing = async (req, res) => {
     try {
         const { id_pengajuan } = req.params;
-        const { dosenId1, dosenId2 } = req.body;
+        const { dosenId1, dosenId2,dosenId3 } = req.body;
 
         const pengajuan = await PengajuanJudul.findByPk(id_pengajuan);
         if (!pengajuan) {
@@ -209,7 +209,8 @@ export const assignDosenPembimbing = async (req, res) => {
 
         await pengajuan.update({
             dosenId1,
-            dosenId2: dosenId2 || null
+            dosenId2: dosenId2 || null,
+            dosenId3: dosenId3 || null,
         });
 
         // Log aktivitas

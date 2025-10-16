@@ -1,8 +1,10 @@
 import Dosen from "../models/Dosen.js";
+import LogAktivitas from "../models/LogAktivitas.js";
 import Mahasiswa from "../models/Mahasiswa.js";
 import Message from "../models/Message.js";
 import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
+import User from "../models/User.js";
 
 
 
@@ -109,6 +111,7 @@ export const getMessages = async (req, res) => {
             where: { id_pengajuan },
             include: [{
                 model: User,
+                as: 'User', // 🟢 penting!
                 attributes: ['email', 'role'],
                 include: [
                     { model: Dosen, attributes: ['nama'] },
@@ -119,6 +122,7 @@ export const getMessages = async (req, res) => {
             limit: parseInt(limit),
             offset: (page - 1) * limit
         });
+
 
         res.status(200).json({
             success: true,
@@ -149,7 +153,7 @@ export const exportChatHistory = async (req, res) => {
         const pengajuan = await PengajuanJudul.findByPk(id_pengajuan, {
             include: [
                 { model: Mahasiswa },
-                { 
+                {
                     model: Message,
                     include: [{
                         model: User,
@@ -172,8 +176,8 @@ export const exportChatHistory = async (req, res) => {
         // Generate formatted chat history
         const chatHistory = pengajuan.Messages.map(msg => ({
             timestamp: msg.createdAt,
-            sender: msg.User.role === 'dosen' ? 
-                (msg.User.Dosens[0]?.nama || 'Dosen') : 
+            sender: msg.User.role === 'dosen' ?
+                (msg.User.Dosens[0]?.nama || 'Dosen') :
                 (msg.User.Mahasiswa?.nama_lengkap || 'Mahasiswa'),
             role: msg.User.role,
             content: msg.content,

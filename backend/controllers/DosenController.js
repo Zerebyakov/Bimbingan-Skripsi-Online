@@ -6,6 +6,7 @@ import Message from "../models/Message.js";
 import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import { Op } from "sequelize";
+import User from "../models/User.js";
 
 // Dashboard dosen - statistik pribadi
 export const getDosenDashboard = async (req, res) => {
@@ -211,8 +212,25 @@ export const getMahasiswaBimbingan = async (req, res) => {
             include: [
                 { model: Mahasiswa },
                 { model: BabSubmission },
-                { model: Message, limit: 5, order: [['createdAt', 'DESC']] }
+                {
+                    model: Message,
+                    as: "Messages", // alias harus sesuai di model
+                    limit: 5,
+                    order: [["createdAt", "DESC"]],
+                    include: [
+                        {
+                            model: User,
+                            as: "User", // alias sesuai relasi di Message.js
+                            attributes: ["email", "role"],
+                            include: [
+                                { model: Dosen, attributes: ["nama"] },
+                                { model: Mahasiswa, attributes: ["nama_lengkap"] }
+                            ]
+                        }
+                    ]
+                }
             ]
+
         });
 
         res.status(200).json({
