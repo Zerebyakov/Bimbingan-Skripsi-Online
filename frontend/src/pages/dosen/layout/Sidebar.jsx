@@ -1,6 +1,6 @@
-import React from "react";
-import { useAuth } from "../../../context/AuthContext";
-import { NavLink, useNavigate } from "react-router";
+import React from 'react'
+import { useAuth } from '../../../context/AuthContext'
+import { useNavigate, NavLink } from 'react-router';
 import {
     LayoutDashboard,
     Users,
@@ -16,17 +16,13 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     const handleLogout = async () => {
         await logout();
-        navigate("/login");
-    };
+        navigate('/');
+    }
 
     const menuItems = [
-        { name: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/admin/dashboard" },
-        { name: "Judul", icon: <FileText size={20} />, path: "/admin/judul" },
-        { name: "Dosen", icon: <Users size={20} />, path: "/admin/dosen" },
-        { name: "Mahasiswa", icon: <Users size={20} />, path: "/admin/mahasiswa" },
-        { name: "Konfigurasi", icon: <Settings size={20} />, path: "/admin/konfigurasi" },
-    ];
-
+        { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dosen/dashboard' },
+        { name: 'Mahasiswa Bimbingan', icon: <Users size={20} />, path: '/dosen/mahasiswa-bimbingan' },
+    ]
     return (
         <aside
             className={`fixed md:static top-0 left-0 h-full bg-gray-900 text-gray-200 shadow-xl z-40 transform transition-transform duration-300 ease-in-out
@@ -43,6 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     <X size={20} />
                 </button>
             </div>
+
 
             {/* Menu */}
             <nav className="flex-1 overflow-y-auto p-3 space-y-1">
@@ -63,7 +60,6 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </NavLink>
                 ))}
             </nav>
-
             {/* Logout */}
             <div className="border-t border-gray-700 p-4">
                 <button
@@ -75,7 +71,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </button>
             </div>
         </aside>
-    );
-};
+    )
+}
 
-export default Sidebar;
+export default Sidebar
