@@ -1,3 +1,4 @@
+import { io } from "../index.js";
 import Dosen from "../models/Dosen.js";
 import LogAktivitas from "../models/LogAktivitas.js";
 import Mahasiswa from "../models/Mahasiswa.js";
@@ -5,8 +6,6 @@ import Message from "../models/Message.js";
 import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import User from "../models/User.js";
-
-
 
 // Send message dalam bimbingan
 export const sendMessage = async (req, res) => {
@@ -16,88 +15,93 @@ export const sendMessage = async (req, res) => {
         const attachmentPath = req.file ? req.file.filename : null;
         const attachmentName = req.file ? req.file.originalname : null;
 
-        // Validasi pengajuan
         const pengajuan = await PengajuanJudul.findByPk(id_pengajuan, {
-            include: [{ model: Mahasiswa }]
+            include: [{ model: Mahasiswa }],
         });
-
         if (!pengajuan) {
-            return res.status(404).json({
-                success: false,
-                message: "Pengajuan tidak ditemukan"
-            });
+            return res.status(404).json({ success: false, message: "Pengajuan tidak ditemukan" });
         }
 
-        // Cek authorization - hanya mahasiswa pemilik atau dosen pembimbing yang bisa kirim message
         const userRole = req.session.role;
         const userId = req.session.userId;
-
-        if (userRole === 'mahasiswa') {
-            const mahasiswa = await Mahasiswa.findOne({ where: { id_user: userId } });
-            if (pengajuan.id_mahasiswa !== mahasiswa.id_mahasiswa) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Tidak memiliki akses"
-                });
-            }
-        } else if (userRole === 'dosen') {
-            const dosen = await Dosen.findOne({ where: { id_user: userId } });
-            if (pengajuan.dosenId1 !== dosen.id_dosen && pengajuan.dosenId2 !== dosen.id_dosen) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Tidak memiliki akses"
-                });
-            }
+        if (!userRole || !userId) {
+            return res.status(401).json({ success: false, message: "Sesi pengguna tidak ditemukan" });
         }
 
-        const message = await Message.create({
+        // 🔐 Validasi hak akses
+        if (userRole === "mahasiswa") {
+            const mhs = await Mahasiswa.findOne({ where: { id_user: userId } });
+            if (pengajuan.id_mahasiswa !== mhs.id_mahasiswa)
+                return res.status(403).json({ success: false, message: "Tidak memiliki akses" });
+        } else if (userRole === "dosen") {
+            const dosen = await Dosen.findOne({ where: { id_user: userId } });
+            if (![pengajuan.dosenId1, pengajuan.dosenId2, pengajuan.dosenId3].includes(dosen.id_dosen))
+                return res.status(403).json({ success: false, message: "Tidak memiliki akses" });
+        }
+
+        // 💬 Simpan pesan
+        const newMsg = await Message.create({
             id_pengajuan,
             senderId: userId,
             content,
             attachmentPath,
-            attachmentName
+            attachmentName,
         });
 
-        // Create notification untuk pihak lain
-        if (userRole === 'mahasiswa') {
-            // Notify dosen
-            const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2].filter(Boolean);
-            for (const dosenId of dosenIds) {
-                const dosen = await Dosen.findByPk(dosenId);
-                await Notifikasi.create({
-                    id_user: dosen.id_user,
-                    type: 'NEW_MESSAGE',
-                    message: `Pesan baru dari ${pengajuan.Mahasiswa.nama_lengkap}`
-                });
+        // Ambil pesan lengkap dengan relasi
+        const fullMsg = await Message.findByPk(newMsg.id_message, {
+            include: [
+                {
+                    model: User,
+                    as: "User",
+                    attributes: ["email", "role"],
+                    include: [
+                        { model: Dosen, attributes: ["nama"] },
+                        { model: Mahasiswa, attributes: ["nama_lengkap"] },
+                    ],
+                },
+            ],
+        });
+
+        // 🚀 PENTING: Emit SEBELUM response agar client langsung terima
+        console.log("📤 Emitting message to room:", id_pengajuan);
+        io.to(`room_${id_pengajuan}`).emit("message:new", fullMsg);
+
+        // 🔔 Kirim notifikasi
+        if (userRole === "mahasiswa") {
+            const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2, pengajuan.dosenId3].filter(Boolean);
+            for (const id of dosenIds) {
+                const dosen = await Dosen.findByPk(id);
+                if (dosen) {
+                    const notif = await Notifikasi.create({
+                        id_user: dosen.id_user,
+                        type: "NEW_MESSAGE",
+                        message: `Pesan baru dari ${pengajuan.Mahasiswa.nama_lengkap}`,
+                    });
+                    io.to(`user_${dosen.id_user}`).emit("notification:new", notif);
+                }
             }
-        } else if (userRole === 'dosen') {
-            // Notify mahasiswa
-            await Notifikasi.create({
+        } else if (userRole === "dosen") {
+            const notif = await Notifikasi.create({
                 id_user: pengajuan.Mahasiswa.id_user,
-                type: 'NEW_MESSAGE',
-                message: 'Pesan baru dari dosen pembimbing'
+                type: "NEW_MESSAGE",
+                message: "Pesan baru dari dosen pembimbing",
             });
+            io.to(`user_${pengajuan.Mahasiswa.id_user}`).emit("notification:new", notif);
         }
 
-        // Log aktivitas
+        // 🧾 Log aktivitas
         await LogAktivitas.create({
             id_user: userId,
             id_pengajuan,
-            type: 'SEND_MESSAGE',
-            description: userRole === 'mahasiswa' ? 'Mahasiswa mengirim pesan' : 'Dosen mengirim pesan'
+            type: "SEND_MESSAGE",
+            description: `${userRole} mengirim pesan`,
         });
 
-        res.status(201).json({
-            success: true,
-            message: "Pesan berhasil dikirim",
-            data: message
-        });
+        res.status(201).json({ success: true, message: "Pesan berhasil dikirim", data: fullMsg });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message
-        });
+        console.error("❌ Send message error:", error);
+        res.status(500).json({ success: false, message: "Internal server error", error: error.message });
     }
 };
 
@@ -105,13 +109,13 @@ export const sendMessage = async (req, res) => {
 export const getMessages = async (req, res) => {
     try {
         const { id_pengajuan } = req.params;
-        const { page = 1, limit = 20 } = req.query;
+        const { page = 1, limit = 50 } = req.query; // Naikkan limit default
 
         const messages = await Message.findAndCountAll({
             where: { id_pengajuan },
             include: [{
                 model: User,
-                as: 'User', // 🟢 penting!
+                as: 'User',
                 attributes: ['email', 'role'],
                 include: [
                     { model: Dosen, attributes: ['nama'] },
@@ -122,7 +126,6 @@ export const getMessages = async (req, res) => {
             limit: parseInt(limit),
             offset: (page - 1) * limit
         });
-
 
         res.status(200).json({
             success: true,
@@ -137,6 +140,7 @@ export const getMessages = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error("❌ Get messages error:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
@@ -195,6 +199,7 @@ export const exportChatHistory = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error("❌ Export chat error:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
