@@ -13,6 +13,10 @@ import KonfigurasiSistem from './pages/admin/KonfigurasiSistem';
 import ProfileAdmin from './pages/admin/ProfileAdmin';
 import ListMahasiswaBimbingan from './pages/dosen/ListMahasiswaBimbingan';
 import ChatMahasiswa from './pages/dosen/ChatMahasiswa';
+import ListPengajuanDosen from './pages/dosen/ListPengajuanDosen';
+import ProfileDosen from './pages/dosen/ProfileDosen';
+import MahasiswaProfile from './pages/mahasiswa/MahasiswaProfile';
+import Pengajuan from './pages/mahasiswa/Pengajuan';
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -121,6 +125,14 @@ const App = () => {
           }
         />
         <Route
+          path="/dosen/profile"
+          element={
+            <DosenRoute>
+              <ProfileDosen />
+            </DosenRoute>
+          }
+        />
+        <Route
           path="/dosen/chat/:id_pengajuan"
           element={
             <DosenRoute>
@@ -135,6 +147,22 @@ const App = () => {
           element={
             <MahasiswaRoute>
               <DashboardMahasiswa />
+            </MahasiswaRoute>
+          }
+        />
+        <Route
+          path="/mahasiswa/pengajuan"
+          element={
+            <MahasiswaRoute>
+              <Pengajuan />
+            </MahasiswaRoute>
+          }
+        />
+        <Route
+          path="/mahasiswa/profile"
+          element={
+            <MahasiswaRoute>
+              <MahasiswaProfile />
             </MahasiswaRoute>
           }
         />

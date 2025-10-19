@@ -128,7 +128,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     <MenuIcon size={24} />
                 </button>
                 <h1 className="text-base md:text-lg font-semibold text-gray-800 tracking-wide">
-                    Dashboard Dosen
+                    Dashboard Mahasisswa
                 </h1>
             </div>
 
@@ -193,8 +193,8 @@ const Navbar = ({ onToggleSidebar }) => {
                                         >
                                             <p
                                                 className={`text-sm ${notif.isRead
-                                                        ? "text-gray-600"
-                                                        : "text-gray-800 font-medium"
+                                                    ? "text-gray-600"
+                                                    : "text-gray-800 font-medium"
                                                     }`}
                                             >
                                                 {notif.message}
@@ -223,7 +223,7 @@ const Navbar = ({ onToggleSidebar }) => {
                 <Menu as="div" className="relative">
                     <Menu.Button className="flex items-center gap-2 focus:outline-none">
                         <span className="hidden sm:block text-sm text-gray-800 font-medium truncate max-w-[100px]">
-                            {user?.Dosens?.[0]?.nama || "Dosen"}
+                            {user?.Mahasiswa?.nama_lengkap || "Mahasiswa"}
                         </span>
                         <ChevronDown className="w-4 h-4 text-gray-600" />
                     </Menu.Button>
@@ -242,7 +242,7 @@ const Navbar = ({ onToggleSidebar }) => {
                                 <Menu.Item>
                                     {({ active }) => (
                                         <button
-                                            onClick={() => navigate("/dosen/profile")}
+                                            onClick={() => navigate("/mahasiswa/profile")}
                                             className={`${active ? "bg-gray-100" : ""
                                                 } flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700`}
                                         >
