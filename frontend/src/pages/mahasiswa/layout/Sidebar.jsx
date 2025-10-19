@@ -8,6 +8,9 @@ import {
     LogOut,
     X,
     Settings,
+    BookOpen,
+    MessageSquare,
+    BookOpenText,
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -21,7 +24,10 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     const menuItems = [
         { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/mahasiswa/dashboard' },
-        { name: 'Pengajuan', icon: <LayoutDashboard size={20} />, path: '/mahasiswa/pengajuan' },
+        { name: 'Pengajuan', icon: <FileText size={20} />, path: '/mahasiswa/pengajuan' },
+        { name: 'Upload Bab', icon: <BookOpen size={20} />, path: '/mahasiswa/upload-bab' },
+        { name: 'Bimbingan', icon: <MessageSquare size={20} />, path: '/mahasiswa/bimbingan' },
+        { name: 'Laporan Akhir', icon: <BookOpenText size={20} />, path: '/mahasiswa/laporan-akhir' },
     ]
     return (
         <aside

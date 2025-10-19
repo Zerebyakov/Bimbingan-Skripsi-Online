@@ -17,6 +17,8 @@ import ListPengajuanDosen from './pages/dosen/ListPengajuanDosen';
 import ProfileDosen from './pages/dosen/ProfileDosen';
 import MahasiswaProfile from './pages/mahasiswa/MahasiswaProfile';
 import Pengajuan from './pages/mahasiswa/Pengajuan';
+import UploadBab from './pages/mahasiswa/UploadBab';
+import Bimbingan from './pages/mahasiswa/Bimbingan';
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -163,6 +165,22 @@ const App = () => {
           element={
             <MahasiswaRoute>
               <MahasiswaProfile />
+            </MahasiswaRoute>
+          }
+        />
+        <Route
+          path="/mahasiswa/upload-bab"
+          element={
+            <MahasiswaRoute>
+              <UploadBab />
+            </MahasiswaRoute>
+          }
+        />
+        <Route
+          path="/mahasiswa/bimbingan"
+          element={
+            <MahasiswaRoute>
+              <Bimbingan />
             </MahasiswaRoute>
           }
         />
