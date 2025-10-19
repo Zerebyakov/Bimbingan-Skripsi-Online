@@ -1,150 +1,110 @@
 import multer from "multer";
-import path from 'path'
-import fs from 'fs'
+import path from "path";
+import fs from "fs";
 
-
-
+// === Helper untuk pastikan folder upload ada ===
 const createUploadDir = (dir) => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
 };
 
-const proposalStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = 'uploads/proposals/';
-        createUploadDir(uploadDir);
-        cb(null, uploadDir);
+// === Konfigurasi Storage Dinamis ===
+const storageConfig = {
+    proposal: {
+        folder: "uploads/proposals/",
+        prefix: "proposal-",
+        limit: 10 * 1024 * 1024, // 10MB
+        filter: [".pdf", ".doc", ".docx"],
     },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'proposal-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-// Storage configuration untuk bab
-const babStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = 'uploads/bab/';
-        createUploadDir(uploadDir);
-        cb(null, uploadDir);
+    bab: {
+        folder: "uploads/bab/",
+        prefix: "bab-",
+        limit: 15 * 1024 * 1024, // 15MB
+        filter: [".pdf", ".doc", ".docx"],
     },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'bab-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-// Storage configuration untuk laporan akhir
-const laporanStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = 'uploads/laporan/';
-        createUploadDir(uploadDir);
-        cb(null, uploadDir);
+    laporan: {
+        folder: "uploads/laporan/",
+        prefix: "laporan-",
+        limit: 20 * 1024 * 1024, // 20MB
+        filter: [".pdf", ".doc", ".docx"],
     },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-// Storage configuration untuk chat attachments
-const chatStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = 'uploads/chat/';
-        createUploadDir(uploadDir);
-        cb(null, uploadDir);
+    chat: {
+        folder: "uploads/chat/",
+        prefix: "chat-",
+        limit: 5 * 1024 * 1024, // 5MB
+        filter: [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".txt"],
     },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'chat-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-// File filter untuk dokumen
-const documentFilter = (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.doc', '.docx'];
-    const fileExtension = path.extname(file.originalname).toLowerCase();
-
-    if (allowedTypes.includes(fileExtension)) {
-        cb(null, true);
-    } else {
-        cb(new Error('File harus berformat PDF, DOC, atau DOCX'), false);
-    }
 };
 
-// File filter untuk chat (lebih fleksibel)
-const chatFilter = (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt'];
-    const fileExtension = path.extname(file.originalname).toLowerCase();
+// === Fungsi utama upload dinamis ===
+const upload = (type = "bab") => {
+    const config = storageConfig[type] || storageConfig["bab"];
 
-    if (allowedTypes.includes(fileExtension)) {
-        cb(null, true);
-    } else {
-        cb(new Error('File tidak didukung'), false);
+    const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            createUploadDir(config.folder);
+            cb(null, config.folder);
+        },
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+            cb(null, config.prefix + uniqueSuffix + path.extname(file.originalname));
+        },
+    });
+
+    const fileFilter = (req, file, cb) => {
+        const fileExt = path.extname(file.originalname).toLowerCase();
+        if (config.filter.includes(fileExt)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`File tidak didukung (${config.filter.join(", ")})`), false);
+        }
+    };
+
+    const multerInstance = multer({
+        storage,
+        fileFilter,
+        limits: { fileSize: config.limit },
+    });
+
+    // Untuk laporan akhir yang memiliki beberapa file
+    if (type === "laporan") {
+        return multerInstance.fields([
+            { name: "finalFile", maxCount: 1 },
+            { name: "abstrakFile", maxCount: 1 },
+            { name: "pengesahanFile", maxCount: 1 },
+            { name: "pernyataanFile", maxCount: 1 },
+            { name: "presentasiFile", maxCount: 1 },
+        ]);
     }
+
+    // Default: single file
+    return multerInstance.single("file");
 };
 
-// Multer instances
-export const uploadProposal = multer({
-    storage: proposalStorage,
-    fileFilter: documentFilter,
-    limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB
-    }
-}).single('proposal_file');
-
-export const uploadBab = multer({
-    storage: babStorage,
-    fileFilter: documentFilter,
-    limits: {
-        fileSize: 15 * 1024 * 1024 // 15MB
-    }
-}).single('bab_file');
-
-export const uploadLaporan = multer({
-    storage: laporanStorage,
-    fileFilter: documentFilter,
-    limits: {
-        fileSize: 20 * 1024 * 1024 // 20MB
-    }
-}).fields([
-    { name: 'finalFile', maxCount: 1 },
-    { name: 'abstrakFile', maxCount: 1 },
-    { name: 'pengesahanFile', maxCount: 1 },
-    { name: 'pernyataanFile', maxCount: 1 },
-    { name: 'presentasiFile', maxCount: 1 }
-]);
-
-export const uploadChatAttachment = multer({
-    storage: chatStorage,
-    fileFilter: chatFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB
-    }
-}).single('attachment');
-
-// Error handling middleware untuk multer
+// === Error handling bawaan ===
 export const handleUploadError = (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
+        if (err.code === "LIMIT_FILE_SIZE") {
             return res.status(400).json({
                 success: false,
-                message: 'File terlalu besar'
+                message: "Ukuran file terlalu besar.",
             });
         }
         return res.status(400).json({
             success: false,
-            message: err.message
+            message: err.message,
         });
     }
 
     if (err) {
         return res.status(400).json({
             success: false,
-            message: err.message
+            message: err.message,
         });
     }
 
     next();
 };
+
+export default upload;

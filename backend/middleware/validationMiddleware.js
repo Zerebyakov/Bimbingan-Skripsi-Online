@@ -183,3 +183,74 @@ export const validatePagination = [
         .withMessage('Limit harus 1-100'),
     handleValidationErrors
 ];
+
+// Validation untuk update profile
+export const validateUpdateProfile = (req, res, next) => {
+    const { email } = req.body;
+    const userRole = req.session.role;
+
+    // Validasi email jika ada
+    if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Format email tidak valid"
+            });
+        }
+    }
+
+    // Validasi berdasarkan role
+    if (userRole === 'dosen') {
+        const { kontak, email_institusi } = req.body;
+
+        // Validasi nomor kontak jika ada
+        if (kontak) {
+            const phoneRegex = /^[0-9]{10,15}$/;
+            if (!phoneRegex.test(kontak)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Format nomor kontak tidak valid (10-15 digit)"
+                });
+            }
+        }
+
+        // Validasi email institusi jika ada
+        if (email_institusi) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email_institusi)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Format email institusi tidak valid"
+                });
+            }
+        }
+
+    } else if (userRole === 'mahasiswa') {
+        const { kontak, email_kampus } = req.body;
+
+        // Validasi nomor kontak jika ada
+        if (kontak) {
+            const phoneRegex = /^[0-9]{10,15}$/;
+            if (!phoneRegex.test(kontak)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Format nomor kontak tidak valid (10-15 digit)"
+                });
+            }
+        }
+
+        // Validasi email kampus jika ada
+        if (email_kampus) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email_kampus)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Format email kampus tidak valid"
+                });
+            }
+        }
+    }
+
+    next();
+};

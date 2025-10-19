@@ -1,59 +1,60 @@
-import express from 'express'
-import { verifyMahasiswa, verifySession } from '../middleware/authMiddleware.js';
-import { 
-    ajukanJudul, 
-    generateKartuBimbingan, 
-    getMahasiswaDashboard, 
-    uploadBab, 
-    uploadBab as uploadBabFile,
-    uploadLaporanAkhir
-
-} from '../controllers/MahasiswaController.js';
-import { handleUploadError, uploadLaporan, uploadProposal } from '../middleware/fileUploadMiddleware.js';
-import { logActivity } from '../middleware/loggingMiddleware.js';
-import { validatePengajuanJudul, validateUploadBab } from '../middleware/validationMiddleware.js';
-
-
-
+import express from "express";
+import { verifyMahasiswa, verifySession } from "../middleware/authMiddleware.js";
+import {
+    ajukanJudul,
+    generateKartuBimbingan,
+    getMahasiswaDashboard,
+    uploadBab,
+    uploadLaporanAkhir,
+} from "../controllers/MahasiswaController.js";
+import upload, { handleUploadError } from "../middleware/fileUploadMiddleware.js";
+import { logActivity } from "../middleware/loggingMiddleware.js";
+import {
+    validatePengajuanJudul,
+    validateUploadBab,
+} from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 
-// Semua route mahasiswa memerlukan session dan role mahasiswa
 router.use(verifySession);
 router.use(verifyMahasiswa);
 
-// Dashboard routes
-router.get('/dashboard', getMahasiswaDashboard);
+// Dashboard Mahasiswa
+router.get("/dashboard", getMahasiswaDashboard);
 
-// Pengajuan judul
-router.post('/pengajuan-judul',
-    uploadProposal,
+
+// Pengajuan Judul
+router.post(
+    "/pengajuan-judul",
+    upload("proposal"), // otomatis pakai folder /uploads/proposals
     handleUploadError,
     validatePengajuanJudul,
-    logActivity('AJUKAN_JUDUL', req => `Mahasiswa mengajukan judul: ${req.body.title}`),
+    logActivity("AJUKAN_JUDUL", (req) => `Mahasiswa mengajukan judul: ${req.body.title}`),
     ajukanJudul
 );
 
-// Upload bab
-router.post('/upload-bab',
-    uploadBabFile,
+// Upload Bab
+router.post(
+    "/upload-bab",
+    upload("bab"), // otomatis pakai folder /uploads/bab
     handleUploadError,
     validateUploadBab,
-    logActivity('UPLOAD_BAB', req => `Mahasiswa upload Bab ${req.body.chapter_number}`),
+    logActivity("UPLOAD_BAB", (req) => `Mahasiswa upload Bab ${req.body.chapter_number}`),
     uploadBab
 );
 
-// Generate kartu bimbingan
-router.post('/kartu-bimbingan',
-    logActivity('GENERATE_KARTU', 'Mahasiswa generate kartu bimbingan'),
+// Generate Kartu Bimbingan
+router.post(
+    "/kartu-bimbingan",
+    logActivity("GENERATE_KARTU", "Mahasiswa generate kartu bimbingan"),
     generateKartuBimbingan
 );
 
-// Upload laporan akhir
-router.post('/laporan-akhir',
-    uploadLaporan,
+// Laporan Akhir
+router.post("/laporan-akhir",
+    upload("laporan"), // otomatis handle multiple file field
     handleUploadError,
-    logActivity('UPLOAD_LAPORAN', 'Mahasiswa upload laporan akhir'),
+    logActivity("UPLOAD_LAPORAN", "Mahasiswa upload laporan akhir"),
     uploadLaporanAkhir
 );
 

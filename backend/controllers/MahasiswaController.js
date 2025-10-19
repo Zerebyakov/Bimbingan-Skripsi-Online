@@ -101,18 +101,17 @@ export const ajukanJudul = async (req, res) => {
         const proposal_file = req.file ? req.file.filename : null;
 
         const mahasiswaData = await Mahasiswa.findOne({
-            where: { id_user: req.session.userId }
+            where: { id_user: req.session.userId },
         });
 
-        // Cek apakah sudah ada pengajuan
         const existingPengajuan = await PengajuanJudul.findOne({
-            where: { id_mahasiswa: mahasiswaData.id_mahasiswa }
+            where: { id_mahasiswa: mahasiswaData.id_mahasiswa },
         });
 
         if (existingPengajuan) {
             return res.status(400).json({
                 success: false,
-                message: "Anda sudah memiliki pengajuan judul"
+                message: "Anda sudah memiliki pengajuan judul",
             });
         }
 
@@ -123,27 +122,27 @@ export const ajukanJudul = async (req, res) => {
             bidang_topik,
             keywords,
             proposal_file,
-            status: 'diajukan'
+            status: "diajukan",
         });
 
-        // Log aktivitas
         await LogAktivitas.create({
             id_user: req.session.userId,
             id_pengajuan: pengajuan.id_pengajuan,
-            type: 'AJUKAN_JUDUL',
-            description: `Mahasiswa mengajukan judul: ${title}`
+            type: "AJUKAN_JUDUL",
+            description: `Mahasiswa mengajukan judul: ${title}`,
         });
 
         res.status(201).json({
             success: true,
             message: "Judul berhasil diajukan",
-            data: pengajuan
+            data: pengajuan,
         });
     } catch (error) {
+        console.error("Ajukan Judul Error:", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error",
-            error: error.message
+            message: "Terjadi kesalahan server",
+            error: error.message,
         });
     }
 };
@@ -152,103 +151,107 @@ export const ajukanJudul = async (req, res) => {
 export const uploadBab = async (req, res) => {
     try {
         const { chapter_number } = req.body;
-        const file_path = req.file.filename;
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "Tidak ada file yang diupload",
+            });
+        }
 
         const mahasiswaData = await Mahasiswa.findOne({
-            where: { id_user: req.session.userId }
+            where: { id_user: req.session.userId },
         });
 
         const pengajuan = await PengajuanJudul.findOne({
             where: {
                 id_mahasiswa: mahasiswaData.id_mahasiswa,
-                status: 'diterima'
-            }
+                status: "diterima",
+            },
         });
 
         if (!pengajuan) {
             return res.status(400).json({
                 success: false,
-                message: "Pengajuan judul belum diterima"
+                message: "Pengajuan judul belum diterima",
             });
         }
 
-        // Cek apakah bab sebelumnya sudah diterima (untuk chapter > 1)
+        // Validasi Bab berurutan
         if (chapter_number > 1) {
             const prevBab = await BabSubmission.findOne({
                 where: {
                     id_pengajuan: pengajuan.id_pengajuan,
                     chapter_number: chapter_number - 1,
-                    status: 'diterima'
-                }
+                    status: "diterima",
+                },
             });
-
             if (!prevBab) {
                 return res.status(400).json({
                     success: false,
-                    message: `Bab ${chapter_number - 1} harus diterima terlebih dahulu`
+                    message: `Bab ${chapter_number - 1} harus diterima terlebih dahulu`,
                 });
             }
         }
 
-        // Cek apakah bab sudah ada
+        // Simpan/Update data Bab
         let babSubmission = await BabSubmission.findOne({
             where: {
                 id_pengajuan: pengajuan.id_pengajuan,
-                chapter_number
-            }
+                chapter_number,
+            },
         });
 
         if (babSubmission) {
-            // Update existing submission
             await babSubmission.update({
-                file_path,
+                file_path: req.file.filename,
                 original_name: req.file.originalname,
                 mimeType: req.file.mimetype,
-                status: 'menunggu',
-                submittedAt: new Date()
+                status: "menunggu",
+                submittedAt: new Date(),
             });
         } else {
-            // Create new submission
             babSubmission = await BabSubmission.create({
                 id_pengajuan: pengajuan.id_pengajuan,
                 chapter_number,
-                file_path,
+                file_path: req.file.filename,
                 original_name: req.file.originalname,
                 mimeType: req.file.mimetype,
-                status: 'menunggu',
-                submittedAt: new Date()
+                status: "menunggu",
+                submittedAt: new Date(),
             });
         }
 
-        // Create notification untuk dosen
-        const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2].filter(Boolean);
+        // Kirim notifikasi ke dosen pembimbing
+        const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2, pengajuan.dosenId3].filter(Boolean);
         for (const dosenId of dosenIds) {
             const dosen = await Dosen.findByPk(dosenId);
-            await Notifikasi.create({
-                id_user: dosen.id_user,
-                type: 'UPLOAD_BAB',
-                message: `${mahasiswaData.nama_lengkap} mengirim Bab ${chapter_number}`
-            });
+            if (dosen) {
+                await Notifikasi.create({
+                    id_user: dosen.id_user,
+                    type: "UPLOAD_BAB",
+                    message: `${mahasiswaData.nama_lengkap} mengirim Bab ${chapter_number}`,
+                });
+            }
         }
 
-        // Log aktivitas
         await LogAktivitas.create({
             id_user: req.session.userId,
             id_pengajuan: pengajuan.id_pengajuan,
-            type: 'UPLOAD_BAB',
-            description: `Mahasiswa upload Bab ${chapter_number}`
+            type: "UPLOAD_BAB",
+            description: `Mahasiswa upload Bab ${chapter_number}`,
         });
 
         res.status(201).json({
             success: true,
             message: `Bab ${chapter_number} berhasil diupload`,
-            data: babSubmission
+            data: babSubmission,
         });
     } catch (error) {
+        console.error("Upload Bab Error:", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error",
-            error: error.message
+            message: "Terjadi kesalahan pada server",
+            error: error.message,
         });
     }
 };
@@ -327,76 +330,77 @@ export const generateKartuBimbingan = async (req, res) => {
 // Upload laporan akhir
 export const uploadLaporanAkhir = async (req, res) => {
     try {
-        const files = req.files;
+        const files = req.files || {};
         const mahasiswaData = await Mahasiswa.findOne({
-            where: { id_user: req.session.userId }
+            where: { id_user: req.session.userId },
         });
 
         const pengajuan = await PengajuanJudul.findOne({
             where: {
                 id_mahasiswa: mahasiswaData.id_mahasiswa,
-                status: 'diterima'
-            }
+                status: "diterima",
+            },
         });
 
         if (!pengajuan) {
             return res.status(400).json({
                 success: false,
-                message: "Pengajuan tidak ditemukan"
+                message: "Pengajuan tidak ditemukan",
             });
         }
 
-        let laporanAkhir = await LaporanAkhir.findOne({
-            where: { id_pengajuan: pengajuan.id_pengajuan }
-        });
-
         const fileData = {
-            finalFile: files.finalFile ? files.finalFile[0].filename : null,
-            abstrakFile: files.abstrakFile ? files.abstrakFile[0].filename : null,
-            pengesahanFile: files.pengesahanFile ? files.pengesahanFile[0].filename : null,
-            pernyataanFile: files.pernyataanFile ? files.pernyataanFile[0].filename : null,
-            presentasiFile: files.presentasiFile ? files.presentasiFile[0].filename : null,
-            status: 'MENUNGGU'
+            finalFile: files.finalFile?.[0]?.filename || null,
+            abstrakFile: files.abstrakFile?.[0]?.filename || null,
+            pengesahanFile: files.pengesahanFile?.[0]?.filename || null,
+            pernyataanFile: files.pernyataanFile?.[0]?.filename || null,
+            presentasiFile: files.presentasiFile?.[0]?.filename || null,
+            status: "MENUNGGU",
         };
+
+        let laporanAkhir = await LaporanAkhir.findOne({
+            where: { id_pengajuan: pengajuan.id_pengajuan },
+        });
 
         if (laporanAkhir) {
             await laporanAkhir.update(fileData);
         } else {
             laporanAkhir = await LaporanAkhir.create({
                 id_pengajuan: pengajuan.id_pengajuan,
-                ...fileData
+                ...fileData,
             });
         }
 
-        // Create notification untuk dosen
-        const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2].filter(Boolean);
+        const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2, pengajuan.dosenId3].filter(Boolean);
         for (const dosenId of dosenIds) {
             const dosen = await Dosen.findByPk(dosenId);
-            await Notifikasi.create({
-                id_user: dosen.id_user,
-                type: 'UPLOAD_LAPORAN',
-                message: `${mahasiswaData.nama_lengkap} mengirim laporan akhir`
-            });
+            if (dosen) {
+                await Notifikasi.create({
+                    id_user: dosen.id_user,
+                    type: "UPLOAD_LAPORAN",
+                    message: `${mahasiswaData.nama_lengkap} mengirim laporan akhir`,
+                });
+            }
         }
 
-        // Log aktivitas
         await LogAktivitas.create({
             id_user: req.session.userId,
             id_pengajuan: pengajuan.id_pengajuan,
-            type: 'UPLOAD_LAPORAN',
-            description: 'Mahasiswa upload laporan akhir'
+            type: "UPLOAD_LAPORAN",
+            description: "Mahasiswa upload laporan akhir",
         });
 
         res.status(201).json({
             success: true,
             message: "Laporan akhir berhasil diupload",
-            data: laporanAkhir
+            data: laporanAkhir,
         });
     } catch (error) {
+        console.error("Upload Laporan Error:", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error",
-            error: error.message
+            message: "Terjadi kesalahan pada server",
+            error: error.message,
         });
     }
 };
