@@ -9,6 +9,7 @@ import Message from "../models/Message.js";
 import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import LogAktivitas from "../models/LogAktivitas.js";
+import User from "../models/User.js";
 
 // Setup multer untuk upload file
 const storage = multer.diskStorage({
@@ -42,10 +43,24 @@ export const getMahasiswaDashboard = async (req, res) => {
             include: [
                 { model: Dosen, as: 'Pembimbing1' },
                 { model: Dosen, as: 'Pembimbing2' },
+                { model: Dosen, as: 'Pembimbing3' },
                 { model: BabSubmission },
-                { model: Message, limit: 5, order: [['createdAt', 'DESC']] }
-            ]
+                {
+                    model: Message,
+                    as: "Messages", // Tambahkan alias
+                    limit: 5,
+                    order: [["createdAt", "DESC"]],
+                    include: [
+                        {
+                            model: User,
+                            as: "User", // karena Message.belongsTo(User, { as: "User" })
+                            attributes: ["email", "role"],
+                        },
+                    ],
+                },
+            ],
         });
+
 
         // Hitung progress
         let progress = 0;
