@@ -3,10 +3,37 @@ import User from '../models/User.js';
 import Dosen from '../models/Dosen.js';
 import Mahasiswa from '../models/Mahasiswa.js';
 import ProgramStudi from '../models/ProgramStudi.js';
+import fs from "fs";
+import path from "path";
+
+const BASE_URL = process.env.BASE_URL
+
+// Helper hapus file lama
+const deleteOldFile = (filePath) => {
+    try {
+        if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (err) {
+        console.error("Gagal hapus file lama:", err.message);
+    }
+};
+
+// Helper ubah path file ke URL publik
+const fileToUrl = (filePath) => {
+    if (!filePath) return null;
+    return `${BASE_URL}/${filePath.replace(/\\/g, "/")}`;
+};
 
 
-
-
+const formatUserData = (user, role) => {
+    const data = user.toJSON();
+    if (role === "mahasiswa" && data.Mahasiswa) {
+        data.Mahasiswa.foto = fileToUrl(data.Mahasiswa.foto);
+    }
+    if (role === "dosen" && data.Dosens?.length) {
+        data.Dosens[0].foto = fileToUrl(data.Dosens[0].foto);
+    }
+    return data;
+};
 
 // Login user (Admin, Dosen, Mahasiswa)
 export const login = async (req, res) => {
@@ -91,38 +118,40 @@ export const logout = (req, res) => {
 };
 
 // Get user profile
+
 export const getProfile = async (req, res) => {
     try {
-        const user = await User.findByPk(req.session.userId, {
-            attributes: ['id_user', 'email', 'role', 'status'],
+        const userId = req.session.userId;
+        const role = req.session.role;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "Silakan login terlebih dahulu" });
+        }
+
+        const user = await User.findByPk(userId, {
+            attributes: ["id_user", "email", "role", "status"],
             include: [
-                {
-                    model: Dosen,
-                    include: [{ model: ProgramStudi }]
-                },
-                {
-                    model: Mahasiswa,
-                    include: [{ model: ProgramStudi }]
-                }
-            ]
+                { model: Dosen, include: [{ model: ProgramStudi }] },
+                { model: Mahasiswa, include: [{ model: ProgramStudi }] },
+            ],
         });
 
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User tidak ditemukan"
-            });
+            return res.status(404).json({ success: false, message: "User tidak ditemukan" });
         }
+
+        const formattedData = formatUserData(user, role);
 
         res.status(200).json({
             success: true,
-            data: user
+            data: formattedData,
         });
     } catch (error) {
+        console.error("getProfile error:", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error",
-            error: error.message
+            message: "Terjadi kesalahan saat mengambil data profil",
+            error: error.message,
         });
     }
 };
@@ -162,168 +191,98 @@ export const updatePassword = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const userId = req.session.userId;
-        const userRole = req.session.role;
+        const role = req.session.role;
 
-        // Cari user berdasarkan ID
         const user = await User.findByPk(userId, {
             include: [
-                {
-                    model: Dosen,
-                    include: [{ model: ProgramStudi }]
-                },
-                {
-                    model: Mahasiswa,
-                    include: [{ model: ProgramStudi }]
-                }
-            ]
+                { model: Dosen, include: [{ model: ProgramStudi }] },
+                { model: Mahasiswa, include: [{ model: ProgramStudi }] },
+            ],
         });
 
         if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: "User tidak ditemukan"
+            return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+        }
+
+        const uploadedFile = req.file ? req.file.path.replace(/\\/g, "/") : null;
+        const { email } = req.body;
+
+        // Cegah email duplikat
+        if (email && email !== user.email) {
+            const existing = await User.findOne({ where: { email } });
+            if (existing && existing.id_user !== userId) {
+                return res.status(400).json({ success: false, message: "Email sudah digunakan" });
+            }
+            await user.update({ email });
+        }
+
+        // ==================== ADMIN ====================
+        if (role === "admin") {
+            return res.status(200).json({
+                success: true,
+                message: "Profil admin berhasil diperbarui",
+                data: formatUserData(user, role),
             });
         }
 
-        // Update berdasarkan role
-        if (userRole === 'admin') {
-            // Admin hanya bisa update email di tabel User
-            const { email } = req.body;
-
-            if (email && email !== user.email) {
-                // Cek apakah email sudah digunakan
-                const existingUser = await User.findOne({ where: { email } });
-                if (existingUser && existingUser.id_user !== userId) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Email sudah digunakan"
-                    });
-                }
-                await user.update({ email });
-            }
-
-            const updatedUser = await User.findByPk(userId, {
-                attributes: ['id_user', 'email', 'role', 'status']
-            });
-
-            return res.status(200).json({
-                success: true,
-                message: "Profil berhasil diperbarui",
-                data: updatedUser
-            });
-
-        } else if (userRole === 'dosen') {
-            // Dosen bisa update email dan data profil dosen
+        // ==================== DOSEN ====================
+        if (role === "dosen") {
             const {
-                email,
                 nama,
                 gelar,
                 bidang_keahlian,
                 jabatan_akademik,
                 kontak,
                 email_institusi,
-                foto
             } = req.body;
-
-            // Update email di tabel User jika ada perubahan
-            if (email && email !== user.email) {
-                const existingUser = await User.findOne({ where: { email } });
-                if (existingUser && existingUser.id_user !== userId) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Email sudah digunakan"
-                    });
-                }
-                await user.update({ email });
-            }
-
-            // Update data dosen
             const dosen = user.Dosens[0];
-            if (dosen) {
-                const updateData = {};
-                if (nama) updateData.nama = nama;
-                if (gelar) updateData.gelar = gelar;
-                if (bidang_keahlian) updateData.bidang_keahlian = bidang_keahlian;
-                if (jabatan_akademik) updateData.jabatan_akademik = jabatan_akademik;
-                if (kontak) updateData.kontak = kontak;
-                if (email_institusi) updateData.email_institusi = email_institusi;
-                if (foto !== undefined) updateData.foto = foto;
 
+            if (dosen) {
+                const updateData = { nama, gelar, bidang_keahlian, jabatan_akademik, kontak, email_institusi };
+                if (uploadedFile) {
+                    if (dosen.foto) deleteOldFile(dosen.foto);
+                    updateData.foto = uploadedFile;
+                }
                 await dosen.update(updateData);
             }
-
-            const updatedUser = await User.findByPk(userId, {
-                attributes: ['id_user', 'email', 'role', 'status'],
-                include: [
-                    {
-                        model: Dosen,
-                        include: [{ model: ProgramStudi }]
-                    }
-                ]
-            });
-
-            return res.status(200).json({
-                success: true,
-                message: "Profil berhasil diperbarui",
-                data: updatedUser
-            });
-
-        } else if (userRole === 'mahasiswa') {
-            // Mahasiswa bisa update email dan data profil mahasiswa
-            const {
-                email,
-                nama_lengkap,
-                kontak,
-                email_kampus,
-                foto
-            } = req.body;
-
-            // Update email di tabel User jika ada perubahan
-            if (email && email !== user.email) {
-                const existingUser = await User.findOne({ where: { email } });
-                if (existingUser && existingUser.id_user !== userId) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Email sudah digunakan"
-                    });
-                }
-                await user.update({ email });
-            }
-
-            // Update data mahasiswa
-            const mahasiswa = user.Mahasiswa;
-            if (mahasiswa) {
-                const updateData = {};
-                if (nama_lengkap) updateData.nama_lengkap = nama_lengkap;
-                if (kontak) updateData.kontak = kontak;
-                if (email_kampus) updateData.email_kampus = email_kampus;
-                if (foto !== undefined) updateData.foto = foto;
-
-                await mahasiswa.update(updateData);
-            }
-
-            const updatedUser = await User.findByPk(userId, {
-                attributes: ['id_user', 'email', 'role', 'status'],
-                include: [
-                    {
-                        model: Mahasiswa,
-                        include: [{ model: ProgramStudi }]
-                    }
-                ]
-            });
-
-            return res.status(200).json({
-                success: true,
-                message: "Profil berhasil diperbarui",
-                data: updatedUser
-            });
         }
 
+        // ==================== MAHASISWA ====================
+        if (role === "mahasiswa") {
+            const { nama_lengkap, kontak, email_kampus } = req.body;
+            const mahasiswa = user.Mahasiswa;
+
+            if (mahasiswa) {
+                const updateData = { nama_lengkap, kontak, email_kampus };
+                if (uploadedFile) {
+                    if (mahasiswa.foto) deleteOldFile(mahasiswa.foto);
+                    updateData.foto = uploadedFile;
+                }
+                await mahasiswa.update(updateData);
+            }
+        }
+
+        // Ambil data terbaru
+        const updated = await User.findByPk(userId, {
+            attributes: ["id_user", "email", "role", "status"],
+            include: [
+                { model: Dosen, include: [{ model: ProgramStudi }] },
+                { model: Mahasiswa, include: [{ model: ProgramStudi }] },
+            ],
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Profil berhasil diperbarui",
+            data: formatUserData(updated, role),
+        });
     } catch (error) {
+        if (req.file) deleteOldFile(req.file.path);
+        console.error("updateProfile error:", error);
         res.status(500).json({
             success: false,
-            message: "Internal server error",
-            error: error.message
+            message: "Terjadi kesalahan saat memperbarui profil",
+            error: error.message,
         });
     }
 };

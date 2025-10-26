@@ -44,7 +44,7 @@ router.post(
 );
 
 // Generate Kartu Bimbingan
-router.post(
+router.get(
     "/kartu-bimbingan",
     logActivity("GENERATE_KARTU", "Mahasiswa generate kartu bimbingan"),
     generateKartuBimbingan
@@ -52,7 +52,7 @@ router.post(
 
 // Laporan Akhir
 router.post("/laporan-akhir",
-    upload("laporan"), // otomatis handle multiple file field
+    upload("laporan"), 
     handleUploadError,
     logActivity("UPLOAD_LAPORAN", "Mahasiswa upload laporan akhir"),
     uploadLaporanAkhir

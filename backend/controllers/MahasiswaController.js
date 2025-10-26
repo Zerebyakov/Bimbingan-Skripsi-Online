@@ -10,6 +10,7 @@ import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import LogAktivitas from "../models/LogAktivitas.js";
 import User from "../models/User.js";
+import KonfigurasiSistem from "../models/KonfigurasiSistem.js";
 
 // Setup multer untuk upload file
 const storage = multer.diskStorage({
@@ -47,25 +48,38 @@ export const getMahasiswaDashboard = async (req, res) => {
                 { model: BabSubmission },
                 {
                     model: Message,
-                    as: "Messages", // Tambahkan alias
+                    as: "Messages",
                     limit: 5,
                     order: [["createdAt", "DESC"]],
                     include: [
                         {
                             model: User,
-                            as: "User", // karena Message.belongsTo(User, { as: "User" })
+                            as: "User",
                             attributes: ["email", "role"],
                         },
                     ],
                 },
+                {
+                    model: LaporanAkhir,
+                    as: 'LaporanAkhir' // Pastikan alias sesuai dengan relasi
+                }
             ],
         });
 
+        // Ambil data laporan akhir
+        let laporan = null;
+        if (pengajuan) {
+            laporan = await LaporanAkhir.findOne({
+                where: { id_pengajuan: pengajuan.id_pengajuan }
+            });
+        }
 
         // Hitung progress
         let progress = 0;
         if (pengajuan && pengajuan.BabSubmissions) {
-            const babDiterima = pengajuan.BabSubmissions.filter(bab => bab.status === 'diterima').length;
+            const babDiterima = pengajuan.BabSubmissions.filter(
+                bab => bab.status === 'diterima'
+            ).length;
             progress = (babDiterima / 5) * 100; // Asumsi 5 bab
         }
 
@@ -81,11 +95,14 @@ export const getMahasiswaDashboard = async (req, res) => {
             data: {
                 mahasiswa: mahasiswaData,
                 pengajuan,
+                laporan, // PENTING: Kirim data laporan terpisah
+                laporanAkhir: laporan, // Alias tambahan untuk kompatibilitas
                 progress,
                 notifikasi
             }
         });
     } catch (error) {
+        console.error("Dashboard Error:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
@@ -263,6 +280,13 @@ export const generateKartuBimbingan = async (req, res) => {
             where: { id_user: req.session.userId }
         });
 
+        if (!mahasiswaData) {
+            return res.status(404).json({
+                success: false,
+                message: "Data mahasiswa tidak ditemukan"
+            });
+        }
+
         const pengajuan = await PengajuanJudul.findOne({
             where: {
                 id_mahasiswa: mahasiswaData.id_mahasiswa,
@@ -274,16 +298,34 @@ export const generateKartuBimbingan = async (req, res) => {
         if (!pengajuan) {
             return res.status(400).json({
                 success: false,
-                message: "Pengajuan tidak ditemukan"
+                message: "Pengajuan tidak ditemukan atau belum diterima"
+            });
+        }
+
+        // Cek laporan akhir sudah diterima
+        const laporanAkhir = await LaporanAkhir.findOne({
+            where: {
+                id_pengajuan: pengajuan.id_pengajuan,
+                status: 'diterima' // atau 'approved'
+            }
+        });
+
+        if (!laporanAkhir) {
+            return res.status(400).json({
+                success: false,
+                message: "Laporan akhir belum diterima oleh dosen pembimbing"
             });
         }
 
         // Cek apakah semua bab sudah diterima
-        const babDiterima = pengajuan.BabSubmissions.filter(bab => bab.status === 'diterima').length;
+        const babDiterima = pengajuan.BabSubmissions.filter(
+            bab => bab.status === 'diterima'
+        ).length;
+
         if (babDiterima < 5) {
             return res.status(400).json({
                 success: false,
-                message: "Semua bab harus diterima terlebih dahulu"
+                message: `Semua bab harus diterima terlebih dahulu (${babDiterima}/5 bab diterima)`
             });
         }
 
@@ -292,26 +334,38 @@ export const generateKartuBimbingan = async (req, res) => {
             where: { id_pengajuan: pengajuan.id_pengajuan }
         });
 
-        if (!kartuBimbingan) {
-            // Generate nomor kartu
-            const config = await KonfigurasiSistem.findOne();
-            const nomorKartu = config.formatNomorKartu +
-                mahasiswaData.nim +
-                new Date().getFullYear();
-
-            // Hitung total pertemuan dari message
-            const totalPertemuan = await Message.count({
-                where: { id_pengajuan: pengajuan.id_pengajuan }
-            });
-
-            kartuBimbingan = await KartuBimbingan.create({
-                id_pengajuan: pengajuan.id_pengajuan,
-                nomorKartu,
-                totalPertemuan,
-                totalBab: 5,
-                selesaiAt: new Date()
+        if (kartuBimbingan) {
+            return res.status(200).json({
+                success: true,
+                message: "Kartu bimbingan sudah pernah dibuat",
+                data: kartuBimbingan
             });
         }
+
+        // Generate nomor kartu
+        const config = await KonfigurasiSistem.findOne();
+        const tahun = new Date().getFullYear();
+        const nomorKartu = `${config?.formatNomorKartu || 'KB'}/${mahasiswaData.nim}/${tahun}`;
+
+        // Hitung total pertemuan dari message
+        const totalPertemuan = await Message.count({
+            where: { id_pengajuan: pengajuan.id_pengajuan }
+        });
+
+        kartuBimbingan = await KartuBimbingan.create({
+            id_pengajuan: pengajuan.id_pengajuan,
+            nomorKartu,
+            totalPertemuan,
+            totalBab: 5,
+            selesaiAt: new Date()
+        });
+
+        await LogAktivitas.create({
+            id_user: req.session.userId,
+            id_pengajuan: pengajuan.id_pengajuan,
+            type: "GENERATE_KARTU",
+            description: "Mahasiswa generate kartu bimbingan"
+        });
 
         res.status(200).json({
             success: true,
@@ -319,6 +373,7 @@ export const generateKartuBimbingan = async (req, res) => {
             data: kartuBimbingan
         });
     } catch (error) {
+        console.error("Generate Kartu Error:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
@@ -331,9 +386,19 @@ export const generateKartuBimbingan = async (req, res) => {
 export const uploadLaporanAkhir = async (req, res) => {
     try {
         const files = req.files || {};
+
+        console.log("Files received:", files); // Debug log
+
         const mahasiswaData = await Mahasiswa.findOne({
             where: { id_user: req.session.userId },
         });
+
+        if (!mahasiswaData) {
+            return res.status(404).json({
+                success: false,
+                message: "Data mahasiswa tidak ditemukan",
+            });
+        }
 
         const pengajuan = await PengajuanJudul.findOne({
             where: {
@@ -345,33 +410,74 @@ export const uploadLaporanAkhir = async (req, res) => {
         if (!pengajuan) {
             return res.status(400).json({
                 success: false,
-                message: "Pengajuan tidak ditemukan",
+                message: "Pengajuan tidak ditemukan atau belum diterima",
             });
         }
 
-        const fileData = {
-            finalFile: files.finalFile?.[0]?.filename || null,
-            abstrakFile: files.abstrakFile?.[0]?.filename || null,
-            pengesahanFile: files.pengesahanFile?.[0]?.filename || null,
-            pernyataanFile: files.pernyataanFile?.[0]?.filename || null,
-            presentasiFile: files.presentasiFile?.[0]?.filename || null,
-            status: "MENUNGGU",
-        };
-
+        // Cari laporan yang sudah ada
         let laporanAkhir = await LaporanAkhir.findOne({
             where: { id_pengajuan: pengajuan.id_pengajuan },
         });
 
+        // Siapkan data untuk update/create
+        const fileData = {};
+
+        // Update hanya field yang ada filenya
+        if (files.finalFile?.[0]) {
+            fileData.finalFile = files.finalFile[0].filename;
+        } else if (laporanAkhir?.finalFile) {
+            fileData.finalFile = laporanAkhir.finalFile; // Keep existing
+        }
+
+        if (files.abstrakFile?.[0]) {
+            fileData.abstrakFile = files.abstrakFile[0].filename;
+        } else if (laporanAkhir?.abstrakFile) {
+            fileData.abstrakFile = laporanAkhir.abstrakFile;
+        }
+
+        if (files.pengesahanFile?.[0]) {
+            fileData.pengesahanFile = files.pengesahanFile[0].filename;
+        } else if (laporanAkhir?.pengesahanFile) {
+            fileData.pengesahanFile = laporanAkhir.pengesahanFile;
+        }
+
+        if (files.pernyataanFile?.[0]) {
+            fileData.pernyataanFile = files.pernyataanFile[0].filename;
+        } else if (laporanAkhir?.pernyataanFile) {
+            fileData.pernyataanFile = laporanAkhir.pernyataanFile;
+        }
+
+        if (files.presentasiFile?.[0]) {
+            fileData.presentasiFile = files.presentasiFile[0].filename;
+        } else if (laporanAkhir?.presentasiFile) {
+            fileData.presentasiFile = laporanAkhir.presentasiFile;
+        }
+
+        // Set status hanya jika ada file baru yang diupload
+        if (Object.keys(files).length > 0) {
+            fileData.status = "menunggu";
+            fileData.uploadedAt = new Date();
+        }
+
         if (laporanAkhir) {
+            // Update laporan yang sudah ada
             await laporanAkhir.update(fileData);
         } else {
+            // Create laporan baru
             laporanAkhir = await LaporanAkhir.create({
                 id_pengajuan: pengajuan.id_pengajuan,
                 ...fileData,
+                status: "menunggu",
             });
         }
 
-        const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2, pengajuan.dosenId3].filter(Boolean);
+        // Kirim notifikasi ke dosen
+        const dosenIds = [
+            pengajuan.dosenId1,
+            pengajuan.dosenId2,
+            pengajuan.dosenId3
+        ].filter(Boolean);
+
         for (const dosenId of dosenIds) {
             const dosen = await Dosen.findByPk(dosenId);
             if (dosen) {
@@ -389,6 +495,9 @@ export const uploadLaporanAkhir = async (req, res) => {
             type: "UPLOAD_LAPORAN",
             description: "Mahasiswa upload laporan akhir",
         });
+
+        // Reload data untuk return yang lengkap
+        await laporanAkhir.reload();
 
         res.status(201).json({
             success: true,

@@ -35,6 +35,18 @@ const storageConfig = {
         limit: 5 * 1024 * 1024, // 5MB
         filter: [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".txt"],
     },
+    fotoDosen: {
+        folder: "uploads/users/dosen/",
+        prefix: "dosen-",
+        limit: 2 * 1024 * 1024, // 2MB
+        filter: [".jpg", ".jpeg", ".png"],
+    },
+    fotoMahasiswa: {
+        folder: "uploads/users/mahasiswa/",
+        prefix: "mahasiswa-",
+        limit: 2 * 1024 * 1024, // 2MB
+        filter: [".jpg", ".jpeg", ".png"],
+    },
 };
 
 // === Fungsi utama upload dinamis ===
@@ -79,6 +91,12 @@ const upload = (type = "bab") => {
     }
 
     // Default: single file
+    // === Khusus untuk foto user (dosen & mahasiswa)
+    if (type === "fotoDosen" || type === "fotoMahasiswa") {
+        return multerInstance.single("foto"); // field sesuai FormData di frontend
+    }
+
+    // === Default: single file umum
     return multerInstance.single("file");
 };
 
@@ -105,6 +123,17 @@ export const handleUploadError = (err, req, res, next) => {
     }
 
     next();
+};
+
+// === Helper untuk hapus file lama ===
+export const deleteOldFile = (filePath) => {
+    if (filePath && fs.existsSync(filePath)) {
+        try {
+            fs.unlinkSync(filePath);
+        } catch (error) {
+            console.error("Error deleting old file:", error);
+        }
+    }
 };
 
 export default upload;

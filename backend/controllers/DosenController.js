@@ -7,6 +7,7 @@ import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import { Op } from "sequelize";
 import User from "../models/User.js";
+import LaporanAkhir from "../models/LaporanAkhir.js";
 
 // Dashboard dosen - statistik pribadi
 export const getDosenDashboard = async (req, res) => {
@@ -92,6 +93,7 @@ export const getDosenDashboard = async (req, res) => {
 };
 
 // Review pengajuan judul
+// Review pengajuan judul
 export const reviewPengajuanJudul = async (req, res) => {
     try {
         const { id_pengajuan } = req.params;
@@ -109,8 +111,11 @@ export const reviewPengajuanJudul = async (req, res) => {
         }
 
         const updateData = { status };
+
         if (status === 'diterima') {
             updateData.approvedAt = new Date();
+            // Reset rejection_reason menjadi null ketika diterima
+            updateData.rejection_reason = null;
         } else if (status === 'ditolak' || status === 'revisi') {
             updateData.rejection_reason = rejection_reason;
         }
@@ -151,12 +156,8 @@ export const reviewBabSubmission = async (req, res) => {
         const { id_bab } = req.params;
         const { status, notes } = req.body;
 
-        const babSubmission = await BabSubmission.findByPk(id_bab, {
-            include: [{
-                model: PengajuanJudul,
-                include: [{ model: Mahasiswa }]
-            }]
-        });
+        // Ambil data bab submission dengan relasi yang benar
+        const babSubmission = await BabSubmission.findByPk(id_bab);
 
         if (!babSubmission) {
             return res.status(404).json({
@@ -165,13 +166,26 @@ export const reviewBabSubmission = async (req, res) => {
             });
         }
 
+        // Ambil data pengajuan judul beserta mahasiswa
+        const pengajuanJudul = await PengajuanJudul.findByPk(babSubmission.id_pengajuan, {
+            include: [{ model: Mahasiswa }]
+        });
+
+        if (!pengajuanJudul || !pengajuanJudul.Mahasiswa) {
+            return res.status(404).json({
+                success: false,
+                message: "Data mahasiswa tidak ditemukan"
+            });
+        }
+
+        // Update status bab
         await babSubmission.update({ status, notes });
 
         // Create notification untuk mahasiswa
         await Notifikasi.create({
-            id_user: babSubmission.PengajuanJudul.Mahasiswa.id_user,
+            id_user: pengajuanJudul.Mahasiswa.id_user,
             type: 'REVIEW_BAB',
-            message: `Bab ${babSubmission.chapter_number} telah di-${status} oleh dosen pembimbing`
+            message: `Bab ${babSubmission.chapter_number} telah di-${status} oleh dosen pembimbing${notes ? ': ' + notes : ''}`
         });
 
         // Log aktivitas
@@ -184,9 +198,16 @@ export const reviewBabSubmission = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: `Bab berhasil di-${status}`
+            message: `Bab berhasil di-${status}`,
+            data: {
+                id_bab: babSubmission.id_bab,
+                chapter_number: babSubmission.chapter_number,
+                status: babSubmission.status,
+                notes: babSubmission.notes
+            }
         });
     } catch (error) {
+        console.error('Error in reviewBabSubmission:', error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
@@ -194,6 +215,7 @@ export const reviewBabSubmission = async (req, res) => {
         });
     }
 };
+
 
 // Get list mahasiswa bimbingan
 export const getMahasiswaBimbingan = async (req, res) => {
@@ -228,7 +250,8 @@ export const getMahasiswaBimbingan = async (req, res) => {
                             ]
                         }
                     ]
-                }
+                },
+                { model: LaporanAkhir }
             ]
 
         });
