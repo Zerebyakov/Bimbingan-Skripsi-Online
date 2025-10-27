@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import DosenLayout from "./layout/DosenLayout";
+import MahasiswaLayout from "./layout/MahasiswaLayout";
 import { motion } from "framer-motion";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -18,37 +18,33 @@ import {
 import { baseUrl } from "../../components/api/myAPI";
 import { useAuth } from "../../context/AuthContext";
 
-const ProfileDosen = () => {
+const ProfileMahasiswa = () => {
   const { loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [dosen, setDosen] = useState(null);
+  const [mahasiswa, setMahasiswa] = useState(null);
   const [formData, setFormData] = useState({});
   const [fotoPreview, setFotoPreview] = useState("");
   const [fotoFile, setFotoFile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Fetch Data
+  // 🔹 Ambil data profil
   const fetchProfile = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${baseUrl}auth/profile`, { withCredentials: true });
       const data = res.data.data;
-      const dsn = data.Dosens[0];
-      setDosen({ ...dsn, email: data.email, role: data.role, status: data.status });
+      const mhs = data.Mahasiswa;
+      setMahasiswa(mhs);
       setFormData({
         email: data.email,
-        nama: dsn.nama,
-        gelar: dsn.gelar,
-        fakultas: dsn.fakultas,
-        bidang_keahlian: dsn.bidang_keahlian,
-        jabatan_akademik: dsn.jabatan_akademik,
-        kontak: dsn.kontak,
-        email_institusi: dsn.email_institusi,
+        nama_lengkap: mhs?.nama_lengkap,
+        kontak: mhs?.kontak,
+        email_kampus: mhs?.email_kampus,
       });
-      setFotoPreview(dsn.foto || "");
+      setFotoPreview(mhs?.foto || "");
     } catch {
-      Swal.fire("Gagal", "Tidak dapat memuat profil dosen.", "error");
+      Swal.fire("Gagal", "Tidak dapat memuat profil mahasiswa.", "error");
     } finally {
       setLoading(false);
     }
@@ -58,11 +54,11 @@ const ProfileDosen = () => {
     if (!authLoading) fetchProfile();
   }, [authLoading]);
 
-  // Ganti Foto
+  // 🔹 Ubah foto
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const valid = ["image/jpeg", "image/png", "image/jpg"];
+    const valid = ["image/jpeg", "image/jpg", "image/png"];
     if (!valid.includes(file.type)) {
       Swal.fire("Format salah", "Gunakan JPG, JPEG, atau PNG", "error");
       return;
@@ -77,8 +73,8 @@ const ProfileDosen = () => {
     reader.readAsDataURL(file);
   };
 
-  // Simpan Profil
-  const handleSave = async () => {
+  // 🔹 Simpan profil
+  const handleSaveProfile = async () => {
     setSaving(true);
     try {
       const form = new FormData();
@@ -91,12 +87,13 @@ const ProfileDosen = () => {
       });
 
       if (res.data.success) {
-        Swal.fire("Berhasil!", "Profil berhasil diperbarui.", "success");
+        Swal.fire("Berhasil!", "Profil mahasiswa berhasil diperbarui.", "success");
         setEditing(false);
+        setFotoFile(null);
         fetchProfile();
       }
     } catch (err) {
-      Swal.fire("Gagal!", err.response?.data?.message || "Terjadi kesalahan", "error");
+      Swal.fire("Gagal!", err.response?.data?.message || "Terjadi kesalahan.", "error");
     } finally {
       setSaving(false);
     }
@@ -104,15 +101,15 @@ const ProfileDosen = () => {
 
   if (loading)
     return (
-      <DosenLayout>
+      <MahasiswaLayout>
         <div className="flex justify-center items-center h-[70vh] text-gray-500">
-          <Loader2 className="animate-spin mr-2" /> Memuat profil dosen...
+          <Loader2 className="animate-spin mr-2" /> Memuat profil mahasiswa...
         </div>
-      </DosenLayout>
+      </MahasiswaLayout>
     );
 
   return (
-    <DosenLayout>
+    <MahasiswaLayout>
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -123,11 +120,11 @@ const ProfileDosen = () => {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-              Profil Dosen{" "}
-              <CheckCircle size={18} className="text-green-500" title="Akun Aktif" />
+              Profil Mahasiswa{" "}
+              <CheckCircle size={18} className="text-green-500" title="Status Aktif" />
             </h1>
             <p className="text-gray-500 text-sm">
-              Kelola data pribadi dan akademik Anda dengan mudah.
+              Kelola data pribadi dan keamanan akun Anda.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -139,7 +136,9 @@ const ProfileDosen = () => {
               {editing ? "Batal" : "Edit Profil"}
             </button>
             <button
-              onClick={() => Swal.fire("Gunakan menu ubah password terpisah", "", "info")}
+              onClick={() =>
+                Swal.fire("Gunakan halaman ubah password", "Menu ini terpisah.", "info")
+              }
               className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition w-full sm:w-auto justify-center"
             >
               <Lock size={16} /> Ubah Password
@@ -151,11 +150,11 @@ const ProfileDosen = () => {
         <div className="bg-white shadow-md rounded-xl p-6 flex flex-col md:flex-row gap-8 border border-gray-100">
           {/* Foto */}
           <div className="flex flex-col items-center md:items-start w-full md:w-1/3">
-            <div className="relative w-40 h-40 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+            <div className="relative w-40 h-40 rounded-full overflow-hidden border border-gray-200 shadow">
               {fotoPreview ? (
                 <img
                   src={fotoPreview}
-                  alt="Foto Dosen"
+                  alt="Foto Mahasiswa"
                   className="w-full h-full object-cover object-center"
                 />
               ) : (
@@ -175,40 +174,41 @@ const ProfileDosen = () => {
                 </label>
               )}
             </div>
-
-            {/* Nama dan info */}
             <div className="mt-4 text-center md:text-left">
-              <h2 className="text-xl font-semibold text-gray-800">{formData.nama}</h2>
-              <p className="text-sm text-gray-500">{formData.gelar}</p>
+              <h2 className="text-xl font-semibold text-gray-800">
+                {formData.nama_lengkap}
+              </h2>
+              <p className="text-sm text-gray-500">{formData.email_kampus}</p>
               <p className="mt-2 text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-md px-3 py-1 inline-block">
-                {dosen.status_dosen?.toUpperCase()} –{" "}
-                {dosen.Prodi?.program_studi || "Program Studi Tidak Diketahui"}
+                Angkatan {mahasiswa?.angkatan} • Semester {mahasiswa?.semester}
               </p>
             </div>
           </div>
 
-          {/* Informasi Profil */}
+          {/* Informasi Mahasiswa */}
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              ["Fakultas", formData.fakultas],
-              ["Bidang Keahlian", formData.bidang_keahlian],
-              ["Jabatan Akademik", formData.jabatan_akademik],
-              ["Email Institusi", formData.email_institusi],
+              ["NIM", mahasiswa?.nim],
+              ["Program Studi", mahasiswa?.Prodis?.[0]?.program_studi],
               ["Email Akun", formData.email],
+              ["Email Kampus", formData.email_kampus],
               ["Kontak", formData.kontak],
+              ["Status Akademik", mahasiswa?.status_akademik],
             ].map(([label, value], i) => (
               <div key={i}>
                 <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
                   {label}
                 </p>
-                {editing ? (
+                {editing && ["nama_lengkap", "kontak", "email_kampus", "email"].includes(
+                  label.toLowerCase().replace(" ", "_")
+                ) ? (
                   <input
                     type="text"
-                    value={value || ""}
+                    value={formData[label.toLowerCase().replace(" ", "_")] || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        [label.toLowerCase().replace(/\s+/g, "_")]: e.target.value,
+                        [label.toLowerCase().replace(" ", "_")]: e.target.value,
                       })
                     }
                     className="w-full border rounded-md px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-green-300"
@@ -229,27 +229,27 @@ const ProfileDosen = () => {
           <div className="grid sm:grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <Mail size={16} className="text-gray-500" />
-              <p>Email: <span className="font-medium">{dosen.email_institusi}</span></p>
+              <p>Email: <span className="font-medium">{formData.email}</span></p>
             </div>
             <div className="flex items-center gap-2">
               <Phone size={16} className="text-gray-500" />
-              <p>Kontak: <span className="font-medium">{dosen.kontak}</span></p>
-            </div>
-            <div>
-              <p className="text-gray-500">Status Akun:</p>
-              <span
-                className={`px-2 py-1 text-xs rounded-full font-medium ${dosen.status_dosen === "tetap"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                  }`}
-              >
-                {dosen.status_dosen?.toUpperCase()}
-              </span>
+              <p>Kontak: <span className="font-medium">{formData.kontak}</span></p>
             </div>
             <div>
               <p className="text-gray-500">Role:</p>
               <span className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700 font-medium">
-                {dosen.role?.toUpperCase()}
+                Mahasiswa
+              </span>
+            </div>
+            <div>
+              <p className="text-gray-500">Status Akademik:</p>
+              <span
+                className={`px-2 py-1 text-xs rounded-full font-medium ${mahasiswa?.status_akademik === "aktif"
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                  }`}
+              >
+                {mahasiswa?.status_akademik?.toUpperCase()}
               </span>
             </div>
           </div>
@@ -259,7 +259,7 @@ const ProfileDosen = () => {
         {editing && (
           <div className="mt-6 flex justify-end">
             <button
-              onClick={handleSave}
+              onClick={handleSaveProfile}
               disabled={saving}
               className="bg-green-600 text-white flex items-center gap-2 px-5 py-2 rounded-md hover:bg-green-700 transition w-full sm:w-auto justify-center"
             >
@@ -269,8 +269,8 @@ const ProfileDosen = () => {
           </div>
         )}
       </motion.div>
-    </DosenLayout>
+    </MahasiswaLayout>
   );
 };
 
-export default ProfileDosen;
+export default ProfileMahasiswa;

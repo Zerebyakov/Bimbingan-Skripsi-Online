@@ -39,7 +39,6 @@ const Navbar = ({ onToggleSidebar }) => {
         }
     };
 
-    // 🔢 Fetch unread count
     const fetchUnreadCount = async () => {
         try {
             const res = await axios.get(`${baseUrl}notifikasi/unread-count`, {
@@ -51,14 +50,9 @@ const Navbar = ({ onToggleSidebar }) => {
         }
     };
 
-    // ✅ Mark as read
     const markAsRead = async (id_notif) => {
         try {
-            await axios.put(
-                `${baseUrl}notifikasi/${id_notif}/read`,
-                {},
-                { withCredentials: true }
-            );
+            await axios.put(`${baseUrl}notifikasi/${id_notif}/read`, {}, { withCredentials: true });
             setNotifications((prev) =>
                 prev.map((n) => (n.id_notif === id_notif ? { ...n, isRead: true } : n))
             );
@@ -71,42 +65,25 @@ const Navbar = ({ onToggleSidebar }) => {
     // 🔌 Setup Socket & Notifications
     useEffect(() => {
         if (!user?.id_user) return;
-
-        // Initialize socket
         const socket = initSocket(user.id_user);
-
-        // Fetch initial data
         fetchNotifications();
         fetchUnreadCount();
 
-        // Setup notification listener
         const handleNewNotification = (notif) => {
-            console.log("🔔 New notification received:", notif);
-
             setNotifications((prev) => {
-                // Cek duplikasi
                 const exists = prev.some((n) => n.id_notif === notif.id_notif);
                 if (exists) return prev;
                 return [notif, ...prev];
             });
-
             setUnreadCount((prev) => prev + 1);
         };
 
-        // Remove old listener if exists
-        if (notifListenerRef.current) {
-            socket.off("notification:new", notifListenerRef.current);
-        }
-
-        // Setup new listener
+        if (notifListenerRef.current) socket.off("notification:new", notifListenerRef.current);
         notifListenerRef.current = handleNewNotification;
         socket.on("notification:new", handleNewNotification);
 
-        // Cleanup
         return () => {
-            if (socket) {
-                socket.off("notification:new", notifListenerRef.current);
-            }
+            if (socket) socket.off("notification:new", notifListenerRef.current);
             notifListenerRef.current = null;
         };
     }, [user?.id_user]);
@@ -116,6 +93,16 @@ const Navbar = ({ onToggleSidebar }) => {
         await logout();
         navigate("/login");
     };
+
+    // 🖼️ Ambil foto profil
+    const foto =
+        user?.Mahasiswa?.foto ||
+        user?.Dosens?.[0]?.foto ||
+        null;
+    const nama =
+        user?.Mahasiswa?.nama_lengkap ||
+        user?.Dosens?.[0]?.nama ||
+        "User";
 
     return (
         <header className="h-16 w-full bg-gray-100/80 backdrop-blur-sm shadow flex items-center justify-between px-4 md:px-6 z-30 border-b border-gray-300 sticky top-0">
@@ -128,7 +115,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     <MenuIcon size={24} />
                 </button>
                 <h1 className="text-base md:text-lg font-semibold text-gray-800 tracking-wide">
-                    Dashboard Mahasisswa
+                    Dashboard Mahasiswa
                 </h1>
             </div>
 
@@ -167,9 +154,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     >
                         <div className="absolute right-0 mt-3 w-80 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
                             <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="text-sm font-semibold text-gray-800">
-                                    Notifikasi
-                                </h3>
+                                <h3 className="text-sm font-semibold text-gray-800">Notifikasi</h3>
                                 <button
                                     onClick={() => fetchNotifications()}
                                     className="text-xs text-gray-500 hover:text-gray-800 transition"
@@ -193,8 +178,8 @@ const Navbar = ({ onToggleSidebar }) => {
                                         >
                                             <p
                                                 className={`text-sm ${notif.isRead
-                                                    ? "text-gray-600"
-                                                    : "text-gray-800 font-medium"
+                                                        ? "text-gray-600"
+                                                        : "text-gray-800 font-medium"
                                                     }`}
                                             >
                                                 {notif.message}
@@ -222,8 +207,20 @@ const Navbar = ({ onToggleSidebar }) => {
                 {/* 👤 User menu */}
                 <Menu as="div" className="relative">
                     <Menu.Button className="flex items-center gap-2 focus:outline-none">
+                        {/* Foto Profil */}
+                        {foto ? (
+                            <img
+                                src={foto}
+                                alt={nama}
+                                className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                            />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center text-xs font-semibold">
+                                {nama.charAt(0).toUpperCase()}
+                            </div>
+                        )}
                         <span className="hidden sm:block text-sm text-gray-800 font-medium truncate max-w-[100px]">
-                            {user?.Mahasiswa?.nama_lengkap || "Mahasiswa"}
+                            {nama}
                         </span>
                         <ChevronDown className="w-4 h-4 text-gray-600" />
                     </Menu.Button>
@@ -251,7 +248,6 @@ const Navbar = ({ onToggleSidebar }) => {
                                         </button>
                                     )}
                                 </Menu.Item>
-
                                 <Menu.Item>
                                     {({ active }) => (
                                         <button

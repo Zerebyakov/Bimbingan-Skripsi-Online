@@ -15,10 +15,13 @@ import ListMahasiswaBimbingan from './pages/dosen/ListMahasiswaBimbingan';
 import ChatMahasiswa from './pages/dosen/ChatMahasiswa';
 import ListPengajuanDosen from './pages/dosen/ListPengajuanDosen';
 import ProfileDosen from './pages/dosen/ProfileDosen';
-import MahasiswaProfile from './pages/mahasiswa/MahasiswaProfile';
+import MahasiswaProfile from './pages/mahasiswa/ProfileMahasiswa';
 import Pengajuan from './pages/mahasiswa/Pengajuan';
 import UploadBab from './pages/mahasiswa/UploadBab';
 import Bimbingan from './pages/mahasiswa/Bimbingan';
+import LaporanAkhir from './pages/mahasiswa/LaporanAkhir';
+import KartuBimbinganPrint from './pages/mahasiswa/KartuBimbinganPrint';
+import ProfileMahasiswa from './pages/mahasiswa/ProfileMahasiswa';
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -164,7 +167,7 @@ const App = () => {
           path="/mahasiswa/profile"
           element={
             <MahasiswaRoute>
-              <MahasiswaProfile />
+              <ProfileMahasiswa />
             </MahasiswaRoute>
           }
         />
@@ -181,6 +184,22 @@ const App = () => {
           element={
             <MahasiswaRoute>
               <Bimbingan />
+            </MahasiswaRoute>
+          }
+        />
+        <Route
+          path="/mahasiswa/laporan-akhir"
+          element={
+            <MahasiswaRoute>
+              <LaporanAkhir />
+            </MahasiswaRoute>
+          }
+        />
+        <Route
+          path="/mahasiswa/kartu-bimbingan/:id"
+          element={
+            <MahasiswaRoute>
+              <KartuBimbinganPrint />
             </MahasiswaRoute>
           }
         />
