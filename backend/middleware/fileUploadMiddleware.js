@@ -97,7 +97,7 @@ const upload = (type = "bab") => {
     }
 
     // === Default: single file umum
-    return multerInstance.single("file");
+    return multerInstance.single(type);
 };
 
 // === Error handling bawaan ===

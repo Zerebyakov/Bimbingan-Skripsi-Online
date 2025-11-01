@@ -164,6 +164,75 @@ export const ajukanJudul = async (req, res) => {
     }
 };
 
+// Update / Revisi Pengajuan Judul
+export const updatePengajuanJudul = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, description, bidang_topik, keywords } = req.body;
+        const proposal_file = req.file ? req.file.filename : null;
+
+        const mahasiswaData = await Mahasiswa.findOne({
+            where: { id_user: req.session.userId },
+        });
+
+        if (!mahasiswaData) {
+            return res.status(404).json({
+                success: false,
+                message: "Data mahasiswa tidak ditemukan",
+            });
+        }
+
+        const pengajuan = await PengajuanJudul.findOne({
+            where: {
+                id_pengajuan: id,
+                id_mahasiswa: mahasiswaData.id_mahasiswa,
+            },
+        });
+
+        if (!pengajuan) {
+            return res.status(404).json({
+                success: false,
+                message: "Pengajuan tidak ditemukan",
+            });
+        }
+
+        // Update data pengajuan
+        pengajuan.title = title || pengajuan.title;
+        pengajuan.description = description || pengajuan.description;
+        pengajuan.bidang_topik = bidang_topik || pengajuan.bidang_topik;
+        pengajuan.keywords = keywords || pengajuan.keywords;
+
+        if (proposal_file) {
+            pengajuan.proposal_file = proposal_file;
+        }
+
+        // Set status kembali ke "diajukan" setelah revisi
+        pengajuan.status = "diajukan";
+        await pengajuan.save();
+
+        await LogAktivitas.create({
+            id_user: req.session.userId,
+            id_pengajuan: pengajuan.id_pengajuan,
+            type: "REVISI_JUDUL",
+            description: `Mahasiswa merevisi judul: ${title}`,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Pengajuan judul berhasil diperbarui",
+            data: pengajuan,
+        });
+    } catch (error) {
+        console.error("Update Pengajuan Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan server",
+            error: error.message,
+        });
+    }
+};
+
+
 // Upload bab
 export const uploadBab = async (req, res) => {
     try {

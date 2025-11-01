@@ -4,6 +4,7 @@ import {
     ajukanJudul,
     generateKartuBimbingan,
     getMahasiswaDashboard,
+    updatePengajuanJudul,
     uploadBab,
     uploadLaporanAkhir,
 } from "../controllers/MahasiswaController.js";
@@ -32,6 +33,15 @@ router.post(
     logActivity("AJUKAN_JUDUL", (req) => `Mahasiswa mengajukan judul: ${req.body.title}`),
     ajukanJudul
 );
+// Revisi / Update Pengajuan Judul
+router.put(
+    "/pengajuan-judul/:id",
+    upload("proposal"),
+    handleUploadError,
+    logActivity("REVISI_JUDUL", (req) => `Mahasiswa merevisi judul: ${req.body.title}`),
+    updatePengajuanJudul
+);
+
 
 // Upload Bab
 router.post(
@@ -52,7 +62,7 @@ router.get(
 
 // Laporan Akhir
 router.post("/laporan-akhir",
-    upload("laporan"), 
+    upload("laporan"),
     handleUploadError,
     logActivity("UPLOAD_LAPORAN", "Mahasiswa upload laporan akhir"),
     uploadLaporanAkhir
