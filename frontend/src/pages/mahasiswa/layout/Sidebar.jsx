@@ -11,6 +11,7 @@ import {
     BookOpen,
     MessageSquare,
     BookOpenText,
+    BookA,
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -24,7 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
     const menuItems = [
         { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/mahasiswa/dashboard' },
-        { name: 'Pengajuan', icon: <FileText size={20} />, path: '/mahasiswa/pengajuan' },
+        { name: 'Pengajuan', icon: <BookA size={20} />, path: '/mahasiswa/pengajuan' },
         { name: 'Upload Bab', icon: <BookOpen size={20} />, path: '/mahasiswa/upload-bab' },
         { name: 'Bimbingan', icon: <MessageSquare size={20} />, path: '/mahasiswa/bimbingan' },
         { name: 'Laporan Akhir', icon: <BookOpenText size={20} />, path: '/mahasiswa/laporan-akhir' },

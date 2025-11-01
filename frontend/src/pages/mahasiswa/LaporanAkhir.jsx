@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import MahasiswaLayout from "./layout/MahasiswaLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import Swal from "sweetalert2";
 import {
   Upload,
@@ -242,7 +242,7 @@ const LaporanAkhir = () => {
       });
       return;
     }
-    const url = `${baseUrl}uploads/laporan/${fileName}`;
+    const url = `${imageUrl}uploads/laporan/${fileName}`;
     window.open(url, "_blank");
   };
 

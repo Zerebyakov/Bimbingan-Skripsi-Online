@@ -53,7 +53,7 @@ const ProfileDosen = () => {
       setLoading(false);
     }
   };
-
+  console.log(fotoPreview)
   useEffect(() => {
     if (!authLoading) fetchProfile();
   }, [authLoading]);

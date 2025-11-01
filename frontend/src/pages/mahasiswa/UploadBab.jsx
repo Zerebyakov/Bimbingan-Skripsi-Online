@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import MahasiswaLayout from "./layout/MahasiswaLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import {
@@ -90,8 +90,11 @@ const UploadBab = () => {
         try {
             const formData = new FormData();
             formData.append("chapter_number", selectedBab);
-            formData.append("file", selectedFile);
 
+            // 🧩 Sesuaikan field name file agar cocok dengan middleware
+            formData.append("bab", selectedFile); // <== Ganti dari "file" ke "bab"
+
+            // URL tetap sama
             const url = `${baseUrl}mahasiswa/upload-bab${reupload && existingId ? `/${existingId}` : ""
                 }`;
 
@@ -151,6 +154,7 @@ const UploadBab = () => {
             setUploading(false);
         }
     };
+
 
     // === Hapus file Bab ===
     const handleDelete = async (bab) => {
@@ -270,10 +274,10 @@ const UploadBab = () => {
                                     <div>
                                         <div
                                             className={`flex items-center gap-2 mb-2 ${babUploaded.status === "diterima"
-                                                    ? "text-green-600"
-                                                    : babUploaded.status === "revisi"
-                                                        ? "text-yellow-600"
-                                                        : "text-gray-500"
+                                                ? "text-green-600"
+                                                : babUploaded.status === "revisi"
+                                                    ? "text-yellow-600"
+                                                    : "text-gray-500"
                                                 }`}
                                         >
                                             <CheckCircle size={18} />
@@ -282,9 +286,8 @@ const UploadBab = () => {
                                             </span>
                                         </div>
                                         <a
-                                            href={`${baseUrl}uploads/bab/${babUploaded.file_path}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            href={`${imageUrl}uploads/bab/${babUploaded.file_path}`}
+                                            download={babUploaded.file_path}
                                             className="text-xs text-green-600 hover:underline"
                                         >
                                             Lihat File ({babUploaded.original_name})
@@ -353,8 +356,8 @@ const UploadBab = () => {
                                             type="submit"
                                             disabled={uploading && selectedBab === babNumber}
                                             className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-white font-medium transition ${uploading && selectedBab === babNumber
-                                                    ? "bg-green-400 cursor-not-allowed"
-                                                    : "bg-green-600 hover:bg-green-700"
+                                                ? "bg-green-400 cursor-not-allowed"
+                                                : "bg-green-600 hover:bg-green-700"
                                                 }`}
                                         >
                                             {uploading && selectedBab === babNumber ? (

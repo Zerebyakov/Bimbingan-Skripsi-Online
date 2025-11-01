@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import MahasiswaLayout from "./layout/MahasiswaLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { motion } from "framer-motion";
+import Swal from "sweetalert2";
 import {
   FileText,
   Loader2,
@@ -24,7 +25,9 @@ const Pengajuan = () => {
     bidang_topik: "",
     keywords: "",
   });
+  const [file, setFile] = useState(null);
 
+  // ✅ Ambil data pengajuan dari dashboard
   useEffect(() => {
     const fetchPengajuan = async () => {
       try {
@@ -48,33 +51,112 @@ const Pengajuan = () => {
     });
   };
 
+  // ✅ Validasi dan preview file
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    const validExtensions = ["application/pdf"];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    if (!validExtensions.includes(selectedFile.type)) {
+      Swal.fire({
+        icon: "warning",
+        title: "Format tidak valid!",
+        text: "Hanya file PDF yang diperbolehkan.",
+        confirmButtonColor: "#f59e0b",
+      });
+      e.target.value = "";
+      return;
+    }
+
+    if (selectedFile.size > maxSize) {
+      Swal.fire({
+        icon: "warning",
+        title: "File terlalu besar!",
+        text: "Ukuran maksimal file adalah 10MB.",
+        confirmButtonColor: "#f59e0b",
+      });
+      e.target.value = "";
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
+  // ✅ Kirim pengajuan atau revisi
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const formData = new FormData();
+    formData.append("title", form.title);
+    formData.append("description", form.description);
+    formData.append("bidang_topik", form.bidang_topik);
+    formData.append("keywords", form.keywords);
+    if (file) formData.append("proposal", file);
+
     setIsSubmitting(true);
 
     try {
-      if (pengajuan && pengajuan.status === "revisi") {
-        await axios.put(
-          `${baseUrl}mahasiswa/pengajuan-judul/${pengajuan.id_pengajuan}`,
-          form,
-          { withCredentials: true }
-        );
-        alert("Pengajuan berhasil diperbarui!");
-      } else {
-        await axios.post(`${baseUrl}mahasiswa/pengajuan-judul`, form, {
-          withCredentials: true,
+      let res;
+
+      // ✅ Semua status (revisi atau ditolak) pakai PUT
+      if (pengajuan && ["revisi", "ditolak"].includes(pengajuan.status)) {
+        const confirm = await Swal.fire({
+          icon: "question",
+          title: pengajuan.status === "ditolak" ? "Ajukan Ulang Judul?" : "Kirim Revisi?",
+          text:
+            pengajuan.status === "ditolak"
+              ? "Pengajuan ini akan diperbarui dengan judul baru."
+              : "Revisi akan menggantikan pengajuan sebelumnya.",
+          showCancelButton: true,
+          confirmButtonText: "Ya, kirim",
+          cancelButtonText: "Batal",
+          confirmButtonColor: "#10b981",
+          cancelButtonColor: "#d33",
         });
-        alert("Pengajuan judul berhasil dikirim!");
+
+        if (!confirm.isConfirmed) {
+          setIsSubmitting(false);
+          return;
+        }
+
+        res = await axios.put(
+          `${baseUrl}mahasiswa/pengajuan-judul/${pengajuan.id_pengajuan}`,
+          formData,
+          {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+      } else {
+        // ✅ Pengajuan baru
+        res = await axios.post(`${baseUrl}mahasiswa/pengajuan-judul`, formData, {
+          withCredentials: true,
+          headers: { "Content-Type": "multipart/form-data" },
+        });
       }
-      window.location.reload();
+
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: res.data.message || "Pengajuan berhasil dikirim.",
+        confirmButtonColor: "#10b981",
+      }).then(() => window.location.reload());
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan. Silakan coba lagi.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: err.response?.data?.message || "Terjadi kesalahan server.",
+        confirmButtonColor: "#ef4444",
+      });
     } finally {
       setIsSubmitting(false);
       setIsEditing(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -102,7 +184,7 @@ const Pengajuan = () => {
           sesuai dengan ketentuan jurusan.
         </p>
 
-        {/* ✅ Jika Sudah Ada Pengajuan */}
+        {/* ✅ Jika sudah ada pengajuan */}
         {pengajuan && !isEditing ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -118,24 +200,30 @@ const Pengajuan = () => {
                 </h2>
               </div>
 
-              {/* Tombol Revisi */}
-              {pengajuan.status === "revisi" && (
-                <button
-                  onClick={() => {
-                    setForm({
-                      title: pengajuan.title,
-                      description: pengajuan.description,
-                      bidang_topik: pengajuan.bidang_topik,
-                      keywords: pengajuan.keywords,
-                    });
-                    setIsEditing(true);
-                  }}
-                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium"
-                >
-                  <PencilLine size={16} />
-                  Perbarui Judul
-                </button>
-              )}
+              {/* Tombol Revisi / Ganti Judul */}
+              {(pengajuan.status === "revisi" ||
+                pengajuan.status === "ditolak") && (
+                  <button
+                    onClick={() => {
+                      setForm({
+                        title: pengajuan.title,
+                        description: pengajuan.description,
+                        bidang_topik: pengajuan.bidang_topik,
+                        keywords: pengajuan.keywords,
+                      });
+                      setIsEditing(true);
+                    }}
+                    className={`flex items-center gap-2 text-sm font-medium transition ${pengajuan.status === "revisi"
+                      ? "text-yellow-600 hover:text-yellow-700"
+                      : "text-red-600 hover:text-red-700"
+                      }`}
+                  >
+                    <PencilLine size={16} />
+                    {pengajuan.status === "revisi"
+                      ? "Revisi Pengajuan"
+                      : "Ganti Judul / Ajukan Ulang"}
+                  </button>
+                )}
             </div>
 
             <div className="space-y-2 text-gray-700">
@@ -155,11 +243,28 @@ const Pengajuan = () => {
                 {pengajuan.description}
               </p>
 
+              {pengajuan.proposal_file && (
+                <p>
+                  <span className="font-medium">File Proposal:</span>{" "}
+                  <a
+                    href={`${imageUrl}uploads/proposals/${pengajuan.proposal_file}`}
+                    download={pengajuan.proposal_file}
+                    className="text-emerald-600 underline hover:text-emerald-700"
+                  >
+                    Lihat File
+                  </a>
+
+                </p>
+              )}
+
+              {/* Status */}
               <p
                 className={`font-semibold mt-2 ${pengajuan.status === "diterima"
-                    ? "text-green-600"
-                    : pengajuan.status === "revisi"
-                      ? "text-yellow-600"
+                  ? "text-green-600"
+                  : pengajuan.status === "revisi"
+                    ? "text-yellow-600"
+                    : pengajuan.status === "ditolak"
+                      ? "text-red-600"
                       : "text-gray-600"
                   }`}
               >
@@ -171,42 +276,62 @@ const Pengajuan = () => {
                   Catatan Dosen: {pengajuan.rejection_reason}
                 </p>
               )}
+
+              {/* Status Info */}
+              {pengajuan.status === "diajukan" && (
+                <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                  <Loader2 className="animate-spin" size={16} />
+                  Menunggu persetujuan dosen pembimbing...
+                </div>
+              )}
+
+              {pengajuan.status === "diterima" && (
+                <div className="mt-4 flex items-center gap-2 text-green-600">
+                  <CheckCircle size={18} />
+                  Pengajuan diterima — Anda sudah bisa mulai bimbingan.
+                </div>
+              )}
+
+              {pengajuan.status === "revisi" && (
+                <div className="mt-4 flex items-center gap-2 text-yellow-600">
+                  <XCircle size={18} />
+                  Judul memerlukan revisi sebelum dapat diterima.
+                </div>
+              )}
+
+              {pengajuan.status === "ditolak" && (
+                <div className="mt-4 flex items-center gap-2 text-red-600">
+                  <XCircle size={18} />
+                  Pengajuan ditolak — silakan ubah atau revisi judul sesuai saran dosen.
+                </div>
+              )}
+
+              {pengajuan.status === "batal" && (
+                <div className="mt-4 flex items-center gap-2 text-gray-400">
+                  <XCircle size={18} />
+                  Pengajuan dibatalkan — Anda telah mengajukan judul baru.
+                </div>
+              )}
+
             </div>
-
-            {/* Status Info */}
-            {pengajuan.status === "diajukan" && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="animate-spin" size={16} />
-                Menunggu persetujuan dosen pembimbing...
-              </div>
-            )}
-
-            {pengajuan.status === "diterima" && (
-              <div className="mt-4 flex items-center gap-2 text-green-600">
-                <CheckCircle size={18} />
-                Pengajuan diterima — Anda sudah bisa mulai bimbingan.
-              </div>
-            )}
-
-            {pengajuan.status === "revisi" && (
-              <div className="mt-4 flex items-center gap-2 text-yellow-600">
-                <XCircle size={18} />
-                Judul memerlukan revisi sebelum dapat diterima.
-              </div>
-            )}
           </motion.div>
         ) : (
-          // ✅ Form Pengajuan Baru atau Revisi
+          // ✅ Form pengajuan / revisi / ajukan ulang
           <motion.form
             onSubmit={handleSubmit}
             className="bg-white shadow-md rounded-xl border border-gray-100 p-6 max-w-2xl"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            encType="multipart/form-data"
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-800">
-                {pengajuan ? "Perbarui Pengajuan Judul" : "Form Pengajuan Judul"}
+                {pengajuan
+                  ? pengajuan.status === "ditolak"
+                    ? "Ajukan Ulang Judul"
+                    : "Revisi Pengajuan Judul"
+                  : "Form Pengajuan Judul"}
               </h2>
               {isEditing && (
                 <button
@@ -220,45 +345,22 @@ const Pengajuan = () => {
             </div>
 
             <div className="grid gap-4">
-              <div>
-                <label className="block text-gray-700 text-sm mb-1">
-                  Judul Skripsi
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 text-sm mb-1">
-                  Bidang Topik
-                </label>
-                <input
-                  type="text"
-                  name="bidang_topik"
-                  value={form.bidang_topik}
-                  onChange={handleChange}
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 text-sm mb-1">
-                  Kata Kunci
-                </label>
-                <input
-                  type="text"
-                  name="keywords"
-                  value={form.keywords}
-                  onChange={handleChange}
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
+              {["title", "bidang_topik", "keywords"].map((key) => (
+                <div key={key}>
+                  <label className="block text-gray-700 text-sm mb-1 capitalize">
+                    {key.replace("_", " ")}
+                  </label>
+                  <input
+                    type="text"
+                    name={key}
+                    value={form[key]}
+                    onChange={handleChange}
+                    required
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              ))}
+
               <div>
                 <label className="block text-gray-700 text-sm mb-1">
                   Deskripsi
@@ -273,20 +375,40 @@ const Pengajuan = () => {
                 ></textarea>
               </div>
 
+              <div>
+                <label className="block text-gray-700 text-sm mb-1">
+                  Upload File Proposal (PDF)
+                </label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileChange}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+                {file && (
+                  <p className="text-gray-500 text-xs mt-1 italic">
+                    File: {file.name} ({(file.size / 1024 / 1024).toFixed(2)}{" "}
+                    MB)
+                  </p>
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className={`w-full py-2.5 rounded-lg text-white font-medium transition ${isSubmitting
-                    ? "bg-emerald-400 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700"
+                  ? "bg-emerald-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
                   }`}
               >
                 {isSubmitting
                   ? pengajuan
-                    ? "Memperbarui..."
-                    : "Mengirim..."
+                    ? "Mengirim..."
+                    : "Mengajukan..."
                   : pengajuan
-                    ? "Perbarui Pengajuan"
+                    ? pengajuan.status === "ditolak"
+                      ? "Ajukan Ulang"
+                      : "Kirim Revisi"
                     : "Kirim Pengajuan"}
               </button>
             </div>

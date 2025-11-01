@@ -137,6 +137,7 @@ const Bimbingan = () => {
     };
 
     // === Upload Bab via Chat ===
+    // === Upload Bab via Chat ===
     const handleUploadBab = async () => {
         if (!selectedFile || !selectedBab) {
             Swal.fire({
@@ -148,7 +149,9 @@ const Bimbingan = () => {
             return;
         }
 
-        const existingBab = babList.find(b => b.chapter_number === parseInt(selectedBab));
+        const existingBab = babList.find(
+            (b) => b.chapter_number === parseInt(selectedBab)
+        );
 
         if (existingBab && existingBab.status !== "revisi") {
             Swal.fire({
@@ -181,7 +184,9 @@ const Bimbingan = () => {
         try {
             const formData = new FormData();
             formData.append("chapter_number", selectedBab);
-            formData.append("file", selectedFile);
+
+            // ✅ Gunakan field name yang sesuai middleware baru
+            formData.append("bab", selectedFile);
 
             const url = existingBab
                 ? `${baseUrl}mahasiswa/upload-bab/${existingBab.id}`
@@ -199,7 +204,6 @@ const Bimbingan = () => {
             });
 
             if (res.data.success) {
-                // Kirim notifikasi via chat
                 const notifMessage = existingBab
                     ? `📄 Bab ${selectedBab} telah di-reupload (${selectedFile.name})`
                     : `📄 Bab ${selectedBab} telah diupload (${selectedFile.name})`;
@@ -218,7 +222,6 @@ const Bimbingan = () => {
                     timer: 2000,
                 });
 
-                // Refresh data
                 await fetchDashboard();
                 setShowUploadModal(false);
                 setSelectedFile(null);
@@ -229,7 +232,9 @@ const Bimbingan = () => {
             Swal.fire({
                 icon: "error",
                 title: "Gagal Upload",
-                text: err.response?.data?.message || "Upload gagal. Coba lagi.",
+                text:
+                    err.response?.data?.message ||
+                    "Upload gagal. Coba lagi.",
                 confirmButtonColor: "#dc2626",
             });
         } finally {
@@ -237,6 +242,7 @@ const Bimbingan = () => {
             setUploadProgress(0);
         }
     };
+
 
     // === Socket Realtime ===
     useEffect(() => {

@@ -22,6 +22,9 @@ import Bimbingan from './pages/mahasiswa/Bimbingan';
 import LaporanAkhir from './pages/mahasiswa/LaporanAkhir';
 import KartuBimbinganPrint from './pages/mahasiswa/KartuBimbinganPrint';
 import ProfileMahasiswa from './pages/mahasiswa/ProfileMahasiswa';
+import ListPengajuanMahasiswa from './pages/dosen/ListPengajuanMahasiswa';
+import ListBabMahasiswa from './pages/dosen/ListBabMahasiswa';
+import ListLaporanMahasiswa from './pages/dosen/ListLaporanMahasiswa';
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -118,6 +121,30 @@ const App = () => {
           element={
             <DosenRoute>
               <DashboardDosen />
+            </DosenRoute>
+          }
+        />
+        <Route
+          path="/dosen/mahasiswa-pengajuan"
+          element={
+            <DosenRoute>
+              <ListPengajuanMahasiswa />
+            </DosenRoute>
+          }
+        />
+        <Route
+          path="/dosen/mahasiswa-bab"
+          element={
+            <DosenRoute>
+              <ListBabMahasiswa />
+            </DosenRoute>
+          }
+        />
+        <Route
+          path="/dosen/mahasiswa-laporan"
+          element={
+            <DosenRoute>
+              <ListLaporanMahasiswa />
             </DosenRoute>
           }
         />
