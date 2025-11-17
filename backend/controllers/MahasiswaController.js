@@ -44,7 +44,6 @@ export const getMahasiswaDashboard = async (req, res) => {
             include: [
                 { model: Dosen, as: 'Pembimbing1' },
                 { model: Dosen, as: 'Pembimbing2' },
-                { model: Dosen, as: 'Pembimbing3' },
                 { model: BabSubmission },
                 {
                     model: Message,
@@ -61,7 +60,7 @@ export const getMahasiswaDashboard = async (req, res) => {
                 },
                 {
                     model: LaporanAkhir,
-                    as: 'LaporanAkhir' // Pastikan alias sesuai dengan relasi
+                    as: 'LaporanAkhir' 
                 }
             ],
         });
@@ -80,7 +79,7 @@ export const getMahasiswaDashboard = async (req, res) => {
             const babDiterima = pengajuan.BabSubmissions.filter(
                 bab => bab.status === 'diterima'
             ).length;
-            progress = (babDiterima / 5) * 100; // Asumsi 5 bab
+            progress = (babDiterima / 5) * 100;
         }
 
         // Get notifikasi terbaru
@@ -95,8 +94,8 @@ export const getMahasiswaDashboard = async (req, res) => {
             data: {
                 mahasiswa: mahasiswaData,
                 pengajuan,
-                laporan, // PENTING: Kirim data laporan terpisah
-                laporanAkhir: laporan, // Alias tambahan untuk kompatibilitas
+                laporan, 
+                laporanAkhir: laporan,
                 progress,
                 notifikasi
             }
@@ -456,7 +455,7 @@ export const uploadLaporanAkhir = async (req, res) => {
     try {
         const files = req.files || {};
 
-        console.log("Files received:", files); // Debug log
+        console.log("Files received:", files);
 
         const mahasiswaData = await Mahasiswa.findOne({
             where: { id_user: req.session.userId },
@@ -488,7 +487,7 @@ export const uploadLaporanAkhir = async (req, res) => {
             where: { id_pengajuan: pengajuan.id_pengajuan },
         });
 
-        // Siapkan data untuk update/create
+        //data untuk update/create
         const fileData = {};
 
         // Update hanya field yang ada filenya

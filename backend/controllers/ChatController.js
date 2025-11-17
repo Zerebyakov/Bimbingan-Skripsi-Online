@@ -7,7 +7,6 @@ import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import User from "../models/User.js";
 
-// Send message dalam bimbingan
 export const sendMessage = async (req, res) => {
     try {
         const { id_pengajuan } = req.params;
@@ -28,14 +27,15 @@ export const sendMessage = async (req, res) => {
             return res.status(401).json({ success: false, message: "Sesi pengguna tidak ditemukan" });
         }
 
-        // 🔐 Validasi hak akses
+        //  UPDATE: Validasi hak akses (hapus pembimbing 3)
         if (userRole === "mahasiswa") {
             const mhs = await Mahasiswa.findOne({ where: { id_user: userId } });
             if (pengajuan.id_mahasiswa !== mhs.id_mahasiswa)
                 return res.status(403).json({ success: false, message: "Tidak memiliki akses" });
         } else if (userRole === "dosen") {
             const dosen = await Dosen.findOne({ where: { id_user: userId } });
-            if (![pengajuan.dosenId1, pengajuan.dosenId2, pengajuan.dosenId3].includes(dosen.id_dosen))
+            //  Cek hanya pembimbing 1 dan 2
+            if (![pengajuan.dosenId1, pengajuan.dosenId2].includes(dosen.id_dosen))
                 return res.status(403).json({ success: false, message: "Tidak memiliki akses" });
         }
 
@@ -63,13 +63,13 @@ export const sendMessage = async (req, res) => {
             ],
         });
 
-        // 🚀 PENTING: Emit SEBELUM response agar client langsung terima
-        console.log("📤 Emitting message to room:", id_pengajuan);
+        //  Emit ke room
+        console.log(" Emitting message to room:", id_pengajuan);
         io.to(`room_${id_pengajuan}`).emit("message:new", fullMsg);
 
-        // 🔔 Kirim notifikasi
+        //  UPDATE: Kirim notifikasi (hapus dosenId3)
         if (userRole === "mahasiswa") {
-            const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2, pengajuan.dosenId3].filter(Boolean);
+            const dosenIds = [pengajuan.dosenId1, pengajuan.dosenId2].filter(Boolean);
             for (const id of dosenIds) {
                 const dosen = await Dosen.findByPk(id);
                 if (dosen) {
@@ -100,7 +100,7 @@ export const sendMessage = async (req, res) => {
 
         res.status(201).json({ success: true, message: "Pesan berhasil dikirim", data: fullMsg });
     } catch (error) {
-        console.error("❌ Send message error:", error);
+        console.error(" Send message error:", error);
         res.status(500).json({ success: false, message: "Internal server error", error: error.message });
     }
 };
@@ -109,7 +109,7 @@ export const sendMessage = async (req, res) => {
 export const getMessages = async (req, res) => {
     try {
         const { id_pengajuan } = req.params;
-        const { page = 1, limit = 50 } = req.query; // Naikkan limit default
+        const { page = 1, limit = 50 } = req.query;
 
         const messages = await Message.findAndCountAll({
             where: { id_pengajuan },
@@ -140,7 +140,7 @@ export const getMessages = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("❌ Get messages error:", error);
+        console.error(" Get messages error:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
@@ -199,7 +199,7 @@ export const exportChatHistory = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("❌ Export chat error:", error);
+        console.error(" Export chat error:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",

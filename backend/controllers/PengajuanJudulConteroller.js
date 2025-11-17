@@ -14,7 +14,7 @@ import ProgramStudi from "../models/ProgramStudi.js";
 export const getAllPengajuanJudul = async (req, res) => {
     try {
         const { status, page = 1, limit = 10 } = req.query;
-        
+
         const whereCondition = {};
         if (status) {
             whereCondition.status = status;
@@ -24,9 +24,8 @@ export const getAllPengajuanJudul = async (req, res) => {
             where: whereCondition,
             include: [
                 { model: Mahasiswa, include: [{ model: ProgramStudi }] },
-                { model: Dosen, as: 'Pembimbing1', attributes: ['nama'] },
-                { model: Dosen, as: 'Pembimbing2', attributes: ['nama'] },
-                { model: Dosen, as: 'Pembimbing3', attributes: ['nama'] },
+                { model: Dosen, as: 'Pembimbing1', attributes: ['nama', 'gelar'] },
+                { model: Dosen, as: 'Pembimbing2', attributes: ['nama', 'gelar'] }
             ],
             order: [['createdAt', 'DESC']],
             limit: parseInt(limit),
@@ -64,7 +63,6 @@ export const getPengajuanJudulById = async (req, res) => {
                 { model: Mahasiswa, include: [{ model: ProgramStudi }] },
                 { model: Dosen, as: 'Pembimbing1' },
                 { model: Dosen, as: 'Pembimbing2' },
-                { model: Dosen, as: 'Pembimbing3' },
                 { model: BabSubmission },
                 { model: KartuBimbingan },
                 { model: LaporanAkhir }
@@ -119,7 +117,7 @@ export const updatePengajuanJudul = async (req, res) => {
             description,
             bidang_topik,
             keywords,
-            status: 'diajukan' // Ubah status ke diajukan setelah update
+            status: 'diajukan'
         });
 
         // Log aktivitas
