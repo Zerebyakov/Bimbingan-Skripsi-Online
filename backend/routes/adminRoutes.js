@@ -3,6 +3,7 @@ import { assignDosenPembimbing, createUser, getAllDosen, getAllUsers, getDashboa
 import { logActivity } from '../middleware/loggingMiddleware.js';
 import { verifyAdmin, verifySession } from '../middleware/authMiddleware.js';
 import { validateAssignDosen, validateCreateUser, validateKonfigurasi, validatePagination } from '../middleware/validationMiddleware.js';
+import { getAllArsip } from '../controllers/ArsipController.js';
 
 
 

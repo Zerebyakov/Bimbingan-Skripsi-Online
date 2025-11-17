@@ -1,6 +1,6 @@
 import express from 'express'
 import { verifyAdmin, verifySession } from '../middleware/authMiddleware.js';
-import { exportArsip, getAllArsip } from '../controllers/ArsipController.js';
+import { createArsip, deleteArsip, exportArsip, getAllArsip, getArsipById, getArsipStatistics, updateArsip } from '../controllers/ArsipController.js';
 import { validatePagination } from '../middleware/validationMiddleware.js';
 
 
@@ -11,10 +11,26 @@ const router = express.Router();
 router.use(verifySession);
 router.use(verifyAdmin);
 
-// Get all arsip
-router.get('/', validatePagination, getAllArsip);
+//  Statistics (untuk dashboard admin)
+router.get('/statistics', verifyAdmin, getArsipStatistics);
 
-// Export arsip
-router.get('/export', exportArsip);
+//  Export arsip (admin only)
+router.get('/export', verifyAdmin, exportArsip);
+
+//  Get all arsip dengan filter dan pagination
+router.get('/', verifyAdmin, validatePagination, getAllArsip);
+
+//  Get arsip by ID
+router.get('/:id_arsip', verifyAdmin, getArsipById);
+
+// Create arsip (admin only atau auto-trigger)
+router.post('/', verifyAdmin, createArsip);
+
+// Update arsip (admin only)
+router.put('/:id_arsip', verifyAdmin, updateArsip);
+
+// Delete arsip (admin only)
+router.delete('/:id_arsip', verifyAdmin, deleteArsip);
+
 
 export default router;
