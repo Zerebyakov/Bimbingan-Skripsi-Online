@@ -31,9 +31,9 @@ const LaporanAkhir = db.define("LaporanAkhir", {
     allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM("MENUNGGU", "REVISI", "DITERIMA", "DITOLAK"),
+    type: DataTypes.ENUM("menunggu", "revisi", "diterima", "ditolak"),
     allowNull: false,
-    defaultValue: "MENUNGGU"
+    defaultValue: "menunggu"
   },
   notes: {
     type: DataTypes.TEXT,

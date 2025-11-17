@@ -62,9 +62,6 @@ PengajuanJudul.belongsTo(Dosen, { foreignKey: "dosenId1", as: "Pembimbing1" });
 Dosen.hasMany(PengajuanJudul, { foreignKey: "dosenId2" });
 PengajuanJudul.belongsTo(Dosen, { foreignKey: "dosenId2", as: "Pembimbing2" });
 
-Dosen.hasMany(PengajuanJudul, { foreignKey: "dosenId3" });
-PengajuanJudul.belongsTo(Dosen, { foreignKey: "dosenId3", as: "Pembimbing3" });
-
 PeriodeSkripsi.hasMany(PengajuanJudul, { foreignKey: "id_periode" });
 PengajuanJudul.belongsTo(PeriodeSkripsi, { foreignKey: "id_periode" });
 
