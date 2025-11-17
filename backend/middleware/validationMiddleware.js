@@ -80,6 +80,21 @@ export const validateReviewBab = [
     handleValidationErrors
 ];
 
+
+// NEW: Validasi khusus untuk review LAPORAN AKHIR
+export const validateReviewLaporan = [
+    body('status')
+        .optional()
+        .isIn(['diterima', 'ditolak', 'revisi', 'menunggu'])
+        .withMessage('Status tidak valid'),    
+    body('notes')
+        .if(body('status').isIn(['ditolak', 'revisi']))
+        .notEmpty()
+        .withMessage('Catatan/alasan harus diisi untuk status ditolak atau revisi'),
+    
+    handleValidationErrors
+];
+
 // Validation untuk send message
 export const validateSendMessage = [
     param('id_pengajuan')
