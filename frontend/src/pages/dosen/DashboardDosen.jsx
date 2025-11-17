@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from "react";
 import DosenLayout from "./layout/DosenLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import {
   RefreshCw,
   Users,
   FileText,
   FolderOpen,
   Calendar,
+  User,
+  Hash,
+  Mail,
+  BookOpen,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
+import { useNavigate } from "react-router";
 
 const DashboardDosen = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fadeIn, setFadeIn] = useState(false);
+  const navigate = useNavigate();
 
   const fetchDashboard = async () => {
     setLoading(true);
@@ -23,6 +32,7 @@ const DashboardDosen = () => {
         withCredentials: true,
       });
       setData(res.data.data);
+
       setTimeout(() => {
         setLoading(false);
         setFadeIn(true);
@@ -37,6 +47,15 @@ const DashboardDosen = () => {
     fetchDashboard();
   }, []);
 
+  const statusBadge = (status) => {
+    const base = "px-2 py-1 rounded text-xs font-medium capitalize";
+    if (!status) return <span className={`${base} bg-gray-100 text-gray-700`}>-</span>;
+    if (status === "diterima") return <span className={`${base} bg-green-100 text-green-700`}>Diterima</span>;
+    if (status === "revisi") return <span className={`${base} bg-yellow-100 text-yellow-700`}>Revisi</span>;
+    if (status === "menunggu") return <span className={`${base} bg-blue-100 text-blue-700`}>Menunggu</span>;
+    return <span className={`${base} bg-gray-100 text-gray-700`}>{status}</span>;
+  };
+
   return (
     <DosenLayout>
       <div
@@ -44,14 +63,12 @@ const DashboardDosen = () => {
           }`}
       >
         <div className="space-y-8">
-          {/* Header */}
+          {/*HEADER  */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-800">
-                Dashboard Dosen
-              </h1>
+              <h1 className="text-2xl font-semibold text-gray-800">Dashboard Dosen</h1>
               <p className="text-gray-500 text-sm">
-                Pantau aktivitas dan progres bimbingan mahasiswa Anda.
+                Ringkasan kegiatan bimbingan & progress mahasiswa.
               </p>
             </div>
 
@@ -61,156 +78,204 @@ const DashboardDosen = () => {
                 }`}
               disabled={loading}
             >
-              <RefreshCw
-                size={16}
-                className={loading ? "animate-spin" : ""}
-              />
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
               {loading ? "Menyegarkan..." : "Refresh"}
             </button>
           </div>
 
-          {/* Statistik Section */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-slide">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex items-center gap-4"
-                >
-                  <div className="w-12 h-12 rounded-lg shimmer"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="w-24 h-3 shimmer rounded-md"></div>
-                    <div className="w-16 h-5 shimmer rounded-md"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            data && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-slide">
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-all duration-300">
-                  <div className="bg-gray-100 p-3 rounded-lg">
-                    <Users className="text-gray-700" size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm text-gray-500 font-medium">
-                      Total Bimbingan
-                    </h2>
-                    <p className="text-xl font-semibold text-gray-800">
-                      {data.statistics.totalBimbingan || 0}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-all duration-300">
-                  <div className="bg-gray-100 p-3 rounded-lg">
-                    <FolderOpen className="text-gray-700" size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm text-gray-500 font-medium">
-                      Bimbingan Aktif
-                    </h2>
-                    <p className="text-xl font-semibold text-gray-800">
-                      {data.statistics.bimbinganAktif || 0}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-all duration-300">
-                  <div className="bg-gray-100 p-3 rounded-lg">
-                    <FileText className="text-gray-700" size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-sm text-gray-500 font-medium">
-                      Mahasiswa Stagnan
-                    </h2>
-                    <p className="text-xl font-semibold text-gray-800">
-                      {data.mahasiswaStagnan?.length || 0}
-                    </p>
-                  </div>
-                </div>
+          {/* MINI PROFILE DOSEN (simple) */}
+          {data?.dosenInfo && (
+            <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl shadow-sm p-4">
+              <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                {data.dosenInfo.foto ? (
+                  <img
+                    src={`${imageUrl}${data.dosenInfo.foto}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User size={26} className="text-gray-600" />
+                )}
               </div>
-            )
+
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {data.dosenInfo.nama}
+                </h2>
+                <p className="text-sm text-gray-600">
+                  {data.dosenInfo.bidang_keahlian || "-"} •{" "}
+                  {data.dosenInfo.jabatan_akademik || "-"}
+                </p>
+              </div>
+            </div>
           )}
 
-          {/* Daftar Mahasiswa */}
-          <div
-            className={`bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-all duration-500 ${fadeIn ? "opacity-100" : "opacity-0"
-              }`}
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+          {/*  STATISTIK  */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              {
+                title: "Total Bimbingan",
+                value: data?.statistics?.totalBimbingan ?? 0,
+                icon: Users,
+              },
+              {
+                title: "Aktif",
+                value: data?.statistics?.bimbinganAktif ?? 0,
+                icon: FolderOpen,
+              },
+              {
+                title: "Pembimbing I",
+                value: data?.statistics?.sebagaiPembimbing1 ?? 0,
+                icon: BookOpen,
+              },
+              {
+                title: "Pembimbing II",
+                value: data?.statistics?.sebagaiPembimbing2 ?? 0,
+                icon: FileText,
+              },
+              {
+                title: "Menunggu Review",
+                value: data?.statistics?.menungguReview ?? 0,
+                icon: Clock,
+              },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-all duration-300"
+              >
+                <div className="bg-gray-100 p-3 rounded-lg">
+                  <item.icon className="text-gray-700" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-sm text-gray-500 font-medium">{item.title}</h2>
+                  <p className="text-xl font-semibold text-gray-800">{item.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/*  MAHASISWA Bimbingan (GRID)  */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <Users size={18} className="text-gray-600" />
                 Mahasiswa Bimbingan Aktif
               </h2>
+              <span className="text-sm text-gray-500">
+                {data?.mahasiswaBimbingan?.length || 0} mahasiswa
+              </span>
             </div>
 
             {loading ? (
-              <div className="divide-y divide-gray-100">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="p-5 flex justify-between items-center animate-fade-slide"
-                  >
-                    <div className="flex-1 space-y-2">
-                      <div className="w-40 h-4 shimmer rounded-md"></div>
-                      <div className="w-28 h-3 shimmer rounded-md"></div>
-                      <div className="w-full h-3 shimmer rounded-md"></div>
-                    </div>
-                    <div className="w-16 h-5 shimmer rounded-md"></div>
-                  </div>
-                ))}
-              </div>
-            ) : data.mahasiswaBimbingan?.length > 0 ? (
-              <div className="divide-y divide-gray-100">
+              <p className="text-center py-8 text-gray-500 text-sm">Memuat...</p>
+            ) : data?.mahasiswaBimbingan?.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
                 {data.mahasiswaBimbingan.map((mhs) => (
                   <div
                     key={mhs.id_pengajuan}
-                    className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-gray-50 transition-all duration-300 ease-in-out"
+                    className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-all"
                   >
-                    <div>
-                      <h3 className="text-base font-medium text-gray-800">
-                        {mhs.Mahasiswa?.nama_lengkap}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {mhs.Mahasiswa?.nim} • Semester {mhs.Mahasiswa?.semester}
-                      </p>
-                      <p className="text-sm text-gray-700 mt-1">
-                        <span className="font-medium text-gray-800">
-                          Judul:
-                        </span>{" "}
-                        {mhs.title}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                        {mhs.description}
-                      </p>
+                    {/* HEADER */}
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                        {mhs.Mahasiswa?.foto ? (
+                          <img
+                            src={`${baseUrl}${mhs.Mahasiswa.foto}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={22} className="text-gray-500" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <h3 className="text-base font-medium text-gray-800 truncate">
+                          {mhs.Mahasiswa.nama_lengkap}
+                        </h3>
+                        <p className="text-sm text-gray-500">{mhs.Mahasiswa.nim}</p>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col items-start sm:items-end text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium capitalize ${mhs.status === "diterima"
-                            ? "bg-green-100 text-green-700"
-                            : mhs.status === "revisi"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`}
-                      >
-                        {mhs.status}
+                    {/* JUDUL */}
+                    <p className="text-sm text-gray-700 line-clamp-2 mb-2">
+                      <span className="font-medium text-gray-800">Judul:</span>{" "}
+                      {mhs.title}
+                    </p>
+
+                    {/* DESKRIPSI */}
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                      {mhs.description}
+                    </p>
+
+                    {/* TOPIK + EMAIL + UPDATED */}
+                    <div className="flex items-center gap-3 text-xs text-gray-500 mb-3 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <BookOpen size={12} /> {mhs.bidang_topik}
                       </span>
-                      <div className="flex items-center gap-1 text-gray-500 text-xs mt-1">
-                        <Calendar size={12} />{" "}
+                      <span className="flex items-center gap-1">
+                        <Mail size={12} /> {mhs.Mahasiswa.email_kampus}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />{" "}
                         {new Date(mhs.updatedAt).toLocaleDateString("id-ID")}
-                      </div>
+                      </span>
+                    </div>
+
+                    {/* BADGE STATUS */}
+                    <div className="mb-3">{statusBadge(mhs.status)}</div>
+
+                    {/* ACTIONS */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          navigate(`/dosen/mahasiswa/${mhs.id_mahasiswa}`)
+                        }
+                        className="text-sm px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:shadow-sm transition"
+                      >
+                        Lihat Mahasiswa
+                      </button>
+                      <button
+                        onClick={() =>
+                          navigate(`/dosen/pengajuan/${mhs.id_pengajuan}`)
+                        }
+                        className="text-sm px-3 py-1.5 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
+                      >
+                        Detail Pengajuan
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 text-sm py-10">
-                Belum ada mahasiswa bimbingan saat ini.
+              <p className="text-center py-8 text-gray-500 text-sm">
+                Belum ada mahasiswa bimbingan.
               </p>
             )}
           </div>
+
+          {/*  MAHASISWA STAGNAN  */}
+          {data?.mahasiswaStagnan?.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center gap-2">
+                <AlertTriangle size={18} className="text-yellow-600" />
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Mahasiswa Tanpa Progress
+                </h2>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {data.mahasiswaStagnan.map((mhs) => (
+                  <div key={mhs.id_mahasiswa} className="p-5 hover:bg-gray-50">
+                    <h3 className="text-sm font-medium text-gray-800">
+                      {mhs.nama_lengkap} • {mhs.nim}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Terakhir aktif: {mhs.lastActive || "-"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DosenLayout>

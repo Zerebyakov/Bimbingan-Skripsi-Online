@@ -7,11 +7,15 @@ import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
+import { useAuth } from "../../context/AuthContext";
 
 const ListMahasiswaBimbingan = () => {
     const [bimbingan, setBimbingan] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    const loggedInDosenId = user?.Dosens?.[0]?.id_dosen;
 
     const fetchMahasiswaBimbingan = async () => {
         setLoading(true);
@@ -19,7 +23,10 @@ const ListMahasiswaBimbingan = () => {
             const res = await axios.get(`${baseUrl}dosen/mahasiswa-bimbingan`, {
                 withCredentials: true,
             });
-            setBimbingan(res.data.data || []);
+
+            // FIX ERROR: ambil mahasiswaBimbingan
+            setBimbingan(res.data?.data?.mahasiswaBimbingan || []);
+
         } catch (error) {
             Swal.fire("Gagal", "Tidak dapat memuat data mahasiswa bimbingan", "error");
         } finally {
@@ -31,7 +38,7 @@ const ListMahasiswaBimbingan = () => {
         fetchMahasiswaBimbingan();
     }, []);
 
-    // ✅ Progress dinamis berdasarkan bab diterima
+    // Progress
     const getProgressData = (babSubmissions = []) => {
         if (!babSubmissions.length) return { progress: 0, lastBab: 0 };
         const accepted = babSubmissions.filter((b) => b.status === "diterima");
@@ -70,12 +77,30 @@ const ListMahasiswaBimbingan = () => {
         };
         return (
             <span
-                className={`px-3 py-1 text-xs font-medium rounded-full border ${colorMap[status] || colorMap.default
-                    }`}
+                className={`px-3 py-1 text-xs font-medium rounded-full border ${colorMap[status] || colorMap.default}`}
             >
                 {status?.charAt(0).toUpperCase() + status?.slice(1)}
             </span>
         );
+    };
+
+    // ROLE LABEL (NEW)
+    const getRoleLabel = (item) => {
+        if (item.dosenId1 === loggedInDosenId)
+            return (
+                <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-md border border-green-200">
+                    Pembimbing Utama
+                </span>
+            );
+
+        if (item.dosenId2 === loggedInDosenId)
+            return (
+                <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-md border border-gray-200">
+                    Pembimbing Pendamping
+                </span>
+            );
+
+        return null;
     };
 
     return (
@@ -93,7 +118,7 @@ const ListMahasiswaBimbingan = () => {
                             Mahasiswa Bimbingan
                         </h1>
                         <p className="text-gray-500 text-sm">
-                            Lihat daftar mahasiswa bimbingan dan kemajuan bimbingan mereka.
+                            Lihat daftar mahasiswa dan progres bimbingan.
                         </p>
                     </div>
 
@@ -142,7 +167,7 @@ const ListMahasiswaBimbingan = () => {
                                         )}`}
                                     ></div>
 
-                                    {/* Penomoran Sudut */}
+                                    {/* Numbering */}
                                     <div className="absolute -left-3 -top-3">
                                         <div className="bg-gray-800 text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-md">
                                             {index + 1}
@@ -160,16 +185,20 @@ const ListMahasiswaBimbingan = () => {
                                                     {item.Mahasiswa?.nim} • {item.Mahasiswa?.email_kampus}
                                                 </p>
                                             </div>
+
+                                            {/* Role label (new) */}
+                                            {getRoleLabel(item)}
+
                                             {renderStatusBadge(item.status)}
                                         </div>
 
-                                        {/* Judul Skripsi */}
+                                        {/* Judul */}
                                         <p className="text-sm text-gray-700 mt-2">
                                             <span className="font-medium text-gray-800">Judul:</span>{" "}
                                             {item.title}
                                         </p>
 
-                                        {/* 💬 Pesan Terakhir */}
+                                        {/* Last message */}
                                         {lastMessage ? (
                                             <div className="mt-2 bg-gray-50 border border-gray-100 p-2 rounded-md text-xs text-gray-600">
                                                 <p className="italic line-clamp-1">
@@ -193,7 +222,7 @@ const ListMahasiswaBimbingan = () => {
                                             </p>
                                         )}
 
-                                        {/* Progress Bar */}
+                                        {/* Progress */}
                                         <div className="mt-3">
                                             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                                                 <motion.div
@@ -210,13 +239,13 @@ const ListMahasiswaBimbingan = () => {
                                                 <p>{progressPercent}% progres bimbingan</p>
                                                 <p className="font-semibold text-gray-700">
                                                     {lastBab > 0
-                                                        ? `Sudah sampai Bab ${lastBab}`
-                                                        : "Belum ada bab diterima"}
+                                                        ? `Sudah Bab ${lastBab}`
+                                                        : "Belum ada Bab diterima"}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        {/* Tombol Download */}
+                                        {/* Files */}
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             {item.proposal_file && (
                                                 <button
@@ -238,7 +267,7 @@ const ListMahasiswaBimbingan = () => {
                                         </div>
                                     </div>
 
-                                    {/* Tombol Chat */}
+                                    {/* Chat button */}
                                     <div className="flex flex-col sm:flex-row gap-2 sm:items-start">
                                         <button
                                             onClick={() =>
