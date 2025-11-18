@@ -8,6 +8,7 @@ import {
     LogOut,
     X,
     Settings,
+    Archive,
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -24,6 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: "Judul", icon: <FileText size={20} />, path: "/admin/judul" },
         { name: "Dosen", icon: <Users size={20} />, path: "/admin/dosen" },
         { name: "Mahasiswa", icon: <Users size={20} />, path: "/admin/mahasiswa" },
+        { name: "Arsip", icon: <Archive size={20} />, path: "/admin/arsip" },
         { name: "Konfigurasi", icon: <Settings size={20} />, path: "/admin/konfigurasi" },
     ];
 

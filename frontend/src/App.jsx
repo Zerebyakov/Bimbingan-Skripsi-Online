@@ -25,6 +25,7 @@ import ProfileMahasiswa from './pages/mahasiswa/ProfileMahasiswa';
 import ListPengajuanMahasiswa from './pages/dosen/ListPengajuanMahasiswa';
 import ListBabMahasiswa from './pages/dosen/ListBabMahasiswa';
 import ListLaporanMahasiswa from './pages/dosen/ListLaporanMahasiswa';
+import ArsipMahasiswa from './pages/admin/ArsipMahasiswa';
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -87,6 +88,14 @@ const App = () => {
           element={
             <AdminRoute>
               <KonfigurasiSistem />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/arsip"
+          element={
+            <AdminRoute>
+              <ArsipMahasiswa />
             </AdminRoute>
           }
         />

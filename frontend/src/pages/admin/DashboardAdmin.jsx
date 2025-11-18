@@ -24,30 +24,53 @@ import { motion } from "framer-motion"; // optional animasi, jalankan: npm insta
 const DashboardAdmin = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [arsipStats, setArsipStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Fetch main dashboard
   const fetchDashboard = async () => {
+    const res = await axios.get(`${baseUrl}admin/dashboard`, {
+      withCredentials: true,
+    });
+    return res.data.data;
+  };
+
+  // Fetch arsip statistics (endpoint baru)
+  const fetchArsipStats = async () => {
+    const res = await axios.get(`${baseUrl}arsip/statistics`, {
+      withCredentials: true,
+    });
+    // endpoint response shape: res.data.data
+    return res.data.data;
+  };
+
+  // Combined fetch for both endpoints
+  const fetchAll = async () => {
+    setLoading(true);
     try {
-      const res = await axios.get(`${baseUrl}admin/dashboard`, {
-        withCredentials: true,
-      });
-      setData(res.data.data);
+      const [dashData, arsipData] = await Promise.all([
+        fetchDashboard(),
+        fetchArsipStats(),
+      ]);
+      setData(dashData);
+      setArsipStats(arsipData);
     } catch (error) {
-      console.error("Error fetching dashboard:", error);
+      console.error("Error fetching dashboard or arsip stats:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboard();
+    fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stats = data?.statistics || {};
   const progress = data?.progressData || [];
   const logs = data?.recentLogs || [];
 
-  // Buat data untuk grafik
+  // Chart data for general dashboard (kept like sebelumnya)
   const chartData = [
     { name: "Pengajuan", total: stats.totalPengajuan || 0 },
     { name: "Diterima", total: stats.pengajuanDiterima || 0 },
@@ -55,6 +78,13 @@ const DashboardAdmin = () => {
     { name: "Mahasiswa", total: stats.mahasiswaAktif || 0 },
     { name: "Dosen", total: stats.dosenAktif || 0 },
   ];
+
+  // Chart data for arsip per month (from arsipStats.byMonth)
+  const arsipChartData =
+    (arsipStats?.byMonth || []).map((m) => ({
+      name: m.monthName,
+      count: m.count,
+    })) || [];
 
   if (loading) {
     return (
@@ -72,7 +102,7 @@ const DashboardAdmin = () => {
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.45 }}
         className="space-y-10"
       >
         {/* Header */}
@@ -81,7 +111,7 @@ const DashboardAdmin = () => {
             Selamat Datang, {user?.name || "Admin"}
           </h1>
           <p className="text-gray-500 text-sm">
-            Pantau statistik, pengajuan, dan aktivitas terbaru di sistem.
+            Pantau statistik, pengajuan, arsip, dan aktivitas terbaru di sistem.
           </p>
         </div>
 
@@ -115,7 +145,7 @@ const DashboardAdmin = () => {
             },
             {
               title: "Total Arsip",
-              value: stats.totalArsip,
+              value: stats.totalArsip ?? (arsipStats?.totalAll ?? 0),
               icon: <FileText size={18} />,
             },
           ].map((item, idx) => (
@@ -137,7 +167,92 @@ const DashboardAdmin = () => {
           ))}
         </div>
 
-        {/* Grafik Statistik */}
+        {/* Arsip: Kartu status & grafik bulanan */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+            Statistik Arsip
+          </h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Left: cards status */}
+            <div className="lg:col-span-1 space-y-3">
+              <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <p className="text-sm text-gray-500">Ringkasan Arsip</p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-md border border-gray-100">
+                    <p className="text-xs text-gray-500">Total Tahun {arsipStats?.year ?? "-"}</p>
+                    <h4 className="text-lg font-semibold text-gray-800">{arsipStats?.totalAll ?? 0}</h4>
+                    <p className="text-xs text-gray-400">Total arsip</p>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-md border border-gray-100">
+                    <p className="text-xs text-gray-500">Arsip Tahun</p>
+                    <h4 className="text-lg font-semibold text-gray-800">{arsipStats?.byYear ?? 0}</h4>
+                    <p className="text-xs text-gray-400">Jumlah arsip pada tahun</p>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-md border border-gray-100">
+                    <p className="text-xs text-gray-500">Selesai</p>
+                    <h4 className="text-lg font-semibold text-green-700">{arsipStats?.byStatus?.selesai ?? 0}</h4>
+                    <p className="text-xs text-gray-400">Arsip selesai</p>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-md border border-gray-100">
+                    <p className="text-xs text-gray-500">Lulus</p>
+                    <h4 className="text-lg font-semibold text-blue-700">{arsipStats?.byStatus?.lulus ?? 0}</h4>
+                    <p className="text-xs text-gray-400">Arsip lulus</p>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-md border border-gray-100 col-span-2">
+                    <p className="text-xs text-gray-500">Revisi Ulang</p>
+                    <h4 className="text-lg font-semibold text-yellow-700">{arsipStats?.byStatus?.revisiUlang ?? 0}</h4>
+                    <p className="text-xs text-gray-400">Arsip perlu revisi ulang</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* small note / legenda */}
+              <div className="bg-white p-3 rounded-lg border border-gray-200 text-sm text-gray-600">
+                <p className="font-medium text-gray-800 mb-1">Catatan</p>
+                <p className="text-xs text-gray-500">
+                  Data arsip diambil berdasarkan metadata arsip yang tersimpan. Grafik menampilkan jumlah arsip per bulan.
+                </p>
+              </div>
+            </div>
+
+            {/* Right: grafik bulanan (menggunakan seluruh kolom kanan) */}
+            <div className="lg:col-span-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-800">Arsip per Bulan</h3>
+                <p className="text-xs text-gray-500">Tahun {arsipStats?.year ?? "-"}</p>
+              </div>
+
+              {arsipChartData.length === 0 ? (
+                <p className="text-gray-500 text-sm italic">Belum ada data arsip per bulan.</p>
+              ) : (
+                <div style={{ width: "100%", height: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={arsipChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="name" tick={{ fill: "#6b7280" }} />
+                      <YAxis tick={{ fill: "#6b7280" }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#f9fafb",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Bar dataKey="count" fill="#4b5563" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Grafik Statistik Umum */}
         <section>
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Statistik Umum
@@ -187,7 +302,7 @@ const DashboardAdmin = () => {
                       key={item.id_pengajuan}
                       className="border-t hover:bg-gray-50"
                     >
-                      <td className="px-4 py-2">{item.title}</td>
+                      <td className="px-4 py-2 max-w-xs truncate">{item.title}</td>
                       <td className="px-4 py-2">{item.bidang_topik}</td>
                       <td className="px-4 py-2">
                         <span

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import AdminLayout from "./layout/AdminLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { RefreshCw, Search, Plus } from "lucide-react";
 
 const ListMahasiswa = () => {
@@ -196,7 +196,7 @@ const ListMahasiswa = () => {
               <tbody>
                 {filteredMahasiswa.map((item,index) => {
                   const mhs = item.Mahasiswa;
-                  const fotoUrl = mhs.foto ? `${baseUrl}${mhs.foto}` : null;
+                  const fotoUrl = mhs.foto ? `${imageUrl}${mhs.foto}` : null;
 
                   return (
                     <tr
