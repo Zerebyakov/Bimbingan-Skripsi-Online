@@ -14,6 +14,7 @@ import {
     User,
     ChevronLeft,
     ChevronRight,
+    Edit3,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
@@ -292,7 +293,7 @@ const ArsipMahasiswa = () => {
                                 <th className="px-4 py-2 text-left">Judul</th>
                                 <th className="px-4 py-2 text-left">Status</th>
                                 <th className="px-4 py-2 text-left">Tanggal</th>
-                                <th className="px-4 py-2 text-left">Kartu Bimbingan</th>
+                                {/* <th className="px-4 py-2 text-left">Kartu Bimbingan</th> */}
                                 <th className="px-4 py-2 text-left">File Final</th>
                                 <th className="px-4 py-2 text-left">Aksi</th>
                             </tr>
@@ -355,26 +356,17 @@ const ArsipMahasiswa = () => {
                                             </td>
 
                                             {/* KARTU BIMBINGAN */}
-                                            <td className="px-4 py-2">
-                                                {item.kartuBimbinganFile ? (
-                                                    <a
-                                                        href={`${baseUrl}uploads/${item.kartuBimbinganFile}`}
-                                                        target="_blank"
-                                                        className="text-blue-600 hover:underline text-xs flex items-center gap-1"
-                                                    >
-                                                        <Download size={14} /> Download
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-gray-400 text-xs">Tidak ada</span>
-                                                )}
-                                            </td>
+                                            {/* <td className="px-4 py-2">
+                                                {item.kartuBimbinganFile}
+                                            </td> */}
 
                                             {/* FILE FINAL */}
                                             <td className="px-4 py-2">
                                                 {item.fileFinal ? (
                                                     <a
-                                                        href={`${baseUrl}uploads/${item.fileFinal}`}
-                                                        target="_blank"
+                                                        href={`${imageUrl}uploads/laporan/${item.fileFinal}`}
+                                                        target={item.fileFinal}
+                                                        download={item.fileFinal}
                                                         className="text-blue-600 hover:underline text-xs"
                                                     >
                                                         Lihat File
@@ -388,15 +380,15 @@ const ArsipMahasiswa = () => {
                                             <td className="px-4 py-2 flex gap-2">
                                                 <button
                                                     onClick={() => handleOpenDetail(item)}
-                                                    className="px-2 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 flex items-center gap-1"
+                                                    className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 text-blue-700 transition"
                                                 >
-                                                    <Eye size={14} /> Detail
+                                                    <Eye size={14} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleOpenUpdate(item)}
-                                                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-500 flex items-center gap-1"
+                                                    className="p-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition"
                                                 >
-                                                    <Pencil size={14} /> Update
+                                                    <Edit3 size={14} />
                                                 </button>
                                             </td>
                                         </tr>

@@ -194,7 +194,7 @@ const ListMahasiswa = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMahasiswa.map((item,index) => {
+                {filteredMahasiswa.map((item, index) => {
                   const mhs = item.Mahasiswa;
                   const fotoUrl = mhs.foto ? `${imageUrl}${mhs.foto}` : null;
 
@@ -204,7 +204,7 @@ const ListMahasiswa = () => {
                       className="border-t hover:bg-gray-50 transition"
                     >
                       <td className="px-4 py-3 font-medium text-gray-800">
-                        {index+1}
+                        {index + 1}
                       </td>
                       <td className="px-4 py-3">
                         {fotoUrl ? (
@@ -235,8 +235,8 @@ const ListMahasiswa = () => {
                       <td className="px-4 py-3">
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium capitalize ${mhs.status_akademik === "aktif"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
                             }`}
                         >
                           {mhs.status_akademik}
@@ -251,203 +251,203 @@ const ListMahasiswa = () => {
         </div>
 
         {/* Modal Tambah Mahasiswa */}
-        {/* Modal Tambah Mahasiswa */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-3 overflow-hidden animate-fade-in">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <Plus size={18} className="text-gray-600" />
-                  Tambah Mahasiswa Baru
-                </h2>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 transition"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Body */}
-              <form
-                onSubmit={handleSubmit}
-                className="p-6 space-y-6 max-h-[75vh] overflow-y-auto"
-              >
-                {/* Bagian Akun */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
-                    Informasi Akun
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">
-                        Email Login
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        placeholder="Email akun mahasiswa"
-                        value={form.email}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">
-                        Password
-                      </label>
-                      <input
-                        type="password"
-                        name="password"
-                        required
-                        placeholder="Kata sandi akun"
-                        value={form.password}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bagian Profil Mahasiswa */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
-                    Data Profil Mahasiswa
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">NIM</label>
-                      <input
-                        type="text"
-                        name="nim"
-                        required
-                        placeholder="Nomor Induk Mahasiswa"
-                        value={form.nim}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">
-                        Nama Lengkap
-                      </label>
-                      <input
-                        type="text"
-                        name="nama_lengkap"
-                        required
-                        placeholder="Nama lengkap mahasiswa"
-                        value={form.nama_lengkap}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">
-                        Program Studi ID
-                      </label>
-                      <input
-                        type="number"
-                        name="prodi_id"
-                        required
-                        placeholder="Contoh: 1"
-                        value={form.prodi_id}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">
-                        Angkatan
-                      </label>
-                      <input
-                        type="number"
-                        name="angkatan"
-                        required
-                        placeholder="Contoh: 2022"
-                        value={form.angkatan}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">
-                        Semester
-                      </label>
-                      <input
-                        type="number"
-                        name="semester"
-                        required
-                        placeholder="Contoh: 7"
-                        value={form.semester}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">
-                        Nomor Kontak
-                      </label>
-                      <input
-                        type="text"
-                        name="kontak"
-                        placeholder="Nomor HP mahasiswa"
-                        value={form.kontak}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="text-xs text-gray-600 font-medium">
-                        Email Kampus
-                      </label>
-                      <input
-                        type="email"
-                        name="email_kampus"
-                        placeholder="Email institusi mahasiswa"
-                        value={form.email_kampus}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pesan sukses/error */}
-                {message && (
-                  <div
-                    className={`text-sm ${message.type === "error"
-                        ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
-                        : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
-                      }`}
-                  >
-                    {message.text}
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
-                  >
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
       </div>
+      {/* Modal Tambah Mahasiswa */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-3 overflow-hidden animate-fade-in">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Plus size={18} className="text-gray-600" />
+                Tambah Mahasiswa Baru
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-6 max-h-[75vh] overflow-y-auto"
+            >
+              {/* Bagian Akun */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
+                  Informasi Akun
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Email Login
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      placeholder="Email akun mahasiswa"
+                      value={form.email}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      placeholder="Kata sandi akun"
+                      value={form.password}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bagian Profil Mahasiswa */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
+                  Data Profil Mahasiswa
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">NIM</label>
+                    <input
+                      type="text"
+                      name="nim"
+                      required
+                      placeholder="Nomor Induk Mahasiswa"
+                      value={form.nim}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Nama Lengkap
+                    </label>
+                    <input
+                      type="text"
+                      name="nama_lengkap"
+                      required
+                      placeholder="Nama lengkap mahasiswa"
+                      value={form.nama_lengkap}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Program Studi ID
+                    </label>
+                    <input
+                      type="number"
+                      name="prodi_id"
+                      required
+                      placeholder="Contoh: 1"
+                      value={form.prodi_id}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Angkatan
+                    </label>
+                    <input
+                      type="number"
+                      name="angkatan"
+                      required
+                      placeholder="Contoh: 2022"
+                      value={form.angkatan}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Semester
+                    </label>
+                    <input
+                      type="number"
+                      name="semester"
+                      required
+                      placeholder="Contoh: 7"
+                      value={form.semester}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Nomor Kontak
+                    </label>
+                    <input
+                      type="text"
+                      name="kontak"
+                      placeholder="Nomor HP mahasiswa"
+                      value={form.kontak}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs text-gray-600 font-medium">
+                      Email Kampus
+                    </label>
+                    <input
+                      type="email"
+                      name="email_kampus"
+                      placeholder="Email institusi mahasiswa"
+                      value={form.email_kampus}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pesan sukses/error */}
+              {message && (
+                <div
+                  className={`text-sm ${message.type === "error"
+                    ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
+                    : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
+                    }`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
+                >
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

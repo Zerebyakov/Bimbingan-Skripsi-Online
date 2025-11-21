@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import AdminLayout from "./layout/AdminLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { RefreshCw, Search, Plus } from "lucide-react";
 
 const ListDosen = () => {
@@ -118,6 +118,17 @@ const ListDosen = () => {
     );
   });
 
+  const getInitials = (name) => {
+    if (!name) {
+      return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase();
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -176,6 +187,7 @@ const ListDosen = () => {
               <thead className="bg-gray-100 text-gray-700">
                 <tr>
                   <th className="px-4 py-3 text-left">No</th>
+                  <th className="px-4 py-3 text-left">Foto</th>
                   <th className="px-4 py-3 text-left">Nama</th>
                   <th className="px-4 py-3 text-left">NIDN</th>
                   <th className="px-4 py-3 text-left">Program Studi</th>
@@ -187,6 +199,7 @@ const ListDosen = () => {
               <tbody>
                 {filteredDosens.map((item, index) => {
                   const dosen = item.Dosens?.[0];
+                  const fotoUrl = dosen.foto ? `${imageUrl}${dosen.foto}` : null
                   return (
                     <tr
                       key={dosen.id_dosen}
@@ -194,6 +207,19 @@ const ListDosen = () => {
                     >
                       <td className="px-4 py-3 font-medium text-gray-800">
                         {index + 1}
+                      </td>
+                      <td className="px-4 py-3">
+                        {fotoUrl ? (
+                          <img
+                            src={fotoUrl}
+                            alt={dosen.nama}
+                            className="w-10 h-10 rounded-full object-cover border border-gray-300"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-semibold border border-gray-300">
+                            {getInitials(dosen.nama)}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-800">
                         {dosen.nama}
@@ -229,207 +255,207 @@ const ListDosen = () => {
           )}
         </div>
 
-        {/* Modal Form */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-3 overflow-hidden animate-fade-in">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <Plus size={18} className="text-gray-600" />
-                  Tambah Dosen Baru
-                </h2>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 transition"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Body */}
-              <form
-                onSubmit={handleSubmit}
-                className="p-6 space-y-6 max-h-[75vh] overflow-y-auto"
-              >
-                {/* Informasi Akun */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
-                    Informasi Akun
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Email</label>
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        placeholder="Email akun dosen"
-                        value={form.email}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Password</label>
-                      <input
-                        type="password"
-                        name="password"
-                        required
-                        placeholder="Kata sandi"
-                        value={form.password}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Informasi Dosen */}
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
-                    Data Profil Dosen
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">NIDN</label>
-                      <input
-                        type="text"
-                        name="nidn"
-                        required
-                        placeholder="NIDN"
-                        value={form.nidn}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Nama Lengkap</label>
-                      <input
-                        type="text"
-                        name="nama"
-                        required
-                        placeholder="Nama lengkap"
-                        value={form.nama}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Gelar Akademik</label>
-                      <input
-                        type="text"
-                        name="gelar"
-                        placeholder="Contoh: M.Kom"
-                        value={form.gelar}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Program Studi ID</label>
-                      <input
-                        type="number"
-                        name="prodi_id"
-                        required
-                        placeholder="Contoh: 1"
-                        value={form.prodi_id}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Fakultas</label>
-                      <input
-                        type="text"
-                        name="fakultas"
-                        placeholder="Nama fakultas"
-                        value={form.fakultas}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Bidang Keahlian</label>
-                      <input
-                        type="text"
-                        name="bidang_keahlian"
-                        placeholder="Contoh: Web Development"
-                        value={form.bidang_keahlian}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Jabatan Akademik</label>
-                      <input
-                        type="text"
-                        name="jabatan_akademik"
-                        placeholder="Contoh: Lektor"
-                        value={form.jabatan_akademik}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Kontak</label>
-                      <input
-                        type="text"
-                        name="kontak"
-                        placeholder="Nomor telepon"
-                        value={form.kontak}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-600 font-medium">Email Institusi</label>
-                      <input
-                        type="email"
-                        name="email_institusi"
-                        placeholder="Email institusi"
-                        value={form.email_institusi}
-                        onChange={handleChange}
-                        className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pesan */}
-                {message && (
-                  <div
-                    className={`text-sm ${message.type === "error"
-                      ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
-                      : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
-                      }`}
-                  >
-                    {message.text}
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
-                  >
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
       </div>
+      {/* Modal Form */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-3 overflow-hidden animate-fade-in">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Plus size={18} className="text-gray-600" />
+                Tambah Dosen Baru
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-6 max-h-[75vh] overflow-y-auto"
+            >
+              {/* Informasi Akun */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
+                  Informasi Akun
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      placeholder="Email akun dosen"
+                      value={form.email}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Password</label>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      placeholder="Kata sandi"
+                      value={form.password}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Informasi Dosen */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
+                  Data Profil Dosen
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">NIDN</label>
+                    <input
+                      type="text"
+                      name="nidn"
+                      required
+                      placeholder="NIDN"
+                      value={form.nidn}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Nama Lengkap</label>
+                    <input
+                      type="text"
+                      name="nama"
+                      required
+                      placeholder="Nama lengkap"
+                      value={form.nama}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Gelar Akademik</label>
+                    <input
+                      type="text"
+                      name="gelar"
+                      placeholder="Contoh: M.Kom"
+                      value={form.gelar}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Program Studi ID</label>
+                    <input
+                      type="number"
+                      name="prodi_id"
+                      required
+                      placeholder="Contoh: 1"
+                      value={form.prodi_id}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Fakultas</label>
+                    <input
+                      type="text"
+                      name="fakultas"
+                      placeholder="Nama fakultas"
+                      value={form.fakultas}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Bidang Keahlian</label>
+                    <input
+                      type="text"
+                      name="bidang_keahlian"
+                      placeholder="Contoh: Web Development"
+                      value={form.bidang_keahlian}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Jabatan Akademik</label>
+                    <input
+                      type="text"
+                      name="jabatan_akademik"
+                      placeholder="Contoh: Lektor"
+                      value={form.jabatan_akademik}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Kontak</label>
+                    <input
+                      type="text"
+                      name="kontak"
+                      placeholder="Nomor telepon"
+                      value={form.kontak}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-600 font-medium">Email Institusi</label>
+                    <input
+                      type="email"
+                      name="email_institusi"
+                      placeholder="Email institusi"
+                      value={form.email_institusi}
+                      onChange={handleChange}
+                      className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pesan */}
+              {message && (
+                <div
+                  className={`text-sm ${message.type === "error"
+                    ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
+                    : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
+                    }`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
+                >
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };
