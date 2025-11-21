@@ -10,7 +10,7 @@ import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import LogAktivitas from "../models/LogAktivitas.js";
 import User from "../models/User.js";
-import KonfigurasiSistem from "../models/KonfigurasiSistem.js";
+import PeriodeSkripsi from "../models/PeriodeSkripsi.js";
 
 // Setup multer untuk upload file
 const storage = multer.diskStorage({
@@ -60,7 +60,7 @@ export const getMahasiswaDashboard = async (req, res) => {
                 },
                 {
                     model: LaporanAkhir,
-                    as: 'LaporanAkhir' 
+                    as: 'LaporanAkhir'
                 }
             ],
         });
@@ -94,7 +94,7 @@ export const getMahasiswaDashboard = async (req, res) => {
             data: {
                 mahasiswa: mahasiswaData,
                 pengajuan,
-                laporan, 
+                laporan,
                 laporanAkhir: laporan,
                 progress,
                 notifikasi
@@ -411,9 +411,27 @@ export const generateKartuBimbingan = async (req, res) => {
         }
 
         // Generate nomor kartu
-        const config = await KonfigurasiSistem.findOne();
-        const tahun = new Date().getFullYear();
-        const nomorKartu = `${config?.formatNomorKartu || 'KB'}/${mahasiswaData.nim}/${tahun}`;
+        const periodeAktif = await PeriodeSkripsi.findOne({
+            where: { isActive: true }
+        });
+
+        if (!periodeAktif) {
+            return res.status(400).json({
+                success: false,
+                message: "Tidak ada periode skripsi aktif."
+            });
+        }
+
+        // Generate nomor kartu
+        const tahunSekarang = new Date().getFullYear();
+        const format = periodeAktif.formatNomorKartu || 'KB-';
+
+        // Opsi 1: Format lengkap (saran)
+        const nomorKartu = `${format}${periodeAktif.tahun_akademik}-${periodeAktif.semester}/${mahasiswaData.nim}/${tahunSekarang}`;
+
+        // Jika mau simple seperti awal:
+        // const nomorKartu = `${format}${mahasiswaData.nim}/${tahunSekarang}`;
+
 
         // Hitung total pertemuan dari message
         const totalPertemuan = await Message.count({

@@ -4,7 +4,7 @@ import Dosen from '../models/Dosen.js';
 import Mahasiswa from '../models/Mahasiswa.js';
 import ProgramStudi from '../models/ProgramStudi.js';
 import PengajuanJudul from '../models/PengajuanJudul.js';
-import { createDefaultAdmin, createSystemConfig } from './createDefaultAdmin.js';
+import { createDefaultAdmin, createDefaultPeriode, createMultiplePeriode } from './createDefaultAdmin.js';
 
 // Seed Program Studi
 export const seedProgramStudi = async () => {
@@ -286,7 +286,8 @@ export const runAllSeeders = async () => {
         console.log('🚀 Starting database seeding...\n');
 
         await createDefaultAdmin();
-        await createSystemConfig();
+        await createDefaultPeriode();
+        await createMultiplePeriode();
         await seedProgramStudi();
         await seedDosen();
         await seedMahasiswa();

@@ -143,7 +143,7 @@ export const validateAssignDosen = [
 
 // Validation untuk konfigurasi sistem
 export const validateKonfigurasi = [
-    body('tahunAkademikAktif')
+    body('tahun_akademik')
         .notEmpty()
         .withMessage('Tahun akademik tidak boleh kosong')
         .matches(/^\d{4}\/\d{4}$/)
@@ -265,6 +265,96 @@ export const validateUpdateProfile = (req, res, next) => {
                 });
             }
         }
+    }
+
+    next();
+};
+
+
+// Validasi create periode
+export const validateCreatePeriode = (req, res, next) => {
+    const { tahun_akademik, semester } = req.body;
+
+    // Validasi tahun_akademik
+    if (!tahun_akademik) {
+        return res.status(400).json({
+            success: false,
+            message: "Tahun akademik harus diisi"
+        });
+    }
+
+    // Validasi format tahun akademik (contoh: 2024/2025)
+    const tahunAkademikRegex = /^\d{4}\/\d{4}$/;
+    if (!tahunAkademikRegex.test(tahun_akademik)) {
+        return res.status(400).json({
+            success: false,
+            message: "Format tahun akademik tidak valid. Gunakan format YYYY/YYYY (contoh: 2024/2025)"
+        });
+    }
+
+    // Validasi semester
+    if (!semester) {
+        return res.status(400).json({
+            success: false,
+            message: "Semester harus diisi"
+        });
+    }
+
+    if (!['genap', 'ganjil'].includes(semester)) {
+        return res.status(400).json({
+            success: false,
+            message: "Semester harus 'genap' atau 'ganjil'"
+        });
+    }
+
+    // Validasi isActive (optional)
+    if (req.body.isActive !== undefined && typeof req.body.isActive !== 'boolean') {
+        return res.status(400).json({
+            success: false,
+            message: "isActive harus berupa boolean"
+        });
+    }
+
+    next();
+};
+
+// Validasi update periode
+export const validateUpdatePeriode = (req, res, next) => {
+    const { tahun_akademik, semester, isActive } = req.body;
+
+    // Validasi minimal ada satu field yang diupdate
+    if (!tahun_akademik && !semester && isActive === undefined) {
+        return res.status(400).json({
+            success: false,
+            message: "Minimal satu field harus diisi untuk update"
+        });
+    }
+
+    // Validasi format tahun akademik jika ada
+    if (tahun_akademik) {
+        const tahunAkademikRegex = /^\d{4}\/\d{4}$/;
+        if (!tahunAkademikRegex.test(tahun_akademik)) {
+            return res.status(400).json({
+                success: false,
+                message: "Format tahun akademik tidak valid. Gunakan format YYYY/YYYY (contoh: 2024/2025)"
+            });
+        }
+    }
+
+    // Validasi semester jika ada
+    if (semester && !['genap', 'ganjil'].includes(semester)) {
+        return res.status(400).json({
+            success: false,
+            message: "Semester harus 'genap' atau 'ganjil'"
+        });
+    }
+
+    // Validasi isActive jika ada
+    if (isActive !== undefined && typeof isActive !== 'boolean') {
+        return res.status(400).json({
+            success: false,
+            message: "isActive harus berupa boolean"
+        });
     }
 
     next();

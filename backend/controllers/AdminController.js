@@ -1,4 +1,3 @@
-import KonfigurasiSistem from "../models/KonfigurasiSistem.js";
 import LogAktivitas from "../models/LogAktivitas.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import Arsip from "../models/Arsip.js";
@@ -9,6 +8,7 @@ import BabSubmission from "../models/BabSubmission.js";
 import User from "../models/User.js";
 import ProgramStudi from "../models/ProgramStudi.js";
 import argon2 from 'argon2'
+import PeriodeSkripsi from "../models/PeriodeSkripsi.js";
 
 
 // Dashboard admin - statistik global
@@ -78,10 +78,20 @@ export const getDashboardStats = async (req, res) => {
 // Kelola konfigurasi sistem
 export const getKonfigurasi = async (req, res) => {
     try {
-        const config = await KonfigurasiSistem.findOne();
+        const periodeAktif = await PeriodeSkripsi.findOne({
+            where: { isActive: true }
+        });
+
+        if (!periodeAktif) {
+            return res.status(404).json({
+                success: false,
+                message: "Tidak ada periode aktif. Silakan buat periode baru."
+            });
+        }
+
         res.status(200).json({
             success: true,
-            data: config
+            data: periodeAktif
         });
     } catch (error) {
         res.status(500).json({
@@ -94,30 +104,38 @@ export const getKonfigurasi = async (req, res) => {
 
 export const updateKonfigurasi = async (req, res) => {
     try {
-        const { tahunAkademikAktif, semesterAktif, kuotaPerDosen, formatNomorKartu } = req.body;
+        const { id_periode } = req.params; // Atau bisa auto-detect periode aktif
+        const {
+            tahun_akademik,
+            kuotaPerDosen,
+            formatNomorKartu,
+            tanggalMulaiBimbingan,
+            tanggalSelesaiBimbingan
+        } = req.body;
 
-        let config = await KonfigurasiSistem.findOne();
+        let periode = await PeriodeSkripsi.findOne({
+            where: { isActive: true }
+        });
 
-        if (!config) {
-            config = await KonfigurasiSistem.create({
-                tahunAkademikAktif,
-                semesterAktif,
-                kuotaPerDosen,
-                formatNomorKartu
-            });
-        } else {
-            await config.update({
-                tahunAkademikAktif,
-                semesterAktif,
-                kuotaPerDosen,
-                formatNomorKartu
+        if (!periode) {
+            return res.status(404).json({
+                success: false,
+                message: "Tidak ada periode aktif"
             });
         }
 
+        await periode.update({
+            tahun_akademik,
+            kuotaPerDosen,
+            formatNomorKartu,
+            tanggalMulaiBimbingan,
+            tanggalSelesaiBimbingan
+        });
+
         res.status(200).json({
             success: true,
-            message: "Konfigurasi berhasil diperbarui",
-            data: config
+            message: "Konfigurasi periode berhasil diperbarui",
+            data: periode
         });
     } catch (error) {
         res.status(500).json({
@@ -197,7 +215,7 @@ export const createUser = async (req, res) => {
 export const assignDosenPembimbing = async (req, res) => {
     try {
         const { id_pengajuan } = req.params;
-        const { dosenId1, dosenId2,dosenId3 } = req.body;
+        const { dosenId1, dosenId2, dosenId3 } = req.body;
 
         const pengajuan = await PengajuanJudul.findByPk(id_pengajuan);
         if (!pengajuan) {
