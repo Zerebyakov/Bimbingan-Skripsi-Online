@@ -152,8 +152,20 @@ export const getAllUsers = async (req, res) => {
         const users = await User.findAll({
             attributes: ['id_user', 'email', 'role', 'status', 'createdAt'],
             include: [
-                { model: Dosen, include: [{ model: ProgramStudi }] },
-                { model: Mahasiswa, include: [{ model: ProgramStudi }] }
+                { 
+                    model: Dosen,
+                    include: [{ 
+                        model: ProgramStudi,
+                        as:'Prodi'
+                    }] 
+                },
+                { 
+                    model: Mahasiswa, 
+                    include: [{ 
+                        model: ProgramStudi,
+                        as:'Prodi'
+                    }] 
+                }
             ]
         });
 
@@ -215,7 +227,7 @@ export const createUser = async (req, res) => {
 export const assignDosenPembimbing = async (req, res) => {
     try {
         const { id_pengajuan } = req.params;
-        const { dosenId1, dosenId2, dosenId3 } = req.body;
+        const { dosenId1, dosenId2 } = req.body;
 
         const pengajuan = await PengajuanJudul.findByPk(id_pengajuan);
         if (!pengajuan) {
@@ -227,8 +239,7 @@ export const assignDosenPembimbing = async (req, res) => {
 
         await pengajuan.update({
             dosenId1,
-            dosenId2: dosenId2 || null,
-            dosenId3: dosenId3 || null,
+            dosenId2: dosenId2 || null
         });
 
         // Log aktivitas

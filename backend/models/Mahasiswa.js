@@ -72,8 +72,8 @@ const Mahasiswa = db.define('Mahasiswa',{
     tableName:'mahasiswas'
 })
 
-Mahasiswa.hasMany(ProgramStudi, {foreignKey: 'prodi_id'})
-ProgramStudi.belongsTo(Mahasiswa, {foreignKey:'prodi_id'})
+ProgramStudi.hasMany(Mahasiswa, {foreignKey: 'prodi_id'})
+Mahasiswa.belongsTo(ProgramStudi, {foreignKey:'prodi_id'})
 
 
 User.hasOne(Mahasiswa, { foreignKey: "id_user" });
