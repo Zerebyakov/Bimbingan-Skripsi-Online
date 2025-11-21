@@ -11,7 +11,7 @@ const ListDosen = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState({
     email: "",
-    password: "",
+    password: "dosen123",
     nidn: "",
     nama: "",
     gelar: "",
@@ -23,6 +23,18 @@ const ListDosen = () => {
     email_institusi: "",
   });
   const [message, setMessage] = useState(null);
+  const [listProdi, setListProdi] = useState([])
+
+  const fetchListProdi = async () => {
+    try {
+      const response = await axios.get(`${baseUrl}prodi`, {
+        withCredentials: true
+      })
+      setListProdi(response.data.data)
+    } catch (error) {
+      console.log(error.message)
+    }
+  }
 
   // Fetch all users
   const fetchDosens = async () => {
@@ -44,6 +56,7 @@ const ListDosen = () => {
 
   useEffect(() => {
     fetchDosens();
+    fetchListProdi();
   }, []);
 
   // Handle input change
@@ -299,7 +312,7 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Password</label>
+                    <label className="text-xs text-gray-600 font-medium">Password (default: <i>dosen123</i>)</label>
                     <input
                       type="password"
                       name="password"
@@ -307,6 +320,7 @@ const ListDosen = () => {
                       placeholder="Kata sandi"
                       value={form.password}
                       onChange={handleChange}
+                      disabled
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
@@ -355,16 +369,23 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Program Studi ID</label>
-                    <input
-                      type="number"
+                    <label className="text-xs text-gray-600 font-medium">
+                      Program Studi
+                    </label>
+                    <select
                       name="prodi_id"
                       required
-                      placeholder="Contoh: 1"
                       value={form.prodi_id}
                       onChange={handleChange}
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                    />
+                    >
+                      <option value="">-- Pilih Program Studi --</option>
+                      {listProdi.map((p) => (
+                        <option key={p.prodi_id} value={p.prodi_id}>
+                          {p.program_studi} ({p.kode_prodi})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="text-xs text-gray-600 font-medium">Fakultas</label>

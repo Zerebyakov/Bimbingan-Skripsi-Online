@@ -245,7 +245,7 @@ const ListPengajuan = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {item.Mahasiswa?.Prodis?.[0]?.program_studi || "-"}
+                        {item.Mahasiswa?.Prodi.program_studi || "-"}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -264,7 +264,7 @@ const ListPengajuan = () => {
 
                       {/* Pembimbing */}
                       <td className="px-4 py-3 text-gray-700">
-                        {item.Pembimbing1?.nama || item.Pembimbing2?.nama || item.Pembimbing3?.nama ? (
+                        {item.Pembimbing1?.nama || item.Pembimbing2?.nama ? (
                           <div className="flex flex-col gap-1">
                             {item.Pembimbing1?.nama && (
                               <p className="text-sm font-medium text-gray-800">
@@ -274,10 +274,6 @@ const ListPengajuan = () => {
                             {item.Pembimbing2?.nama && (
                               <p className="text-xs text-gray-600">• {item.Pembimbing2?.nama}</p>
                             )}
-                            {item.Pembimbing3?.nama && (
-                              <p className="text-xs text-gray-600">• {item.Pembimbing3?.nama}</p>
-                            )}
-
                             {/* Tombol ubah pembimbing */}
                             <button
                               onClick={() => handleOpenModal(item, true)}

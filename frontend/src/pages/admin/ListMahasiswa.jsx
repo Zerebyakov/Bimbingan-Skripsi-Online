@@ -11,16 +11,29 @@ const ListMahasiswa = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState({
     email: "",
-    password: "",
+    password: "mahasiswa123",
     nim: "",
     nama_lengkap: "",
-    prodi_id: "",
+    prodi_id: "1",
     angkatan: "",
     semester: "",
     kontak: "",
     email_kampus: "",
   });
   const [message, setMessage] = useState(null);
+  const [listProdi, setListProdi] = useState([])
+
+  const fetchListProdi = async () => {
+    try {
+      const response = await axios.get(`${baseUrl}prodi`, {
+        withCredentials: true
+      })
+      setListProdi(response.data.data)
+      // console.log(response.data.data.prodi_id=3)
+    } catch (error) {
+      console.log(error.message)
+    }
+  }
 
   const fetchMahasiswa = async () => {
     setLoading(true);
@@ -41,6 +54,7 @@ const ListMahasiswa = () => {
 
   useEffect(() => {
     fetchMahasiswa();
+    fetchListProdi();
   }, []);
 
   // handle input form
@@ -103,12 +117,13 @@ const ListMahasiswa = () => {
   // filter pencarian
   const filteredMahasiswa = mahasiswa.filter((item) => {
     const mhs = item.Mahasiswa;
+    // console.log(mhs.Prodi.program_studi)
     if (!mhs) return false;
     const search = searchTerm.toLowerCase();
     return (
       mhs.nama_lengkap.toLowerCase().includes(search) ||
       mhs.nim.toLowerCase().includes(search) ||
-      mhs.Prodis?.[0]?.program_studi.toLowerCase().includes(search)
+      mhs.Prodi.program_studi.toLowerCase().includes(search)
     );
   });
 
@@ -224,7 +239,7 @@ const ListMahasiswa = () => {
                       </td>
                       <td className="px-4 py-3 text-gray-700">{mhs.nim}</td>
                       <td className="px-4 py-3 text-gray-700">
-                        {mhs.Prodis?.[0]?.program_studi || "-"}
+                        {mhs.Prodi.program_studi || "-"}
                       </td>
                       <td className="px-4 py-3 text-gray-700">{mhs.angkatan}</td>
                       <td className="px-4 py-3 text-gray-700">{mhs.semester}</td>
@@ -298,7 +313,7 @@ const ListMahasiswa = () => {
                   </div>
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
-                      Password
+                      Password (default: <i>mahasiswa123</i>)
                     </label>
                     <input
                       type="password"
@@ -307,6 +322,7 @@ const ListMahasiswa = () => {
                       placeholder="Kata sandi akun"
                       value={form.password}
                       onChange={handleChange}
+                      disabled
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
@@ -347,18 +363,25 @@ const ListMahasiswa = () => {
                   </div>
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
-                      Program Studi ID
+                      Program Studi
                     </label>
-                    <input
-                      type="number"
+                    <select
                       name="prodi_id"
                       required
-                      placeholder="Contoh: 1"
                       value={form.prodi_id}
+                      disabled
                       onChange={handleChange}
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                    />
+                    >
+                      <option value="">-- Pilih Program Studi --</option>
+                      {listProdi.map((p) => (
+                        <option key={p.prodi_id} value={p.prodi_id}>
+                          {p.program_studi} ({p.kode_prodi})
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
                       Angkatan
