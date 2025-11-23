@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import AdminLayout from "./layout/AdminLayout";
 import axios from "axios";
 import { baseUrl, imageUrl } from "../../components/api/myAPI";
-import { RefreshCw, Search, Plus } from "lucide-react";
+import { RefreshCw, Search, Plus, Edit, Trash2 } from "lucide-react";
+import Swal from "sweetalert2";
 
 const ListMahasiswa = () => {
   const [mahasiswa, setMahasiswa] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     email: "",
     password: "mahasiswa123",
@@ -21,48 +24,86 @@ const ListMahasiswa = () => {
     email_kampus: "",
   });
   const [message, setMessage] = useState(null);
-  const [listProdi, setListProdi] = useState([])
+  const [listProdi, setListProdi] = useState([]);
 
+  // Pagination State
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  // GET LIST PRODI
   const fetchListProdi = async () => {
     try {
       const response = await axios.get(`${baseUrl}prodi`, {
-        withCredentials: true
-      })
-      setListProdi(response.data.data)
-      // console.log(response.data.data.prodi_id=3)
-    } catch (error) {
-      console.log(error.message)
-    }
-  }
-
-  const fetchMahasiswa = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${baseUrl}admin/users`, {
         withCredentials: true,
       });
-      const filtered = (res.data.data || []).filter(
-        (user) => user.role === "mahasiswa" && user.Mahasiswa
+      setListProdi(response.data.data);
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+  // GET MAHASISWA (ENDPOINT BARU)
+  const fetchMahasiswa = async (page = 1, search = "") => {
+    setLoading(true);
+    try {
+      const searchParam = search.trim() !== "" ? `&search=${encodeURIComponent(search)}` : "";
+      const res = await axios.get(
+        `${baseUrl}admin/users/mahasiswa?page=${page}&limit=10${searchParam}`,
+        {
+          withCredentials: true,
+        }
       );
-      setMahasiswa(filtered);
+
+      setMahasiswa(res.data.data || []);
+      setPagination(res.data.pagination || {});
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching mahasiswa:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memuat Data",
+        text: "Terjadi kesalahan saat memuat data mahasiswa",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMahasiswa();
+    fetchMahasiswa(currentPage, debouncedSearchTerm);
     fetchListProdi();
   }, []);
 
-  // handle input form
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch when search term changes
+  useEffect(() => {
+    if (debouncedSearchTerm !== undefined) {
+      fetchMahasiswa(1, debouncedSearchTerm); // Reset to page 1 when searching
+    }
+  }, [debouncedSearchTerm]);
+
+  // HANDLE INPUT
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // handle submit form
+  // HANDLE SUBMIT (CREATE OR UPDATE)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage(null);
@@ -72,6 +113,7 @@ const ListMahasiswa = () => {
         email: form.email,
         password: form.password,
         role: "mahasiswa",
+        status: "aktif",
         profileData: {
           nim: form.nim,
           nama_lengkap: form.nama_lengkap,
@@ -83,51 +125,132 @@ const ListMahasiswa = () => {
         },
       };
 
-      const res = await axios.post(`${baseUrl}admin/users`, payload, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (res.data.success) {
-        setMessage({ type: "success", text: "Mahasiswa berhasil ditambahkan!" });
-        setIsModalOpen(false);
-        fetchMahasiswa();
-        setForm({
-          email: "",
-          password: "",
-          nim: "",
-          nama_lengkap: "",
-          prodi_id: "",
-          angkatan: "",
-          semester: "",
-          kontak: "",
-          email_kampus: "",
+      let res;
+      if (isEditMode) {
+        // UPDATE
+        res = await axios.put(`${baseUrl}admin/users/${editingId}`, payload, {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        // CREATE
+        res = await axios.post(`${baseUrl}admin/users`, payload, {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
         });
       }
+
+      if (res.data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil!",
+          text: isEditMode
+            ? "Data mahasiswa berhasil diperbarui!"
+            : "Mahasiswa berhasil ditambahkan!",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        setIsModalOpen(false);
+        fetchMahasiswa(currentPage, debouncedSearchTerm);
+        resetForm();
+      }
     } catch (error) {
-      setMessage({
-        type: "error",
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
         text:
           error.response?.data?.message ||
-          "Terjadi kesalahan saat menambahkan mahasiswa.",
+          `Terjadi kesalahan saat ${isEditMode ? "memperbarui" : "menambahkan"
+          } mahasiswa.`,
       });
     }
   };
 
-  // filter pencarian
-  const filteredMahasiswa = mahasiswa.filter((item) => {
-    const mhs = item.Mahasiswa;
-    // console.log(mhs.Prodi.program_studi)
-    if (!mhs) return false;
-    const search = searchTerm.toLowerCase();
-    return (
-      mhs.nama_lengkap.toLowerCase().includes(search) ||
-      mhs.nim.toLowerCase().includes(search) ||
-      mhs.Prodi.program_studi.toLowerCase().includes(search)
-    );
-  });
+  // RESET FORM
+  const resetForm = () => {
+    setForm({
+      email: "",
+      password: "mahasiswa123",
+      nim: "",
+      nama_lengkap: "",
+      prodi_id: "1",
+      angkatan: "",
+      semester: "",
+      kontak: "",
+      email_kampus: "",
+    });
+    setIsEditMode(false);
+    setEditingId(null);
+    setMessage(null);
+  };
 
-  // avatar inisial jika tidak ada foto
+  // HANDLE EDIT
+  const handleEdit = (mhs) => {
+    setIsEditMode(true);
+    setEditingId(mhs.id_user);
+    setForm({
+      email: mhs.User.email,
+      password: "", // kosongkan password saat edit
+      nim: mhs.nim,
+      nama_lengkap: mhs.nama_lengkap,
+      prodi_id: mhs.prodi_id.toString(),
+      angkatan: mhs.angkatan.toString(),
+      semester: mhs.semester.toString(),
+      kontak: mhs.kontak,
+      email_kampus: mhs.email_kampus,
+    });
+    setIsModalOpen(true);
+  };
+
+  // HANDLE DELETE
+  const handleDelete = async (mhs) => {
+    Swal.fire({
+      title: "Konfirmasi Hapus",
+      html: `Apakah Anda yakin ingin menghapus mahasiswa:<br><strong>${mhs.nama_lengkap}</strong> (${mhs.nim})?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, Hapus!",
+      cancelButtonText: "Batal",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await axios.delete(
+            `${baseUrl}admin/users/${mhs.id_user}`,
+            {
+              withCredentials: true,
+            }
+          );
+
+          if (res.data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Terhapus!",
+              text: "Data mahasiswa berhasil dihapus.",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+            fetchMahasiswa(currentPage, debouncedSearchTerm);
+          }
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "Gagal Menghapus",
+            text:
+              error.response?.data?.message ||
+              "Terjadi kesalahan saat menghapus data mahasiswa.",
+          });
+        }
+      }
+    });
+  };
+
+  // FILTER SEARCH - Removed client-side filtering since we're using backend search
+  const filteredMahasiswa = mahasiswa;
+
+  // AVATAR
   const getInitials = (name) => {
     if (!name) return "?";
     return name
@@ -154,13 +277,16 @@ const ListMahasiswa = () => {
 
           <div className="flex gap-2">
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                resetForm();
+                setIsModalOpen(true);
+              }}
               className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-md hover:bg-blue-700 transition"
             >
               <Plus size={16} /> Tambah Mahasiswa
             </button>
             <button
-              onClick={fetchMahasiswa}
+              onClick={() => fetchMahasiswa(currentPage, debouncedSearchTerm)}
               className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition"
             >
               <RefreshCw size={16} /> Refresh
@@ -168,19 +294,25 @@ const ListMahasiswa = () => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-1/2">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            placeholder="Cari nama, NIM, atau program studi..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-gray-400 focus:outline-none"
-          />
+        {/* Info & Search */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="text-sm text-gray-600">
+            Menampilkan {mahasiswa.length > 0 ? ((currentPage - 1) * pagination.limit) + 1 : 0} - {Math.min(currentPage * pagination.limit, pagination.total)} dari {pagination.total} data
+          </div>
+
+          <div className="relative w-full sm:w-96">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Cari nama, NIM, atau program studi..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-gray-400 focus:outline-none"
+            />
+          </div>
         </div>
 
         {/* Table */}
@@ -206,11 +338,11 @@ const ListMahasiswa = () => {
                   <th className="px-4 py-3 text-left">Semester</th>
                   <th className="px-4 py-3 text-left">Kontak</th>
                   <th className="px-4 py-3 text-left">Status Akademik</th>
+                  <th className="px-4 py-3 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredMahasiswa.map((item, index) => {
-                  const mhs = item.Mahasiswa;
+                {filteredMahasiswa.map((mhs, index) => {
                   const fotoUrl = mhs.foto ? `${imageUrl}${mhs.foto}` : null;
 
                   return (
@@ -239,7 +371,7 @@ const ListMahasiswa = () => {
                       </td>
                       <td className="px-4 py-3 text-gray-700">{mhs.nim}</td>
                       <td className="px-4 py-3 text-gray-700">
-                        {mhs.Prodi.program_studi || "-"}
+                        {mhs.Prodi?.program_studi || "-"}
                       </td>
                       <td className="px-4 py-3 text-gray-700">{mhs.angkatan}</td>
                       <td className="px-4 py-3 text-gray-700">{mhs.semester}</td>
@@ -257,6 +389,24 @@ const ListMahasiswa = () => {
                           {mhs.status_akademik}
                         </span>
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEdit(mhs)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition"
+                            title="Edit Mahasiswa"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(mhs)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-md transition"
+                            title="Hapus Mahasiswa"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -265,33 +415,133 @@ const ListMahasiswa = () => {
           )}
         </div>
 
-        {/* Modal Tambah Mahasiswa */}
+        {/* Pagination */}
+        {!loading && filteredMahasiswa.length > 0 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white px-6 py-4 rounded-lg border border-gray-200">
+            <div className="text-sm text-gray-600">
+              Halaman {pagination.page} dari {pagination.totalPages}
+            </div>
 
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchMahasiswa(1, debouncedSearchTerm)}
+                disabled={!pagination.hasPrevPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasPrevPage
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                First
+              </button>
+
+              <button
+                onClick={() => fetchMahasiswa(currentPage - 1, debouncedSearchTerm)}
+                disabled={!pagination.hasPrevPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasPrevPage
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                Previous
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {[...Array(pagination.totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Show only 5 pages at a time
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === pagination.totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => fetchMahasiswa(pageNumber, debouncedSearchTerm)}
+                        className={`px-3 py-2 text-sm rounded-md border transition ${currentPage === pageNumber
+                          ? "bg-gray-800 text-white border-gray-800"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return (
+                      <span key={pageNumber} className="px-2 text-gray-500">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => fetchMahasiswa(currentPage + 1, debouncedSearchTerm)}
+                disabled={!pagination.hasNextPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasNextPage
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                Next
+              </button>
+
+              <button
+                onClick={() => fetchMahasiswa(pagination.totalPages, debouncedSearchTerm)}
+                disabled={!pagination.hasNextPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasNextPage
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ======= MODAL TAMBAH/EDIT MAHASISWA ======= */}
       </div>
-      {/* Modal Tambah Mahasiswa */}
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-3 overflow-hidden animate-fade-in">
-            {/* Header */}
             <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Plus size={18} className="text-gray-600" />
-                Tambah Mahasiswa Baru
+                {isEditMode ? (
+                  <>
+                    <Edit size={18} className="text-gray-600" />
+                    Edit Mahasiswa
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} className="text-gray-600" />
+                    Tambah Mahasiswa Baru
+                  </>
+                )}
               </h2>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  resetForm();
+                }}
                 className="text-gray-500 hover:text-gray-700 transition"
               >
                 ✕
               </button>
             </div>
 
-            {/* Body */}
             <form
               onSubmit={handleSubmit}
               className="p-6 space-y-6 max-h-[75vh] overflow-y-auto"
             >
-              {/* Bagian Akun */}
+              {/* Informasi Akun */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
                   Informasi Akun
@@ -313,30 +563,39 @@ const ListMahasiswa = () => {
                   </div>
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
-                      Password (default: <i>mahasiswa123</i>)
+                      {isEditMode
+                        ? "Password (kosongkan jika tidak diubah)"
+                        : "Password (default: mahasiswa123)"}
                     </label>
                     <input
                       type="password"
                       name="password"
-                      required
-                      placeholder="Kata sandi akun"
+                      required={!isEditMode}
+                      placeholder={
+                        isEditMode
+                          ? "Masukkan password baru"
+                          : "Kata sandi akun"
+                      }
                       value={form.password}
                       onChange={handleChange}
-                      disabled
+                      disabled={!isEditMode && form.password === "mahasiswa123"}
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Bagian Profil Mahasiswa */}
+              {/* Profil */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 mb-2 border-l-4 border-gray-400 pl-2">
                   Data Profil Mahasiswa
                 </h3>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">NIM</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      NIM
+                    </label>
                     <input
                       type="text"
                       name="nim"
@@ -347,6 +606,7 @@ const ListMahasiswa = () => {
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
+
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
                       Nama Lengkap
@@ -361,6 +621,7 @@ const ListMahasiswa = () => {
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
+
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
                       Program Studi
@@ -396,6 +657,7 @@ const ListMahasiswa = () => {
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
+
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
                       Semester
@@ -410,6 +672,7 @@ const ListMahasiswa = () => {
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
+
                   <div>
                     <label className="text-xs text-gray-600 font-medium">
                       Nomor Kontak
@@ -423,6 +686,7 @@ const ListMahasiswa = () => {
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
+
                   <div className="sm:col-span-2">
                     <label className="text-xs text-gray-600 font-medium">
                       Email Kampus
@@ -439,7 +703,7 @@ const ListMahasiswa = () => {
                 </div>
               </div>
 
-              {/* Pesan sukses/error */}
+              {/* Message */}
               {message && (
                 <div
                   className={`text-sm ${message.type === "error"
@@ -455,7 +719,10 @@ const ListMahasiswa = () => {
               <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetForm();
+                  }}
                   className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
                 >
                   Batal
@@ -464,7 +731,7 @@ const ListMahasiswa = () => {
                   type="submit"
                   className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
                 >
-                  Simpan
+                  {isEditMode ? "Update" : "Simpan"}
                 </button>
               </div>
             </form>

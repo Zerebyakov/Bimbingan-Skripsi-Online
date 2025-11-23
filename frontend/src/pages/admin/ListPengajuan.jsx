@@ -6,17 +6,30 @@ import {
   RefreshCw,
   Search,
   Users,
-  FileDown,
   Download,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { motion } from "framer-motion"; 
-
+import { motion } from "framer-motion";
+import Swal from "sweetalert2";
 
 const ListPengajuan = () => {
   const [pengajuan, setPengajuan] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("semua");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+  });
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,20 +37,41 @@ const ListPengajuan = () => {
   const [dosens, setDosens] = useState([]);
   const [form, setForm] = useState({
     dosenId1: "",
-    dosenId2: ""
+    dosenId2: "",
   });
   const [message, setMessage] = useState(null);
 
-  // Fetch pengajuan
-  const fetchPengajuan = async () => {
+  // Fetch pengajuan dengan pagination dan filter
+  const fetchPengajuan = async (page = 1, search = "", status = "") => {
     setLoading(true);
     try {
-      const res = await axios.get(`${baseUrl}pengajuan`, {
+      const params = new URLSearchParams({
+        page: page,
+        limit: 10,
+      });
+
+      if (search && search.trim() !== "") {
+        params.append("search", search);
+      }
+
+      if (status && status !== "semua") {
+        params.append("status", status);
+      }
+
+      const res = await axios.get(`${baseUrl}pengajuan?${params.toString()}`, {
         withCredentials: true,
       });
+
       setPengajuan(res.data.data.pengajuan || []);
+      setPagination(res.data.data.pagination || {});
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching pengajuan:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memuat Data",
+        text: "Terjadi kesalahan saat memuat data pengajuan.",
+      });
     } finally {
       setLoading(false);
     }
@@ -46,34 +80,41 @@ const ListPengajuan = () => {
   // Fetch dosen
   const fetchDosens = async () => {
     try {
-      const res = await axios.get(`${baseUrl}admin/users`, {
+      const res = await axios.get(`${baseUrl}admin/users/dosen`, {
         withCredentials: true,
       });
-      const onlyDosen = (res.data.data || []).filter(
-        (u) => u.role === "dosen"
-      );
-      setDosens(onlyDosen);
+      setDosens(res.data.data);
     } catch (error) {
       console.error("Error fetching dosen:", error);
     }
   };
 
+  // Initial load
   useEffect(() => {
-    fetchPengajuan();
+    fetchPengajuan(1, "", filterStatus);
     fetchDosens();
   }, []);
 
-  // Filter pengajuan
-  const filteredData = pengajuan.filter((item) => {
-    const matchesStatus =
-      filterStatus === "semua" || item.status === filterStatus;
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.Mahasiswa?.nama_lengkap
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch when debounced search term changes
+  useEffect(() => {
+    if (debouncedSearchTerm !== undefined) {
+      fetchPengajuan(1, debouncedSearchTerm, filterStatus);
+    }
+  }, [debouncedSearchTerm]);
+
+  // Fetch when filter status changes
+  useEffect(() => {
+    fetchPengajuan(1, debouncedSearchTerm, filterStatus);
+  }, [filterStatus]);
 
   // Open modal assign pembimbing
   const handleOpenModal = (item, isUpdate = false) => {
@@ -84,13 +125,12 @@ const ListPengajuan = () => {
     if (isUpdate) {
       setForm({
         dosenId1: item.dosenId1 || item.Pembimbing1?.id_dosen || "",
-        dosenId2: item.dosenId2 || item.Pembimbing2?.id_dosen || ""
+        dosenId2: item.dosenId2 || item.Pembimbing2?.id_dosen || "",
       });
     } else {
       setForm({ dosenId1: "", dosenId2: "" });
     }
   };
-
 
   // Submit assign pembimbing
   const handleAssignDosen = async (e) => {
@@ -102,7 +142,7 @@ const ListPengajuan = () => {
         `${baseUrl}admin/pengajuan/${selectedPengajuan.id_pengajuan}/assign-dosen`,
         {
           dosenId1: form.dosenId1 ? Number(form.dosenId1) : null,
-          dosenId2: form.dosenId2 ? Number(form.dosenId2) : null
+          dosenId2: form.dosenId2 ? Number(form.dosenId2) : null,
         },
         {
           withCredentials: true,
@@ -111,16 +151,20 @@ const ListPengajuan = () => {
       );
 
       if (res.data.success) {
-        setMessage({
-          type: "success",
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil!",
           text: "Dosen pembimbing berhasil diatur!",
+          timer: 1500,
+          showConfirmButton: false,
         });
-        fetchPengajuan();
-        setTimeout(() => setIsModalOpen(false), 1200);
+        fetchPengajuan(currentPage, debouncedSearchTerm, filterStatus);
+        setIsModalOpen(false);
       }
     } catch (error) {
-      setMessage({
-        type: "error",
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
         text:
           error.response?.data?.message ||
           "Gagal mengatur pembimbing. Silakan coba lagi.",
@@ -128,23 +172,67 @@ const ListPengajuan = () => {
     }
   };
 
+  // Update pembimbing
+  const handleUpdatePembimbing = (item) => {
+    handleOpenModal(item, true);
+  };
+
   // Unduh file proposal
   const handleDownloadBab = (proposal_file) => {
     if (!proposal_file) {
-      alert("File belum tersedia.");
+      Swal.fire({
+        icon: "warning",
+        title: "File Tidak Tersedia",
+        text: "File proposal belum diunggah.",
+      });
       return;
     }
 
     const url = `${imageUrl}uploads/proposals/${proposal_file}`;
-
     const a = document.createElement("a");
     a.href = url;
-    a.download = proposal_file; // sama seperti <a download="namafile">
+    a.download = proposal_file;
     document.body.appendChild(a);
     a.click();
     a.remove();
   };
 
+  // Generate page numbers
+  const getPageNumbers = () => {
+    const pages = [];
+    const totalPages = pagination.totalPages;
+    const current = currentPage;
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (current <= 3) {
+        for (let i = 1; i <= 5; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (current >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push("...");
+        for (let i = current - 1; i <= current + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
 
   return (
     <AdminLayout>
@@ -167,7 +255,7 @@ const ListPengajuan = () => {
             </div>
 
             <button
-              onClick={fetchPengajuan}
+              onClick={() => fetchPengajuan(currentPage, debouncedSearchTerm, filterStatus)}
               className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition"
             >
               <RefreshCw size={16} /> Refresh
@@ -202,13 +290,26 @@ const ListPengajuan = () => {
             </select>
           </div>
 
+          {/* Info Total Data */}
+          <div className="text-sm text-gray-600">
+            Menampilkan{" "}
+            <span className="font-medium">
+              {pengajuan.length > 0 ? (currentPage - 1) * pagination.limit + 1 : 0}
+            </span>{" "}
+            -{" "}
+            <span className="font-medium">
+              {Math.min(currentPage * pagination.limit, pagination.total)}
+            </span>{" "}
+            dari <span className="font-medium">{pagination.total}</span> data
+          </div>
+
           {/* Table */}
           <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
             {loading ? (
               <div className="flex justify-center items-center h-64 text-gray-600">
                 <RefreshCw className="animate-spin mr-2" /> Memuat data...
               </div>
-            ) : filteredData.length === 0 ? (
+            ) : pengajuan.length === 0 ? (
               <p className="text-gray-500 text-center py-10 text-sm italic">
                 Tidak ada data pengajuan ditemukan.
               </p>
@@ -227,13 +328,13 @@ const ListPengajuan = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((item, index) => (
+                  {pengajuan.map((item, index) => (
                     <tr
                       key={item.id_pengajuan}
                       className="border-t hover:bg-gray-50 transition"
                     >
                       <td className="px-4 py-3 font-medium text-gray-700">
-                        {index + 1}
+                        {(currentPage - 1) * pagination.limit + index + 1}
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-800 max-w-xs truncate">
                         {item.title}
@@ -245,7 +346,7 @@ const ListPengajuan = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {item.Mahasiswa?.Prodi.program_studi || "-"}
+                        {item.Mahasiswa?.Prodi?.program_studi || "-"}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -262,37 +363,42 @@ const ListPengajuan = () => {
                         </span>
                       </td>
 
-                      {/* Pembimbing */}
+                      {/* Pembimbing dengan Action Buttons */}
                       <td className="px-4 py-3 text-gray-700">
                         {item.Pembimbing1?.nama || item.Pembimbing2?.nama ? (
-                          <div className="flex flex-col gap-1">
-                            {item.Pembimbing1?.nama && (
-                              <p className="text-sm font-medium text-gray-800">
-                                {item.Pembimbing1?.nama}
-                              </p>
-                            )}
-                            {item.Pembimbing2?.nama && (
-                              <p className="text-xs text-gray-600">• {item.Pembimbing2?.nama}</p>
-                            )}
-                            {/* Tombol ubah pembimbing */}
-                            <button
-                              onClick={() => handleOpenModal(item, true)}
-                              className="text-xs text-blue-600 hover:text-blue-800 mt-1 flex items-center gap-1 transition"
-                            >
-                              <Users size={12} /> Ubah Pembimbing
-                            </button>
+                          <div className="flex flex-col gap-2">
+                            <div>
+                              {item.Pembimbing1?.nama && (
+                                <p className="text-sm font-medium text-gray-800">
+                                  {item.Pembimbing1?.nama}, {item.Pembimbing1.gelar}
+                                </p>
+                              )}
+                              {item.Pembimbing2?.nama && (
+                                <p className="text-xs text-gray-600">
+                                  • {item.Pembimbing2?.nama}, {item.Pembimbing1.gelar}
+                                </p>
+                              )}
+                            </div>
+                            {/* Action Buttons */}
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleUpdatePembimbing(item)}
+                                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-400 px-2 py-1 rounded transition"
+                                title="Ubah Pembimbing"
+                              >
+                                <Edit size={12} /> Ubah
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <button
                             onClick={() => handleOpenModal(item, false)}
-                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-400 px-3 py-1.5 rounded transition"
                           >
                             <Users size={14} /> Atur Pembimbing
                           </button>
                         )}
                       </td>
-
-
 
                       {/* File Proposal */}
                       <td className="px-4 py-3 text-gray-700">
@@ -320,122 +426,210 @@ const ListPengajuan = () => {
             )}
           </div>
 
-          {/* Modal Assign Pembimbing */}
-          {isModalOpen && (
-            <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-3 overflow-hidden animate-fade-in">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                        <Users size={18} className="text-gray-600" />
-                        Atur Dosen Pembimbing
-                      </h2>
-                      <p className="text-sm text-gray-600 mt-1 leading-snug">
-                        <span className="font-medium text-gray-700">
-                          Mahasiswa:
-                        </span>{" "}
-                        {selectedPengajuan?.Mahasiswa?.nama_lengkap || "-"}
-                        <br />
-                        <span className="font-medium text-gray-700">Judul:</span>{" "}
-                        {selectedPengajuan?.title || "-"}
-                      </p>
-                    </div>
+          {/* Pagination */}
+          {!loading && pengajuan.length > 0 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white px-6 py-4 rounded-lg border border-gray-200">
+              <div className="text-sm text-gray-600">
+                Halaman <span className="font-medium">{currentPage}</span> dari{" "}
+                <span className="font-medium">{pagination.totalPages}</span>
+              </div>
 
-                    <button
-                      onClick={() => setIsModalOpen(false)}
-                      className="text-gray-500 hover:text-gray-700 transition"
-                    >
-                      ✕
-                    </button>
-                  </div>
+              <div className="flex items-center gap-2">
+                {/* First Button */}
+                <button
+                  onClick={() => fetchPengajuan(1, debouncedSearchTerm, filterStatus)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-2 text-sm rounded-md border transition ${currentPage === 1
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  First
+                </button>
+
+                {/* Previous Button */}
+                <button
+                  onClick={() => fetchPengajuan(currentPage - 1, debouncedSearchTerm, filterStatus)}
+                  disabled={currentPage === 1}
+                  className={`flex items-center gap-1 px-3 py-2 border rounded-md text-sm transition ${currentPage === 1
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  <ChevronLeft size={16} />
+                  Prev
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex gap-1">
+                  {getPageNumbers().map((page, idx) =>
+                    page === "..." ? (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        className="px-3 py-2 text-gray-500"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={page}
+                        onClick={() => fetchPengajuan(page, debouncedSearchTerm, filterStatus)}
+                        className={`px-3 py-2 border rounded-md text-sm transition ${currentPage === page
+                          ? "bg-gray-800 text-white border-gray-800"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
                 </div>
 
-                {/* Body */}
-                <form onSubmit={handleAssignDosen} className="p-6 space-y-5">
-                  <div className="space-y-4">
-                    {[1, 2].map((num) => (
-                      <div key={num}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Dosen Pembimbing {num}
-                        </label>
-                        <select
-                          value={form[`dosenId${num}`]}
-                          onChange={(e) => {
-                            const selectedId = e.target.value;
-                            const isDuplicate = Object.values(form).includes(
-                              selectedId
-                            );
-                            if (isDuplicate && selectedId !== "") {
-                              setMessage({
-                                type: "error",
-                                text: "Dosen ini sudah dipilih di slot lain!",
-                              });
-                            } else {
-                              setForm({
-                                ...form,
-                                [`dosenId${num}`]: selectedId,
-                              });
-                              setMessage(null);
-                            }
-                          }}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
-                        >
-                          <option value="">-- Pilih Dosen --</option>
-                          {dosens.map((d) => (
-                            <option
-                              key={d.id_user}
-                              value={d.Dosens?.[0]?.id_dosen}
-                              disabled={Object.values(form).includes(
-                                String(d.Dosens?.[0]?.id_dosen)
-                              )}
-                            >
-                              {d.Dosens?.[0]?.nama}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
+                {/* Next Button */}
+                <button
+                  onClick={() => fetchPengajuan(currentPage + 1, debouncedSearchTerm, filterStatus)}
+                  disabled={currentPage === pagination.totalPages}
+                  className={`flex items-center gap-1 px-3 py-2 border rounded-md text-sm transition ${currentPage === pagination.totalPages
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
 
-                  {/* Pesan */}
-                  {message && (
-                    <div
-                      className={`text-sm ${message.type === "error"
-                        ? "text-red-600 bg-red-50 border border-red-200"
-                        : "text-green-700 bg-green-50 border border-green-200"
-                        } px-3 py-2 rounded-md`}
-                    >
-                      {message.text}
-                    </div>
-                  )}
-
-                  {/* Footer */}
-                  <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setIsModalOpen(false)}
-                      className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={
-                        !form.dosenId1 && !form.dosenId2
-                      }
-                      className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      Simpan
-                    </button>
-                  </div>
-                </form>
+                {/* Last Button */}
+                <button
+                  onClick={() => fetchPengajuan(pagination.totalPages, debouncedSearchTerm, filterStatus)}
+                  disabled={currentPage === pagination.totalPages}
+                  className={`px-3 py-2 text-sm rounded-md border transition ${currentPage === pagination.totalPages
+                    ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  Last
+                </button>
               </div>
             </div>
           )}
+
         </div>
       </motion.div>
+      {/* Modal Assign Pembimbing */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-3 overflow-hidden animate-fade-in">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <Users size={18} className="text-gray-600" />
+                    Atur Dosen Pembimbing
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1 leading-snug">
+                    <span className="font-medium text-gray-700">
+                      Mahasiswa:
+                    </span>{" "}
+                    {selectedPengajuan?.Mahasiswa?.nama_lengkap || "-"}
+                    <br />
+                    <span className="font-medium text-gray-700">
+                      Judul:
+                    </span>{" "}
+                    {selectedPengajuan?.title || "-"}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 transition"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              <div className="space-y-4">
+                {[1, 2].map((num) => (
+                  <div key={num}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Dosen Pembimbing {num}
+                    </label>
+                    <select
+                      value={form[`dosenId${num}`]}
+                      onChange={(e) => {
+                        const selectedId = e.target.value;
+                        const isDuplicate = Object.values(form).includes(
+                          selectedId
+                        );
+                        if (isDuplicate && selectedId !== "") {
+                          setMessage({
+                            type: "error",
+                            text: "Dosen ini sudah dipilih di slot lain!",
+                          });
+                        } else {
+                          setForm({
+                            ...form,
+                            [`dosenId${num}`]: selectedId,
+                          });
+                          setMessage(null);
+                        }
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
+                    >
+                      <option value="">-- Pilih Dosen --</option>
+                      {dosens.map((d) => (
+                        <option
+                          key={d.id_user}
+                          value={d.id_dosen}
+                          disabled={Object.values(form).includes(
+                            String(d.id_dosen)
+                          )}
+                        >
+                          {d.nama}, {d.gelar}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pesan */}
+              {message && (
+                <div
+                  className={`text-sm ${message.type === "error"
+                    ? "text-red-600 bg-red-50 border border-red-200"
+                    : "text-green-700 bg-green-50 border border-green-200"
+                    } px-3 py-2 rounded-md`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignDosen}
+                  disabled={!form.dosenId1 && !form.dosenId2}
+                  className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

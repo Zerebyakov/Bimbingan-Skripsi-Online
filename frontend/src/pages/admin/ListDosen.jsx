@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import AdminLayout from "./layout/AdminLayout";
 import axios from "axios";
 import { baseUrl, imageUrl } from "../../components/api/myAPI";
-import { RefreshCw, Search, Plus } from "lucide-react";
+import { RefreshCw, Search, Plus, Edit, Trash2 } from "lucide-react";
+import Swal from "sweetalert2";
 
 const ListDosen = () => {
   const [dosens, setDosens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     email: "",
     password: "dosen123",
@@ -23,48 +26,86 @@ const ListDosen = () => {
     email_institusi: "",
   });
   const [message, setMessage] = useState(null);
-  const [listProdi, setListProdi] = useState([])
+  const [listProdi, setListProdi] = useState([]);
 
+  // Pagination State
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  // GET LIST PRODI
   const fetchListProdi = async () => {
     try {
       const response = await axios.get(`${baseUrl}prodi`, {
-        withCredentials: true
-      })
-      setListProdi(response.data.data)
-    } catch (error) {
-      console.log(error.message)
-    }
-  }
-
-  // Fetch all users
-  const fetchDosens = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${baseUrl}admin/users`, {
         withCredentials: true,
       });
-      const filtered = (res.data.data || []).filter(
-        (user) => user.role === "dosen" && user.Dosens?.length > 0
+      setListProdi(response.data.data);
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
+  // GET DOSEN (ENDPOINT BARU)
+  const fetchDosens = async (page = 1, search = "") => {
+    setLoading(true);
+    try {
+      const searchParam = search.trim() !== "" ? `&search=${encodeURIComponent(search)}` : "";
+      const res = await axios.get(
+        `${baseUrl}admin/users/dosen?page=${page}&limit=10${searchParam}`,
+        {
+          withCredentials: true,
+        }
       );
-      setDosens(filtered);
+
+      setDosens(res.data.data || []);
+      setPagination(res.data.pagination || {});
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching dosen:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Memuat Data",
+        text: "Terjadi kesalahan saat memuat data dosen",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDosens();
+    fetchDosens(currentPage, debouncedSearchTerm);
     fetchListProdi();
   }, []);
 
-  // Handle input change
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch when search term changes
+  useEffect(() => {
+    if (debouncedSearchTerm !== undefined) {
+      fetchDosens(1, debouncedSearchTerm); // Reset to page 1 when searching
+    }
+  }, [debouncedSearchTerm]);
+
+  // HANDLE INPUT
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Handle form submit
+  // HANDLE SUBMIT (CREATE OR UPDATE)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage(null);
@@ -74,6 +115,7 @@ const ListDosen = () => {
         email: form.email,
         password: form.password,
         role: "dosen",
+        status: "aktif",
         profileData: {
           nidn: form.nidn,
           nama: form.nama,
@@ -87,60 +129,145 @@ const ListDosen = () => {
         },
       };
 
-      const res = await axios.post(`${baseUrl}admin/users`, payload, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (res.data.success) {
-        setMessage({ type: "success", text: "Dosen berhasil ditambahkan!" });
-        setIsModalOpen(false);
-        fetchDosens(); // refresh list
-        setForm({
-          email: "",
-          password: "",
-          nidn: "",
-          nama: "",
-          gelar: "",
-          prodi_id: "",
-          fakultas: "",
-          bidang_keahlian: "",
-          jabatan_akademik: "",
-          kontak: "",
-          email_institusi: "",
+      let res;
+      if (isEditMode) {
+        // UPDATE
+        res = await axios.put(`${baseUrl}admin/users/${editingId}`, payload, {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        // CREATE
+        res = await axios.post(`${baseUrl}admin/users`, payload, {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
         });
       }
+
+      if (res.data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil!",
+          text: isEditMode
+            ? "Data dosen berhasil diperbarui!"
+            : "Dosen berhasil ditambahkan!",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        setIsModalOpen(false);
+        fetchDosens(currentPage, debouncedSearchTerm);
+        resetForm();
+      }
     } catch (error) {
-      setMessage({
-        type: "error",
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
         text:
-          error.response?.data?.message || "Terjadi kesalahan saat menambahkan dosen.",
+          error.response?.data?.message ||
+          `Terjadi kesalahan saat ${isEditMode ? "memperbarui" : "menambahkan"
+          } dosen.`,
       });
     }
   };
 
-  // Filter pencarian
-  const filteredDosens = dosens.filter((item) => {
-    const dosen = item.Dosens?.[0];
-    if (!dosen) return false;
-    const search = searchTerm.toLowerCase();
-    return (
-      dosen.nama.toLowerCase().includes(search) ||
-      dosen.nidn.toLowerCase().includes(search) ||
-      dosen.Prodi?.program_studi.toLowerCase().includes(search)
-    );
-  });
+  // RESET FORM
+  const resetForm = () => {
+    setForm({
+      email: "",
+      password: "dosen123",
+      nidn: "",
+      nama: "",
+      gelar: "",
+      prodi_id: "",
+      fakultas: "",
+      bidang_keahlian: "",
+      jabatan_akademik: "",
+      kontak: "",
+      email_institusi: "",
+    });
+    setIsEditMode(false);
+    setEditingId(null);
+    setMessage(null);
+  };
 
+  // HANDLE EDIT
+  const handleEdit = (dosen) => {
+    setIsEditMode(true);
+    setEditingId(dosen.id_user);
+    setForm({
+      email: dosen.User.email,
+      password: "", // kosongkan password saat edit
+      nidn: dosen.nidn,
+      nama: dosen.nama,
+      gelar: dosen.gelar,
+      prodi_id: dosen.prodi_id.toString(),
+      fakultas: dosen.fakultas,
+      bidang_keahlian: dosen.bidang_keahlian,
+      jabatan_akademik: dosen.jabatan_akademik,
+      kontak: dosen.kontak,
+      email_institusi: dosen.email_institusi,
+    });
+    setIsModalOpen(true);
+  };
+
+  // HANDLE DELETE
+  const handleDelete = async (dosen) => {
+    Swal.fire({
+      title: "Konfirmasi Hapus",
+      html: `Apakah Anda yakin ingin menghapus dosen:<br><strong>${dosen.nama}</strong> (${dosen.nidn})?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, Hapus!",
+      cancelButtonText: "Batal",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const res = await axios.delete(
+            `${baseUrl}admin/users/${dosen.id_user}`,
+            {
+              withCredentials: true,
+            }
+          );
+
+          if (res.data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Terhapus!",
+              text: "Data dosen berhasil dihapus.",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+            fetchDosens(currentPage, debouncedSearchTerm);
+          }
+        } catch (error) {
+          Swal.fire({
+            icon: "error",
+            title: "Gagal Menghapus",
+            text:
+              error.response?.data?.message ||
+              "Terjadi kesalahan saat menghapus data dosen.",
+          });
+        }
+      }
+    });
+  };
+
+  // FILTER SEARCH - Removed client-side filtering since we're using backend search
+  const filteredDosens = dosens;
+
+  // AVATAR
   const getInitials = (name) => {
-    if (!name) {
-      return name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase();
-    }
-  }
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+  };
 
   return (
     <AdminLayout>
@@ -148,7 +275,9 @@ const ListDosen = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Daftar Dosen</h1>
+            <h1 className="text-2xl font-semibold text-gray-800">
+              Daftar Dosen
+            </h1>
             <p className="text-gray-500 text-sm">
               Menampilkan seluruh data dosen aktif di sistem.
             </p>
@@ -156,13 +285,16 @@ const ListDosen = () => {
 
           <div className="flex gap-2">
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                resetForm();
+                setIsModalOpen(true);
+              }}
               className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-md hover:bg-blue-700 transition"
             >
               <Plus size={16} /> Tambah Dosen
             </button>
             <button
-              onClick={fetchDosens}
+              onClick={() => fetchDosens(currentPage, debouncedSearchTerm)}
               className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition"
             >
               <RefreshCw size={16} /> Refresh
@@ -170,19 +302,25 @@ const ListDosen = () => {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-1/2">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            placeholder="Cari nama, NIDN, atau program studi..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-gray-400 focus:outline-none"
-          />
+        {/* Info & Search */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="text-sm text-gray-600">
+            Menampilkan {dosens.length > 0 ? ((currentPage - 1) * pagination.limit) + 1 : 0} - {Math.min(currentPage * pagination.limit, pagination.total)} dari {pagination.total} data
+          </div>
+
+          <div className="relative w-full sm:w-96">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Cari nama, NIDN, atau program studi..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-gray-400 focus:outline-none"
+            />
+          </div>
         </div>
 
         {/* Table */}
@@ -207,19 +345,20 @@ const ListDosen = () => {
                   <th className="px-4 py-3 text-left">Bidang Keahlian</th>
                   <th className="px-4 py-3 text-left">Kontak</th>
                   <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredDosens.map((item, index) => {
-                  const dosen = item.Dosens?.[0];
-                  const fotoUrl = dosen.foto ? `${imageUrl}${dosen.foto}` : null
+                {filteredDosens.map((dosen, index) => {
+                  const fotoUrl = dosen.foto ? `${imageUrl}${dosen.foto}` : null;
+
                   return (
                     <tr
                       key={dosen.id_dosen}
                       className="border-t hover:bg-gray-50 transition"
                     >
                       <td className="px-4 py-3 font-medium text-gray-800">
-                        {index + 1}
+                        {((currentPage - 1) * pagination.limit) + index + 1}
                       </td>
                       <td className="px-4 py-3">
                         {fotoUrl ? (
@@ -235,7 +374,7 @@ const ListDosen = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-800">
-                        {dosen.nama}
+                        {dosen.nama}, {dosen.gelar}
                       </td>
                       <td className="px-4 py-3 text-gray-700">{dosen.nidn}</td>
                       <td className="px-4 py-3 text-gray-700">
@@ -246,19 +385,35 @@ const ListDosen = () => {
                       </td>
                       <td className="px-4 py-3 text-gray-600">
                         <div>{dosen.email_institusi}</div>
-                        <div className="text-xs text-gray-500">
-                          {dosen.kontak}
-                        </div>
+                        <div className="text-xs text-gray-500">{dosen.kontak}</div>
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${dosen.status_dosen === "tetap"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-700"
+                          className={`px-2 py-1 rounded text-xs font-medium capitalize ${dosen.status_dosen === "tetap"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
                             }`}
                         >
                           {dosen.status_dosen}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEdit(dosen)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition"
+                            title="Edit Dosen"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(dosen)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-md transition"
+                            title="Hapus Dosen"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -268,8 +423,100 @@ const ListDosen = () => {
           )}
         </div>
 
+        {/* Pagination */}
+        {!loading && filteredDosens.length > 0 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white px-6 py-4 rounded-lg border border-gray-200">
+            <div className="text-sm text-gray-600">
+              Halaman {pagination.page} dari {pagination.totalPages}
+            </div>
 
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchDosens(1, debouncedSearchTerm)}
+                disabled={!pagination.hasPrevPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasPrevPage
+                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                First
+              </button>
+
+              <button
+                onClick={() => fetchDosens(currentPage - 1, debouncedSearchTerm)}
+                disabled={!pagination.hasPrevPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasPrevPage
+                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                Previous
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {[...Array(pagination.totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Show only 5 pages at a time
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === pagination.totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => fetchDosens(pageNumber, debouncedSearchTerm)}
+                        className={`px-3 py-2 text-sm rounded-md border transition ${currentPage === pageNumber
+                            ? "bg-gray-800 text-white border-gray-800"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return (
+                      <span key={pageNumber} className="px-2 text-gray-500">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={() => fetchDosens(currentPage + 1, debouncedSearchTerm)}
+                disabled={!pagination.hasNextPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasNextPage
+                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                Next
+              </button>
+
+              <button
+                onClick={() => fetchDosens(pagination.totalPages, debouncedSearchTerm)}
+                disabled={!pagination.hasNextPage}
+                className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasNextPage
+                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ======= MODAL TAMBAH/EDIT DOSEN ======= */}
       </div>
+
       {/* Modal Form */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
@@ -277,11 +524,23 @@ const ListDosen = () => {
             {/* Header */}
             <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Plus size={18} className="text-gray-600" />
-                Tambah Dosen Baru
+                {isEditMode ? (
+                  <>
+                    <Edit size={18} className="text-gray-600" />
+                    Edit Dosen
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} className="text-gray-600" />
+                    Tambah Dosen Baru
+                  </>
+                )}
               </h2>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  resetForm();
+                }}
                 className="text-gray-500 hover:text-gray-700 transition"
               >
                 ✕
@@ -300,7 +559,9 @@ const ListDosen = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Email</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Email Login
+                    </label>
                     <input
                       type="email"
                       name="email"
@@ -312,15 +573,21 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Password (default: <i>dosen123</i>)</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      {isEditMode
+                        ? "Password (kosongkan jika tidak diubah)"
+                        : "Password (default: dosen123)"}
+                    </label>
                     <input
                       type="password"
                       name="password"
-                      required
-                      placeholder="Kata sandi"
+                      required={!isEditMode}
+                      placeholder={
+                        isEditMode ? "Masukkan password baru" : "Kata sandi"
+                      }
                       value={form.password}
                       onChange={handleChange}
-                      disabled
+                      disabled={!isEditMode && form.password === "dosen123"}
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
@@ -346,7 +613,9 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Nama Lengkap</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Nama Lengkap
+                    </label>
                     <input
                       type="text"
                       name="nama"
@@ -358,7 +627,9 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Gelar Akademik</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Gelar Akademik
+                    </label>
                     <input
                       type="text"
                       name="gelar"
@@ -388,7 +659,9 @@ const ListDosen = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Fakultas</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Fakultas
+                    </label>
                     <input
                       type="text"
                       name="fakultas"
@@ -399,7 +672,9 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Bidang Keahlian</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Bidang Keahlian
+                    </label>
                     <input
                       type="text"
                       name="bidang_keahlian"
@@ -410,7 +685,9 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Jabatan Akademik</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Jabatan Akademik
+                    </label>
                     <input
                       type="text"
                       name="jabatan_akademik"
@@ -421,7 +698,9 @@ const ListDosen = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-600 font-medium">Kontak</label>
+                    <label className="text-xs text-gray-600 font-medium">
+                      Kontak
+                    </label>
                     <input
                       type="text"
                       name="kontak"
@@ -431,8 +710,10 @@ const ListDosen = () => {
                       className="w-full mt-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-gray-400 outline-none"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-600 font-medium">Email Institusi</label>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs text-gray-600 font-medium">
+                      Email Institusi
+                    </label>
                     <input
                       type="email"
                       name="email_institusi"
@@ -449,8 +730,8 @@ const ListDosen = () => {
               {message && (
                 <div
                   className={`text-sm ${message.type === "error"
-                    ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
-                    : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
+                      ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
+                      : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
                     }`}
                 >
                   {message.text}
@@ -461,7 +742,10 @@ const ListDosen = () => {
               <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetForm();
+                  }}
                   className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition"
                 >
                   Batal
@@ -470,7 +754,7 @@ const ListDosen = () => {
                   type="submit"
                   className="px-4 py-2 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
                 >
-                  Simpan
+                  {isEditMode ? "Update" : "Simpan"}
                 </button>
               </div>
             </form>
