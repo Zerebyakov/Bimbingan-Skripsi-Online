@@ -47,3 +47,25 @@ export const createProgramStudi = async (req, res) => {
         });
     }
 };
+
+
+export const deleteProgramStudi = async (req, res) => {
+    try {
+        const { prodi_id } = req.params;
+        await ProgramStudi.destroy({
+            where:{
+                prodi_id:prodi_id
+            }
+        })
+        res.status(200).json({
+            success: true,
+            message: "Program studi berhasil dihapus",
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+}

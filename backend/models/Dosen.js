@@ -3,8 +3,6 @@ import db from "../config/Database.js";
 import User from "./User.js";
 import ProgramStudi from "./ProgramStudi.js";
 
-
-
 const {DataTypes} = Sequelize;
 
 const Dosen = db.define('Dosen',{
@@ -79,11 +77,12 @@ const Dosen = db.define('Dosen',{
     tableName:'dosens'
 })
 
+// Relasi
 ProgramStudi.hasMany(Dosen, {foreignKey:'prodi_id'});
 Dosen.belongsTo(ProgramStudi, {foreignKey:'prodi_id'})
 
-
-User.hasMany(Dosen, {foreignKey:'id_user'});
+// PERBAIKAN DISINI - Ubah ke hasOne untuk konsistensi
+User.hasOne(Dosen, {foreignKey:'id_user'}); // Ubah dari hasMany
 Dosen.belongsTo(User, {foreignKey:'id_user'});
 
 export default Dosen;

@@ -29,8 +29,9 @@ const formatUserData = (user, role) => {
     if (role === "mahasiswa" && data.Mahasiswa) {
         data.Mahasiswa.foto = fileToUrl(data.Mahasiswa.foto);
     }
-    if (role === "dosen" && data.Dosens?.length) {
-        data.Dosens[0].foto = fileToUrl(data.Dosens[0].foto);
+    // ✅ FIXED: Ubah Dosens[0] → Dosen (singular)
+    if (role === "dosen" && data.Dosen) {
+        data.Dosen.foto = fileToUrl(data.Dosen.foto);
     }
     return data;
 };
@@ -81,6 +82,7 @@ export const login = async (req, res) => {
         req.session.email = user.email;
         req.session.role = user.role;
 
+        // ✅ FIXED: Ubah Dosens[0] → Dosen (singular)
         res.status(200).json({
             success: true,
             message: "Login berhasil",
@@ -88,7 +90,7 @@ export const login = async (req, res) => {
                 id_user: user.id_user,
                 email: user.email,
                 role: user.role,
-                profile: user.role === 'dosen' ? user.Dosens[0] : user.role === 'mahasiswa' ? user.Mahasiswa : null
+                profile: user.role === 'dosen' ? user.Dosen : user.role === 'mahasiswa' ? user.Mahasiswa : null
             }
         });
     } catch (error) {
@@ -118,7 +120,6 @@ export const logout = (req, res) => {
 };
 
 // Get user profile
-
 export const getProfile = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -235,7 +236,8 @@ export const updateProfile = async (req, res) => {
                 kontak,
                 email_institusi,
             } = req.body;
-            const dosen = user.Dosens[0];
+            // ✅ FIXED: Ubah Dosens[0] → Dosen (singular)
+            const dosen = user.Dosen;
 
             if (dosen) {
                 const updateData = { nama, gelar, bidang_keahlian, jabatan_akademik, kontak, email_institusi };

@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import BabSubmission from "../models/BabSubmission.js";
 import Dosen from "../models/Dosen.js";
 import KartuBimbingan from "../models/KartuBimbingan.js";
@@ -13,23 +14,78 @@ import ProgramStudi from "../models/ProgramStudi.js";
 // Get all pengajuan judul (untuk admin/dosen)
 export const getAllPengajuanJudul = async (req, res) => {
     try {
-        const { status, page = 1, limit = 10 } = req.query;
+        const { status, search, page = 1, limit = 10 } = req.query;
 
         const whereCondition = {};
+        const mahasiswaWhereCondition = {};
+
+        // Filter by status
         if (status) {
             whereCondition.status = status;
+        }
+
+        // Search functionality
+        if (search) {
+            // Search di judul pengajuan atau nama mahasiswa
+            whereCondition[Op.or] = [
+                {
+                    title: {
+                        [Op.like]: `%${search}%`
+                    }
+                },
+                {
+                    description: {
+                        [Op.like]: `%${search}%`
+                    }
+                },
+                {
+                    bidang_topik: {
+                        [Op.like]: `%${search}%`
+                    }
+                }
+            ];
+
+            // Search di nama mahasiswa
+            mahasiswaWhereCondition[Op.or] = [
+                {
+                    nama_lengkap: {
+                        [Op.like]: `%${search}%`
+                    }
+                },
+                {
+                    nim: {
+                        [Op.like]: `%${search}%`
+                    }
+                }
+            ];
         }
 
         const pengajuan = await PengajuanJudul.findAndCountAll({
             where: whereCondition,
             include: [
-                { model: Mahasiswa, include: [{ model: ProgramStudi }] },
-                { model: Dosen, as: 'Pembimbing1', attributes: ['nama', 'gelar'] },
-                { model: Dosen, as: 'Pembimbing2', attributes: ['nama', 'gelar'] }
+                {
+                    model: Mahasiswa,
+                    where: Object.keys(mahasiswaWhereCondition).length > 0
+                        ? mahasiswaWhereCondition
+                        : undefined,
+                    required: Object.keys(mahasiswaWhereCondition).length > 0, // INNER JOIN jika ada search
+                    include: [{ model: ProgramStudi }]
+                },
+                {
+                    model: Dosen,
+                    as: 'Pembimbing1',
+                    attributes: ['nama', 'gelar']
+                },
+                {
+                    model: Dosen,
+                    as: 'Pembimbing2',
+                    attributes: ['nama', 'gelar']
+                }
             ],
             order: [['createdAt', 'DESC']],
             limit: parseInt(limit),
-            offset: (page - 1) * limit
+            offset: (parseInt(page) - 1) * parseInt(limit),
+            distinct: true // Penting untuk count yang akurat dengan include
         });
 
         res.status(200).json({
@@ -40,11 +96,12 @@ export const getAllPengajuanJudul = async (req, res) => {
                     total: pengajuan.count,
                     page: parseInt(page),
                     limit: parseInt(limit),
-                    totalPages: Math.ceil(pengajuan.count / limit)
+                    totalPages: Math.ceil(pengajuan.count / parseInt(limit))
                 }
             }
         });
     } catch (error) {
+        console.error('Error in getAllPengajuanJudul:', error);
         res.status(500).json({
             success: false,
             message: "Internal server error",

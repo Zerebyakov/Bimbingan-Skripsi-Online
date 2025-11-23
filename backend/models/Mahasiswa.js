@@ -3,8 +3,7 @@ import db from "../config/Database.js";
 import User from "./User.js";
 import ProgramStudi from "./ProgramStudi.js";
 
-
-const {DataTypes}  =Sequelize;
+const {DataTypes} = Sequelize;
 
 const Mahasiswa = db.define('Mahasiswa',{
     id_mahasiswa:{
@@ -14,7 +13,7 @@ const Mahasiswa = db.define('Mahasiswa',{
     },
     id_user:{
         type: DataTypes.INTEGER,
-        primaryKey: true,
+        allowNull: false, // Ubah dari primaryKey jadi allowNull
         references:{
             model: User,
             key:'id_user'
@@ -72,10 +71,11 @@ const Mahasiswa = db.define('Mahasiswa',{
     tableName:'mahasiswas'
 })
 
+// Relasi
 ProgramStudi.hasMany(Mahasiswa, {foreignKey: 'prodi_id'})
 Mahasiswa.belongsTo(ProgramStudi, {foreignKey:'prodi_id'})
 
-
+// PERBAIKAN DISINI - Gunakan hasOne untuk konsistensi
 User.hasOne(Mahasiswa, { foreignKey: "id_user" });
 Mahasiswa.belongsTo(User, { foreignKey: "id_user" });
 

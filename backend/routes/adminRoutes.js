@@ -1,8 +1,8 @@
 import express from 'express'
-import { assignDosenPembimbing, createUser, getAllDosen, getAllUsers, getDashboardStats, getKonfigurasi, updateKonfigurasi } from '../controllers/AdminController.js';
+import { assignDosenPembimbing, createUser, deleteUser, getAllDosen, getAllMahasiswa, getDashboardStats, getKonfigurasi, toggleUserStatus, updateKonfigurasi, updateUser } from '../controllers/AdminController.js';
 import { logActivity } from '../middleware/loggingMiddleware.js';
 import { verifyAdmin, verifySession } from '../middleware/authMiddleware.js';
-import { validateAssignDosen, validateCreatePeriode, validateCreateUser, validateKonfigurasi, validatePagination, validateUpdatePeriode } from '../middleware/validationMiddleware.js';
+import { validateAssignDosen, validateCreatePeriode, validateCreateUser, validatePagination, validateUpdatePeriode, validateUpdateUser } from '../middleware/validationMiddleware.js';
 import { getAllArsip } from '../controllers/ArsipController.js';
 import { createPeriode, deletePeriode, getAllPeriode, getPeriodeAktif, getPeriodeById, getPeriodeStatistics, togglePeriodeStatus, updatePeriode } from '../controllers/PeriodeSkripsiController.js';
 
@@ -28,14 +28,29 @@ router.put('/konfigurasi',
 );
 
 // User management routes
-router.get('/users', validatePagination, getAllUsers);
+router.get('/users/dosen', getAllDosen);
+router.get('/users/mahasiswa',getAllMahasiswa);
+
 router.post('/users',
     validateCreateUser,
     logActivity('CREATE_USER', req => `Admin membuat user ${req.body.email}`),
     createUser
 );
-
-router.get('/dosen', getAllDosen);
+router.put('/users/:id_user',
+    validateUpdateUser,
+    logActivity('UPDATE_USER', req => `Admin update user ID: ${req.params.id_user}`),
+    updateUser
+)
+// Toggle user status (aktif/nonaktif)
+router.patch('/users/:id_user/toggle-status',
+    logActivity('TOGGLE_USER_STATUS', req => `Admin toggle status user ID: ${req.params.id_user}`),
+    toggleUserStatus
+)
+// Soft delete user
+router.delete('/users/:id_user',
+    logActivity('DELETE_USER', req => `Admin soft delete user ID: ${req.params.id_user}`),
+    deleteUser
+);
 
 // Assign dosen pembimbing
 router.put('/pengajuan/:id_pengajuan/assign-dosen',

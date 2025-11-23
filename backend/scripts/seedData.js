@@ -168,7 +168,7 @@ export const seedMahasiswa = async () => {
                 profile: {
                     nim: '210003',
                     nama_lengkap: 'Robert Wilson',
-                    prodi_id: prodiSI.prodi_id,
+                    prodi_id: prodiTI.prodi_id,
                     angkatan: 2021,
                     semester: 8,
                     kontak: '081234567895',
@@ -184,7 +184,7 @@ export const seedMahasiswa = async () => {
                 profile: {
                     nim: '210004',
                     nama_lengkap: 'Sarah Johnson',
-                    prodi_id: prodiSI.prodi_id,
+                    prodi_id: prodiTI.prodi_id,
                     angkatan: 2021,
                     semester: 8,
                     kontak: '081234567896',

@@ -359,3 +359,74 @@ export const validateUpdatePeriode = (req, res, next) => {
 
     next();
 };
+
+// Validate Update User
+export const validateUpdateUser = (req, res, next) => {
+    const { email, password, status, role, profileData } = req.body;
+    const errors = [];
+
+    // Email validation (optional)
+    if (email !== undefined) {
+        if (!email || typeof email !== 'string') {
+            errors.push('Email tidak valid');
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            errors.push('Format email tidak valid');
+        }
+    }
+
+    // Password validation (optional, min 6 karakter jika diisi)
+    if (password !== undefined && password !== '') {
+        if (password.length < 6) {
+            errors.push('Password minimal 6 karakter');
+        }
+    }
+
+    // Status validation (optional)
+    if (status !== undefined) {
+        if (!['aktif', 'nonaktif'].includes(status)) {
+            errors.push('Status harus aktif atau nonaktif');
+        }
+    }
+
+    // Profile data validation based on role
+    if (profileData && typeof profileData === 'object') {
+        // Jika role dosen
+        if (role === 'dosen' || req.body.role === 'dosen') {
+            if (profileData.nidn && typeof profileData.nidn !== 'string') {
+                errors.push('NIDN tidak valid');
+            }
+            if (profileData.nama && typeof profileData.nama !== 'string') {
+                errors.push('Nama tidak valid');
+            }
+            if (profileData.prodi_id && !Number.isInteger(profileData.prodi_id)) {
+                errors.push('Prodi ID harus berupa angka');
+            }
+        }
+        
+        // Jika role mahasiswa
+        if (role === 'mahasiswa' || req.body.role === 'mahasiswa') {
+            if (profileData.nim && typeof profileData.nim !== 'string') {
+                errors.push('NIM tidak valid');
+            }
+            if (profileData.nama_lengkap && typeof profileData.nama_lengkap !== 'string') {
+                errors.push('Nama lengkap tidak valid');
+            }
+            if (profileData.prodi_id && !Number.isInteger(profileData.prodi_id)) {
+                errors.push('Prodi ID harus berupa angka');
+            }
+            if (profileData.semester && !Number.isInteger(profileData.semester)) {
+                errors.push('Semester harus berupa angka');
+            }
+        }
+    }
+
+    if (errors.length > 0) {
+        return res.status(400).json({
+            success: false,
+            message: 'Validasi gagal',
+            errors
+        });
+    }
+
+    next();
+};
