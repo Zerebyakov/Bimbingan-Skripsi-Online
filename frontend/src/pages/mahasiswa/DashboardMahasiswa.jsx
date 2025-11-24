@@ -261,7 +261,7 @@ const DashboardMahasiswa = () => {
                     key={idx}
                     className="p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition"
                   >
-                    <p className="text-gray-800 font-medium">{pembimbing.nama}</p>
+                    <p className="text-gray-800 font-medium">{pembimbing.nama} {pembimbing.gelar}</p>
                     <p className="text-sm text-gray-500">{pembimbing.bidang_keahlian}</p>
                     <p className="text-xs text-gray-400 mt-1">
                       {pembimbing.email_institusi}

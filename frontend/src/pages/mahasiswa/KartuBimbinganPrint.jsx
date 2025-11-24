@@ -5,6 +5,7 @@ import { baseUrl } from "../../components/api/myAPI";
 import { Printer, Download } from "lucide-react";
 import Swal from "sweetalert2";
 import html2pdf from "html2pdf.js";
+import LogoUPB from "../../assets/PERADABAN.png"
 
 const KartuBimbinganPrint = () => {
   const { id } = useParams();
@@ -96,7 +97,7 @@ const KartuBimbinganPrint = () => {
         <div className="flex items-center justify-between border-b pb-4 mb-4">
           <div className="flex items-center gap-3">
             <img
-              src="/logo-univ.png"
+              src={LogoUPB}
               alt="Logo Universitas"
               className="w-14 h-14 object-contain"
             />
@@ -104,10 +105,10 @@ const KartuBimbinganPrint = () => {
               <h1 className="text-lg font-semibold text-gray-800 uppercase">
                 Kartu Bimbingan Skripsi
               </h1>
-              <p className="text-sm text-gray-600">Universitas Teknologi Nusantara</p>
+              <p className="text-sm text-gray-600">Universitas Peradaban</p>
             </div>
           </div>
-          <p className="text-sm text-gray-500">Nomor: {kartu.nomorKartu}</p>
+          <p className="text-sm text-gray-500">Nomor: {kartu.nomorKartu.toUpperCase()}</p>
         </div>
 
         {/* Info Mahasiswa */}
@@ -127,7 +128,7 @@ const KartuBimbinganPrint = () => {
               </tr>
               <tr>
                 <td className="py-1">Program Studi</td>
-                <td>: Teknik Informatika</td>
+                <td>: {mahasiswa.Prodi.kode_prodi}-{mahasiswa.Prodi.program_studi}</td>
               </tr>
               <tr>
                 <td className="py-1">Angkatan</td>
@@ -150,7 +151,7 @@ const KartuBimbinganPrint = () => {
             <tbody>
               <tr>
                 <td className="w-40 py-1">Dosen Pembimbing</td>
-                <td>: {dosen?.nama || "Belum Ditentukan"}</td>
+                <td>: {dosen?.nama || "Belum Ditentukan"} {dosen.gelar}</td>
               </tr>
               <tr>
                 <td className="py-1">Total Pertemuan</td>
@@ -181,7 +182,7 @@ const KartuBimbinganPrint = () => {
             <p>Dosen Pembimbing</p>
             <div className="h-16"></div>
             <p className="font-semibold border-t border-gray-400 px-4">
-              {dosen?.nama || "................................"}
+              {dosen?.nama || "................................"} {dosen.gelar}
             </p>
           </div>
         </div>
@@ -189,7 +190,7 @@ const KartuBimbinganPrint = () => {
 
       {/* Footer */}
       <p className="text-xs text-gray-400 mt-4 no-print">
-        © 2025 Sistem Bimbingan Skripsi — Universitas Teknologi Nusantara
+        © 2025 Sistem Bimbingan Skripsi — Universitas Peradaban
       </p>
 
       <style>

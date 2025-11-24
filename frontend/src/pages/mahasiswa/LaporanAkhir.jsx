@@ -12,6 +12,7 @@ import {
   XCircle,
   AlertCircle,
   Clock,
+  X,
 } from "lucide-react";
 import { Link } from "react-router";
 
@@ -51,9 +52,18 @@ const LaporanAkhir = () => {
   }, []);
 
   const handleFileChange = (e, key) => {
+    const file = e.target.files[0];
     setFiles((prev) => ({
       ...prev,
-      [key]: e.target.files[0],
+      [key]: file,
+    }));
+  };
+
+  // Fungsi untuk menghapus file yang sudah dipilih
+  const handleRemoveFile = (key) => {
+    setFiles((prev) => ({
+      ...prev,
+      [key]: null,
     }));
   };
 
@@ -114,6 +124,14 @@ const LaporanAkhir = () => {
           confirmButtonColor: "#16a34a",
         });
         setLaporan(response.data.data);
+        // Reset files setelah upload berhasil
+        setFiles({
+          finalFile: null,
+          abstrakFile: null,
+          pengesahanFile: null,
+          pernyataanFile: null,
+          presentasiFile: null,
+        });
       } else {
         Swal.fire({
           icon: "error",
@@ -319,7 +337,24 @@ const LaporanAkhir = () => {
                   />
                 </label>
 
-                {laporan?.[item.key] ? (
+                {/* Tampilkan file yang baru dipilih */}
+                {files[item.key] && (
+                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-md">
+                    <p className="text-xs text-blue-700 font-medium">
+                      {files[item.key].name}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(item.key)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Tampilkan file yang sudah diupload sebelumnya */}
+                {!files[item.key] && laporan?.[item.key] && (
                   <button
                     type="button"
                     onClick={() => downloadFile(laporan[item.key])}
@@ -327,7 +362,10 @@ const LaporanAkhir = () => {
                   >
                     <Download size={14} /> {laporan[item.key]}
                   </button>
-                ) : (
+                )}
+
+                {/* Jika tidak ada file dipilih dan belum ada yang diupload */}
+                {!files[item.key] && !laporan?.[item.key] && (
                   <p className="text-xs text-gray-400">Belum diupload</p>
                 )}
               </div>
@@ -389,11 +427,11 @@ const LaporanAkhir = () => {
                   laporan.status.toLowerCase() !== "diterima"
                 }
                 className={`px-4 py-2 rounded-md font-medium transition ${generating
-                    ? "bg-indigo-400 text-white cursor-not-allowed"
-                    : !laporan?.status ||
-                      laporan.status.toLowerCase() !== "diterima"
-                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                      : "bg-indigo-600 text-white hover:bg-indigo-700"
+                  ? "bg-indigo-400 text-white cursor-not-allowed"
+                  : !laporan?.status ||
+                    laporan.status.toLowerCase() !== "diterima"
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700"
                   }`}
               >
                 {generating ? "Membuat..." : "Generate Kartu"}
