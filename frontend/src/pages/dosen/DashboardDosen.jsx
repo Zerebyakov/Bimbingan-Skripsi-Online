@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import SplitText from "../../components/SplitText";
 
 const DashboardDosen = () => {
   const [data, setData] = useState(null);
@@ -32,7 +33,6 @@ const DashboardDosen = () => {
         withCredentials: true,
       });
       setData(res.data.data);
-
       setTimeout(() => {
         setLoading(false);
         setFadeIn(true);
@@ -66,7 +66,23 @@ const DashboardDosen = () => {
           {/*HEADER  */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-800">Dashboard Dosen</h1>
+              {data?.dosenInfo && (
+                <h1 className="text-2xl font-semibold text-gray-800">
+                  <SplitText
+                    text={`Selamat Datang, ${data.dosenInfo.nama} ${data.dosenInfo.gelar} `}
+                    className="text-2xl font-semibold text-center"
+                    delay={100}
+                    duration={0.6}
+                    ease="power3.out"
+                    splitType="chars"
+                    from={{ opacity: 0, y: 40 }}
+                    to={{ opacity: 1, y: 0 }}
+                    threshold={0.1}
+                    rootMargin="-100px"
+                    textAlign="center"
+                  />
+                </h1>
+              )}
               <p className="text-gray-500 text-sm">
                 Ringkasan kegiatan bimbingan & progress mahasiswa.
               </p>

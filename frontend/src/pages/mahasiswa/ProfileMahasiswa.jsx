@@ -189,7 +189,7 @@ const ProfileMahasiswa = () => {
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               ["NIM", mahasiswa?.nim],
-              ["Program Studi", mahasiswa?.Prodis?.[0]?.program_studi],
+              ["Program Studi", mahasiswa?.Prodi.program_studi],
               ["Email Akun", formData.email],
               ["Email Kampus", formData.email_kampus],
               ["Kontak", formData.kontak],

@@ -10,6 +10,7 @@ import {
   Bell,
   Loader2,
 } from "lucide-react";
+import SplitText from "../../components/SplitText";
 
 const DashboardMahasiswa = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -64,7 +65,19 @@ const DashboardMahasiswa = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">
-            Selamat Datang, {mahasiswa.nama_lengkap}
+            <SplitText
+              text={`Selamat Datang, ${mahasiswa.nama_lengkap}`}
+              className="text-2xl font-semibold text-center"
+              delay={100}
+              duration={0.6}
+              ease="power3.out"
+              splitType="chars"
+              from={{ opacity: 0, y: 40 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.1}
+              rootMargin="-100px"
+              textAlign="center"
+            />
           </h1>
           <p className="text-gray-500 text-sm">
             Pantau perkembangan bimbingan dan pengajuan skripsimu di sini.
