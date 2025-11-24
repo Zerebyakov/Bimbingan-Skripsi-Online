@@ -4,6 +4,7 @@ import axios from "axios";
 import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { RefreshCw, Search, Plus, Edit, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
+import ExportToExcel from "./components/ExportToExcel";
 
 const ListMahasiswa = () => {
   const [mahasiswa, setMahasiswa] = useState([]);
@@ -25,6 +26,24 @@ const ListMahasiswa = () => {
   });
   const [message, setMessage] = useState(null);
   const [listProdi, setListProdi] = useState([]);
+
+
+  const formatMahasiswaForExcel = (data) => {
+    return data.map((mhs, index) => ({
+      No: index + 1,
+      NIM: mhs.nim,
+      "Nama Lengkap": mhs.nama_lengkap,
+      "Program Studi": mhs.Prodi?.program_studi || "-",
+      "Kode Prodi": mhs.Prodi?.kode_prodi || "-",
+      Angkatan: mhs.angkatan,
+      Semester: mhs.semester,
+      "Status Akademik": mhs.status_akademik,
+      Kontak: mhs.kontak,
+      "Email Kampus": mhs.email_kampus,
+      "Email Login": mhs.User?.email || "-",
+      "Status Akun": mhs.User?.status || "-",
+    }));
+  };
 
   // Pagination State
   const [pagination, setPagination] = useState({
@@ -276,6 +295,12 @@ const ListMahasiswa = () => {
           </div>
 
           <div className="flex gap-2">
+            <ExportToExcel
+              endpoint={`${baseUrl}admin/users/mahasiswa`}
+              filename="Data_Mahasiswa"
+              dataFormatter={formatMahasiswaForExcel}
+              buttonText="Export to Excel"
+            />
             <button
               onClick={() => {
                 resetForm();

@@ -4,6 +4,7 @@ import axios from "axios";
 import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { RefreshCw, Search, Plus, Edit, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
+import ExportToExcel from "./components/ExportToExcel";
 
 const ListDosen = () => {
   const [dosens, setDosens] = useState([]);
@@ -39,6 +40,26 @@ const ListDosen = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+
+  const formatDosenForExcel = (data) => {
+    return data.map((dosen, index) => ({
+      No: index + 1,
+      NIDN: dosen.nidn,
+      "Nama Lengkap": dosen.nama,
+      Gelar: dosen.gelar,
+      "Program Studi": dosen.Prodi?.program_studi || "-",
+      "Kode Prodi": dosen.Prodi?.kode_prodi || "-",
+      Fakultas: dosen.fakultas,
+      "Bidang Keahlian": dosen.bidang_keahlian || "-",
+      "Jabatan Akademik": dosen.jabatan_akademik || "-",
+      Status: dosen.status_dosen,
+      Kontak: dosen.kontak,
+      "Email Institusi": dosen.email_institusi,
+      "Email Login": dosen.User?.email || "-",
+      "Status Akun": dosen.User?.status || "-",
+    }));
+  };
 
   // GET LIST PRODI
   const fetchListProdi = async () => {
@@ -284,6 +305,12 @@ const ListDosen = () => {
           </div>
 
           <div className="flex gap-2">
+            <ExportToExcel
+              endpoint={`${baseUrl}admin/users/dosen`}
+              filename="Data_Dosen"
+              dataFormatter={formatDosenForExcel}
+              buttonText="Export to Excel"
+            />
             <button
               onClick={() => {
                 resetForm();
@@ -390,8 +417,8 @@ const ListDosen = () => {
                       <td className="px-4 py-3">
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium capitalize ${dosen.status_dosen === "tetap"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
                             }`}
                         >
                           {dosen.status_dosen}
@@ -435,8 +462,8 @@ const ListDosen = () => {
                 onClick={() => fetchDosens(1, debouncedSearchTerm)}
                 disabled={!pagination.hasPrevPage}
                 className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasPrevPage
-                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
-                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
               >
                 First
@@ -446,8 +473,8 @@ const ListDosen = () => {
                 onClick={() => fetchDosens(currentPage - 1, debouncedSearchTerm)}
                 disabled={!pagination.hasPrevPage}
                 className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasPrevPage
-                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
-                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
               >
                 Previous
@@ -468,8 +495,8 @@ const ListDosen = () => {
                         key={pageNumber}
                         onClick={() => fetchDosens(pageNumber, debouncedSearchTerm)}
                         className={`px-3 py-2 text-sm rounded-md border transition ${currentPage === pageNumber
-                            ? "bg-gray-800 text-white border-gray-800"
-                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                          ? "bg-gray-800 text-white border-gray-800"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
                           }`}
                       >
                         {pageNumber}
@@ -493,8 +520,8 @@ const ListDosen = () => {
                 onClick={() => fetchDosens(currentPage + 1, debouncedSearchTerm)}
                 disabled={!pagination.hasNextPage}
                 className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasNextPage
-                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
-                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
               >
                 Next
@@ -504,8 +531,8 @@ const ListDosen = () => {
                 onClick={() => fetchDosens(pagination.totalPages, debouncedSearchTerm)}
                 disabled={!pagination.hasNextPage}
                 className={`px-3 py-2 text-sm rounded-md border transition ${pagination.hasNextPage
-                    ? "border-gray-300 text-gray-700 hover:bg-gray-50"
-                    : "border-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "border-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
               >
                 Last
@@ -730,8 +757,8 @@ const ListDosen = () => {
               {message && (
                 <div
                   className={`text-sm ${message.type === "error"
-                      ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
-                      : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
+                    ? "text-red-500 bg-red-50 border border-red-200 px-3 py-2 rounded-md"
+                    : "text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md"
                     }`}
                 >
                   {message.text}

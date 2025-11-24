@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
+import ExportToExcel from "./components/ExportToExcel";
 
 const ListPengajuan = () => {
   const [pengajuan, setPengajuan] = useState([]);
@@ -41,6 +42,35 @@ const ListPengajuan = () => {
   });
   const [message, setMessage] = useState(null);
 
+
+  const formatPengajuanForExcel = (data) => {
+    // Handle nested structure
+    const pengajuanData = Array.isArray(data) ? data : (data.pengajuan || []);
+
+    return pengajuanData.map((pengajuan, index) => ({
+      No: index + 1,
+      "Tanggal Pengajuan": new Date(pengajuan.createdAt).toLocaleDateString("id-ID"),
+      "Judul": pengajuan.title,
+      NIM: pengajuan.Mahasiswa?.nim || "-",
+      "Nama Mahasiswa": pengajuan.Mahasiswa?.nama_lengkap || "-",
+      "Program Studi": pengajuan.Mahasiswa?.Prodi?.program_studi || "-",
+      Angkatan: pengajuan.Mahasiswa?.angkatan || "-",
+      Semester: pengajuan.Mahasiswa?.semester || "-",
+      "Bidang/Topik": pengajuan.bidang_topik || "-",
+      "Keywords": pengajuan.keywords || "-",
+      "Pembimbing 1": pengajuan.Pembimbing1
+        ? `${pengajuan.Pembimbing1.nama}, ${pengajuan.Pembimbing1.gelar}`
+        : "-",
+      "Pembimbing 2": pengajuan.Pembimbing2
+        ? `${pengajuan.Pembimbing2.nama}, ${pengajuan.Pembimbing2.gelar}`
+        : "-",
+      Status: pengajuan.status,
+      "Alasan Penolakan": pengajuan.rejection_reason || "-",
+      "Tanggal Disetujui": pengajuan.approvedAt
+        ? new Date(pengajuan.approvedAt).toLocaleDateString("id-ID")
+        : "-",
+    }));
+  };
   // Fetch pengajuan dengan pagination dan filter
   const fetchPengajuan = async (page = 1, search = "", status = "") => {
     setLoading(true);
@@ -253,13 +283,20 @@ const ListPengajuan = () => {
                 Kelola dan pantau pengajuan judul mahasiswa.
               </p>
             </div>
-
-            <button
-              onClick={() => fetchPengajuan(currentPage, debouncedSearchTerm, filterStatus)}
-              className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition"
-            >
-              <RefreshCw size={16} /> Refresh
-            </button>
+            <div className="flex gap-2">
+              <ExportToExcel
+                endpoint={`${baseUrl}pengajuan`}
+                filename="Data_Pengajuan"
+                dataFormatter={formatPengajuanForExcel}
+                buttonText="Export to Excel"
+              />
+              <button
+                onClick={() => fetchPengajuan(currentPage, debouncedSearchTerm, filterStatus)}
+                className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition"
+              >
+                <RefreshCw size={16} /> Refresh
+              </button>
+            </div>
           </div>
 
           {/* Search & Filter */}

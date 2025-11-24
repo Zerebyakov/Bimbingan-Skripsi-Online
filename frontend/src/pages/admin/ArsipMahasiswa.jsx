@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
+import ExportToExcel from "./components/ExportToExcel";
 
 const ArsipMahasiswa = () => {
     const [arsip, setArsip] = useState([]);
@@ -44,6 +45,31 @@ const ArsipMahasiswa = () => {
     // Pagination
     const [page, setPage] = useState(1);
     const limit = 5;
+
+    const formatArsipForExcel = (data) => {
+        // Handle nested structure
+        const arsipData = Array.isArray(data) ? data : (data.arsip || []);
+
+        return arsipData.map((arsip, index) => ({
+            No: index + 1,
+            "Tanggal Selesai": new Date(arsip.tanggalSelesai).toLocaleDateString("id-ID"),
+            Status: arsip.status,
+            NIM: arsip.PengajuanSkripsi?.Mahasiswa?.nim || "-",
+            "Nama Mahasiswa": arsip.PengajuanSkripsi?.Mahasiswa?.nama_lengkap || "-",
+            "Program Studi": arsip.PengajuanSkripsi?.Mahasiswa?.Prodi?.program_studi || "-",
+            Angkatan: arsip.PengajuanSkripsi?.Mahasiswa?.angkatan || "-",
+            "Judul Skripsi": arsip.PengajuanSkripsi?.title || "-",
+            "Bidang/Topik": arsip.PengajuanSkripsi?.bidang_topik || "-",
+            "Pembimbing 1": arsip.PengajuanSkripsi?.Pembimbing1
+                ? `${arsip.PengajuanSkripsi.Pembimbing1.nama}, ${arsip.PengajuanSkripsi.Pembimbing1.gelar}`
+                : "-",
+            "Pembimbing 2": arsip.PengajuanSkripsi?.Pembimbing2
+                ? `${arsip.PengajuanSkripsi.Pembimbing2.nama}, ${arsip.PengajuanSkripsi.Pembimbing2.gelar}`
+                : "-",
+            "File Final": arsip.fileFinal || "Tidak ada",
+            "Tanggal Dibuat": new Date(arsip.createdAt).toLocaleDateString("id-ID"),
+        }));
+    };
 
     const fetchArsip = async () => {
         try {
@@ -266,18 +292,26 @@ const ArsipMahasiswa = () => {
                                     )
                             )}
                         </select>
-                    </div>
+                        <select
+                            className="bg-white px-3 py-2 border border-gray-200 rounded-lg shadow-sm text-sm"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="">Semua Status</option>
+                            <option value="SELESAI">Selesai</option>
+                            <option value="LULUS">Lulus</option>
+                            <option value="REVISI_ULANG">Revisi Ulang</option>
+                        </select>
 
-                    <select
-                        className="bg-white px-3 py-2 border border-gray-200 rounded-lg shadow-sm text-sm"
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                        <option value="">Semua Status</option>
-                        <option value="SELESAI">Selesai</option>
-                        <option value="LULUS">Lulus</option>
-                        <option value="REVISI_ULANG">Revisi Ulang</option>
-                    </select>
+
+                    </div>
+                    <ExportToExcel
+                        endpoint={`${baseUrl}arsip`}
+                        filename="Data_Arsip"
+                        dataFormatter={formatArsipForExcel}
+                        buttonText="Export to Excel"
+                    />
+
                 </div>
 
 
