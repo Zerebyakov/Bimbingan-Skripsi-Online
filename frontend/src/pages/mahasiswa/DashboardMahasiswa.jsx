@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import MahasiswaLayout from "./layout/MahasiswaLayout";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import {
   User,
   BookOpen,
@@ -78,8 +78,15 @@ const DashboardMahasiswa = () => {
             whileHover={{ scale: 1.02 }}
             className="bg-white shadow-md rounded-xl p-5 border border-gray-100 flex items-center gap-4"
           >
-            <div className="bg-gray-100 p-3 rounded-full">
-              <User className="text-gray-600" size={22} />
+            <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+              {dashboardData.mahasiswa.foto ? (
+                <img
+                  src={`${imageUrl}${dashboardData.mahasiswa.foto}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="text-gray-600" size={22} />
+              )}
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase">Mahasiswa</p>
@@ -134,7 +141,7 @@ const DashboardMahasiswa = () => {
               <div>
                 <p className="text-xs text-gray-500 uppercase">Progress Bimbingan</p>
                 <p className="font-semibold text-gray-800">
-                  Bab {progress/20 || 0} dari 5
+                  Bab {progress / 20 || 0} dari 5
                 </p>
               </div>
             </div>

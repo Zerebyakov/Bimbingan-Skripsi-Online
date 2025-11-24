@@ -136,7 +136,7 @@ const ListPengajuanMahasiswa = () => {
     return (
         <DosenLayout>
             <div
-                className={`transition-all duration-500 ease-in-out ${fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+                className={`transition-all duration-500 ease-in-out px-6 py-6 ${fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
                     }`}
             >
                 <div className="space-y-8">
@@ -305,8 +305,8 @@ const ListPengajuanMahasiswa = () => {
                                                     {/* File proposal */}
                                                     {item.proposal_file && (
                                                         <a
-                                                            href={`${baseUrl}${item.proposal_file}`}
-                                                            download
+                                                            href={`${imageUrl}uploads/proposals/${item.proposal_file}`}
+                                                            download={item.proposal_file}
                                                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 pt-1"
                                                         >
                                                             <FileDown size={14} /> Download File Pengajuan

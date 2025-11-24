@@ -12,22 +12,18 @@ import {
   Loader2,
   Search,
   Filter,
-  BookOpenCheck,
   StickyNote,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
-import { useAuth } from "../../context/AuthContext";
 
 const ListBabMahasiswa = () => {
-  const { user } = useAuth();
-  const loggedInDosenId = user?.Dosens?.[0]?.id_dosen;
-
   const [data, setData] = useState([]); // array mahasiswaBimbingan
   const [expandedCard, setExpandedCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedBab, setSelectedBab] = useState(null); // bab object for modal
+  const [selectedPengajuan, setSelectedPengajuan] = useState(null); // store pengajuan context
   const [status, setStatus] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -130,6 +126,7 @@ const ListBabMahasiswa = () => {
       );
       Swal.fire("Berhasil", "Status bab berhasil diperbarui", "success");
       setSelectedBab(null);
+      setSelectedPengajuan(null);
       // refresh data
       fetchData();
     } catch (err) {
@@ -140,15 +137,13 @@ const ListBabMahasiswa = () => {
     }
   };
 
-  // helper: check if current logged-in dosen is pembimbing utama for a pengajuan
-  const isPembimbingUtama = (pengajuan) =>
-    pengajuan?.dosenId1 === loggedInDosenId;
-
-  // when click review button on a bab: if pembimbing utama -> open modal, else show info popup
+  // when click review button on a bab: check canApprove from pengajuan
   const handleOpenReview = (pengajuan, bab) => {
-    const canApprove = isPembimbingUtama(pengajuan);
+    // Gunakan canApprove dari response API, bukan logika manual
+    const canApprove = pengajuan.canApprove === true;
+
     if (!canApprove) {
-      // option 2: allow click but show popup info
+      // Tampilkan info bahwa hanya pembimbing utama yang bisa review
       Swal.fire({
         icon: "info",
         title: "Akses Terbatas",
@@ -160,8 +155,27 @@ const ListBabMahasiswa = () => {
 
     // pembimbing utama -> open modal to review
     setSelectedBab(bab);
+    setSelectedPengajuan(pengajuan);
     setStatus(bab.status || "");
     setNotes(bab.notes || "");
+  };
+
+  // Helper untuk menampilkan role badge
+  const getRoleBadge = (pengajuan) => {
+    if (pengajuan.myRole === "pembimbing_utama") {
+      return (
+        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-md border border-green-200">
+          Pembimbing Utama
+        </span>
+      );
+    } else if (pengajuan.myRole === "pembimbing_pendamping") {
+      return (
+        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-md border border-gray-200">
+          Pembimbing Pendamping
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
@@ -245,8 +259,6 @@ const ListBabMahasiswa = () => {
                 pengajuan.BabSubmissions
               );
 
-              const canApprovePengajuan = isPembimbingUtama(pengajuan);
-
               return (
                 <motion.div
                   key={pengajuan.id_pengajuan}
@@ -272,7 +284,7 @@ const ListBabMahasiswa = () => {
                         alt="foto"
                         className="w-12 h-12 rounded-full object-cover border"
                       />
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-semibold text-gray-800 text-sm">
                           {pengajuan.Mahasiswa?.nama_lengkap}
                         </h3>
@@ -283,6 +295,11 @@ const ListBabMahasiswa = () => {
                           {pengajuan.Mahasiswa?.email_kampus}
                         </p>
                       </div>
+                    </div>
+
+                    {/* Role Badge */}
+                    <div className="mb-3">
+                      {getRoleBadge(pengajuan)}
                     </div>
 
                     {/* judul */}
@@ -302,9 +319,13 @@ const ListBabMahasiswa = () => {
                         />
                       </div>
                       <div className="flex justify-between items-center">
-                        <p className="text-xs text-gray-500">{progress}% progres bimbingan</p>
+                        <p className="text-xs text-gray-500">
+                          {progress}% progres bimbingan
+                        </p>
                         <p className="text-sm font-semibold text-gray-700">
-                          {lastChapter > 0 ? `Sudah sampai Bab ${lastChapter}` : "Belum ada bab diterima"}
+                          {lastChapter > 0
+                            ? `Sudah sampai Bab ${lastChapter}`
+                            : "Belum ada bab diterima"}
                         </p>
                       </div>
                     </div>
@@ -316,11 +337,19 @@ const ListBabMahasiswa = () => {
                       </span>
                       <button
                         onClick={() =>
-                          setExpandedCard(expandedCard === pengajuan.id_pengajuan ? null : pengajuan.id_pengajuan)
+                          setExpandedCard(
+                            expandedCard === pengajuan.id_pengajuan
+                              ? null
+                              : pengajuan.id_pengajuan
+                          )
                         }
                         className="text-gray-600 hover:text-gray-800 transition"
                       >
-                        {expandedCard === pengajuan.id_pengajuan ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        {expandedCard === pengajuan.id_pengajuan ? (
+                          <ChevronUp size={18} />
+                        ) : (
+                          <ChevronDown size={18} />
+                        )}
                       </button>
                     </div>
 
@@ -340,17 +369,28 @@ const ListBabMahasiswa = () => {
                               className="p-3 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow transition"
                             >
                               <div className="flex justify-between items-center">
-                                <p className="text-sm font-medium text-gray-800">Bab {bab.chapter_number}</p>
-                                <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${getStatusColor(bab.status)}`}>
+                                <p className="text-sm font-medium text-gray-800">
+                                  Bab {bab.chapter_number}
+                                </p>
+                                <span
+                                  className={`text-xs font-semibold px-2 py-1 rounded-full border ${getStatusColor(
+                                    bab.status
+                                  )}`}
+                                >
                                   {bab.status?.toUpperCase()}
                                 </span>
                               </div>
 
-                              <p className="text-xs text-gray-500 mt-1 truncate">{bab.original_name}</p>
+                              <p className="text-xs text-gray-500 mt-1 truncate">
+                                {bab.original_name}
+                              </p>
 
                               {bab.notes && (
                                 <div className="flex items-start gap-2 mt-2 bg-yellow-50 border border-yellow-200 p-2 rounded-lg">
-                                  <StickyNote size={14} className="text-yellow-600 mt-[2px]" />
+                                  <StickyNote
+                                    size={14}
+                                    className="text-yellow-600 mt-[2px]"
+                                  />
                                   <p className="text-xs text-yellow-800 leading-snug">
                                     <strong>Catatan Dosen:</strong> {bab.notes}
                                   </p>
@@ -360,7 +400,11 @@ const ListBabMahasiswa = () => {
                               <div className="flex items-center justify-between mt-2 text-xs">
                                 <div className="flex items-center gap-1 text-gray-400">
                                   <Calendar size={12} />
-                                  {bab.submittedAt ? new Date(bab.submittedAt).toLocaleDateString("id-ID") : "-"}
+                                  {bab.submittedAt
+                                    ? new Date(bab.submittedAt).toLocaleDateString(
+                                      "id-ID"
+                                    )
+                                    : "-"}
                                 </div>
 
                                 <div className="flex gap-3">
@@ -373,11 +417,18 @@ const ListBabMahasiswa = () => {
                                   </a>
 
                                   <button
-                                    onClick={() => handleOpenReview(pengajuan, bab)}
-                                    className={`flex items-center gap-1 text-sm font-medium transition ${isPembimbingUtama(pengajuan)
+                                    onClick={() =>
+                                      handleOpenReview(pengajuan, bab)
+                                    }
+                                    className={`flex items-center gap-1 text-sm font-medium transition ${pengajuan.canApprove
                                       ? "text-gray-700 hover:text-gray-900"
-                                      : "text-gray-500"
+                                      : "text-gray-400 cursor-not-allowed"
                                       }`}
+                                    title={
+                                      pengajuan.canApprove
+                                        ? "Review Bab"
+                                        : "Hanya pembimbing utama yang dapat mereview"
+                                    }
                                   >
                                     <Edit3 size={13} /> Review
                                   </button>
@@ -394,12 +445,11 @@ const ListBabMahasiswa = () => {
             })}
           </div>
         )}
-
-
       </div>
-      {/* Modal Review (only shown when selectedBab is set AND current user is pembimbing utama) */}
+
+      {/* Modal Review (only shown when selectedBab is set AND canApprove is true) */}
       <AnimatePresence>
-        {selectedBab && (
+        {selectedBab && selectedPengajuan && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -412,11 +462,17 @@ const ListBabMahasiswa = () => {
               exit={{ scale: 0.96, opacity: 0 }}
               className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
             >
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">Review Bab {selectedBab.chapter_number}</h2>
-              <p className="text-xs text-gray-500 mb-4 truncate">{selectedBab.original_name}</p>
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">
+                Review Bab {selectedBab.chapter_number}
+              </h2>
+              <p className="text-xs text-gray-500 mb-4 truncate">
+                {selectedBab.original_name}
+              </p>
 
               <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">Status Bab</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Status Bab
+                </label>
                 <select
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
                   value={status}
@@ -430,7 +486,9 @@ const ListBabMahasiswa = () => {
 
                 {status === "revisi" && (
                   <>
-                    <label className="block text-sm font-medium text-gray-700">Catatan Revisi</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Catatan Revisi
+                    </label>
                     <textarea
                       className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
                       rows="3"
@@ -444,7 +502,10 @@ const ListBabMahasiswa = () => {
 
               <div className="flex justify-end gap-3 mt-6">
                 <button
-                  onClick={() => setSelectedBab(null)}
+                  onClick={() => {
+                    setSelectedBab(null);
+                    setSelectedPengajuan(null);
+                  }}
                   className="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100 transition"
                 >
                   Batal

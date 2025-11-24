@@ -55,10 +55,14 @@ const UploadBab = () => {
     };
 
     // === Upload / Re-upload file ===
-    const handleUpload = async (e, reupload = false, existingId = null) => {
+    const handleUpload = async (e, reupload = false, existingId = null, fileToUpload = null, babNumber = null) => {
         e.preventDefault();
 
-        if (!selectedFile || !selectedBab) {
+        // Gunakan parameter fileToUpload dan babNumber jika ada (untuk re-upload)
+        const file = fileToUpload || selectedFile;
+        const bab = babNumber || selectedBab;
+
+        if (!file || !bab) {
             Swal.fire({
                 icon: "warning",
                 title: "Perhatian!",
@@ -69,7 +73,7 @@ const UploadBab = () => {
         }
 
         const confirm = await Swal.fire({
-            title: `${reupload ? "Re-upload" : "Upload"} Bab ${selectedBab}?`,
+            title: `${reupload ? "Re-upload" : "Upload"} Bab ${bab}?`,
             text: reupload
                 ? "File lama akan diganti dengan yang baru."
                 : "Pastikan file yang diupload sudah benar dan final.",
@@ -89,12 +93,9 @@ const UploadBab = () => {
 
         try {
             const formData = new FormData();
-            formData.append("chapter_number", selectedBab);
+            formData.append("chapter_number", bab);
+            formData.append("bab", file);
 
-            // 🧩 Sesuaikan field name file agar cocok dengan middleware
-            formData.append("bab", selectedFile); // <== Ganti dari "file" ke "bab"
-
-            // URL tetap sama
             const url = `${baseUrl}mahasiswa/upload-bab${reupload && existingId ? `/${existingId}` : ""
                 }`;
 
@@ -113,7 +114,7 @@ const UploadBab = () => {
                 Swal.fire({
                     icon: "success",
                     title: reupload ? "File Diperbarui!" : "Upload Berhasil!",
-                    text: `Bab ${selectedBab} ${reupload ? "berhasil diganti." : "berhasil diupload."
+                    text: `Bab ${bab} ${reupload ? "berhasil diganti." : "berhasil diupload."
                         }`,
                     confirmButtonColor: "#16a34a",
                     background: "#f9fafb",
@@ -155,6 +156,34 @@ const UploadBab = () => {
         }
     };
 
+    // === Handle Re-upload dengan SweetAlert2 ===
+    const handleReupload = async (babUploaded, babNumber) => {
+        const result = await Swal.fire({
+            title: "Re-upload File?",
+            text: "Pilih file baru untuk menggantikan yang lama.",
+            input: "file",
+            inputAttributes: {
+                accept: ".pdf",
+            },
+            showCancelButton: true,
+            confirmButtonText: "Upload",
+            cancelButtonText: "Batal",
+            confirmButtonColor: "#16a34a",
+            cancelButtonColor: "#6b7280",
+            background: "#f9fafb",
+        });
+
+        if (result.isConfirmed && result.value) {
+            // Langsung panggil handleUpload dengan file dan babNumber yang sudah ada
+            await handleUpload(
+                { preventDefault: () => { } },
+                true,
+                babUploaded.id,
+                result.value,
+                babNumber
+            );
+        }
+    };
 
     // === Hapus file Bab ===
     const handleDelete = async (bab) => {
@@ -305,32 +334,7 @@ const UploadBab = () => {
                                         {babUploaded.status === "revisi" && (
                                             <div className="flex gap-2 mt-3">
                                                 <button
-                                                    onClick={() =>
-                                                        Swal.fire({
-                                                            title: "Re-upload File?",
-                                                            text: "Pilih file baru untuk menggantikan yang lama.",
-                                                            input: "file",
-                                                            inputAttributes: {
-                                                                accept: ".pdf",
-                                                            },
-                                                            showCancelButton: true,
-                                                            confirmButtonText: "Upload",
-                                                            cancelButtonText: "Batal",
-                                                            confirmButtonColor: "#16a34a",
-                                                            cancelButtonColor: "#6b7280",
-                                                            background: "#f9fafb",
-                                                        }).then((result) => {
-                                                            if (result.isConfirmed && result.value) {
-                                                                setSelectedFile(result.value);
-                                                                setSelectedBab(babNumber);
-                                                                handleUpload(
-                                                                    { preventDefault: () => { } },
-                                                                    true,
-                                                                    babUploaded.id
-                                                                );
-                                                            }
-                                                        })
-                                                    }
+                                                    onClick={() => handleReupload(babUploaded, babNumber)}
                                                     className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
                                                 >
                                                     <RefreshCcw size={14} /> Re-upload

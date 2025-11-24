@@ -99,7 +99,7 @@ const DashboardDosen = () => {
 
               <div>
                 <h2 className="text-lg font-semibold text-gray-800">
-                  {data.dosenInfo.nama}
+                  {data.dosenInfo.nama} {data.dosenInfo.gelar}
                 </h2>
                 <p className="text-sm text-gray-600">
                   {data.dosenInfo.bidang_keahlian || "-"} •{" "}
@@ -179,7 +179,7 @@ const DashboardDosen = () => {
                       <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                         {mhs.Mahasiswa?.foto ? (
                           <img
-                            src={`${baseUrl}${mhs.Mahasiswa.foto}`}
+                            src={`${imageUrl}${mhs.Mahasiswa.foto}`}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -227,15 +227,15 @@ const DashboardDosen = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() =>
-                          navigate(`/dosen/mahasiswa/${mhs.id_mahasiswa}`)
+                          navigate(`/dosen/mahasiswa-bab`)
                         }
                         className="text-sm px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:shadow-sm transition"
                       >
-                        Lihat Mahasiswa
+                        Lihat Progress
                       </button>
                       <button
                         onClick={() =>
-                          navigate(`/dosen/pengajuan/${mhs.id_pengajuan}`)
+                          navigate(`/dosen/mahasiswa-pengajuan`)
                         }
                         className="text-sm px-3 py-1.5 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
                       >

@@ -13,12 +13,8 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
 
 const ListLaporanMahasiswa = () => {
-  const { user } = useAuth();
-  const loggedInDosenId = user?.Dosens?.[0]?.id_dosen;
-
   const [bimbingan, setBimbingan] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fadeIn, setFadeIn] = useState(false);
@@ -65,9 +61,6 @@ const ListLaporanMahasiswa = () => {
     // eslint-disable-next-line
   }, []);
 
-  const isPembimbingUtama = (item) => item?.dosenId1 === loggedInDosenId;
-  const isPembimbingPendamping = (item) => item?.dosenId2 === loggedInDosenId;
-
   const statusColor = (s) => {
     switch ((s || "").toLowerCase()) {
       case "diterima":
@@ -92,7 +85,7 @@ const ListLaporanMahasiswa = () => {
 
   const isFileComplete = (laporan = {}) => countAvailableFiles(laporan) >= 5;
 
-  const getFileUrl = (file) => (file ? `${imageUrl}${file}` : null);
+  const getFileUrl = (file) => (file ? `${imageUrl}uploads/laporan/${file}` : null);
 
   const handleDownload = (filePath, label) => {
     if (!filePath) {
@@ -126,7 +119,8 @@ const ListLaporanMahasiswa = () => {
       return;
     }
 
-    if (!isPembimbingUtama(item)) {
+    // Gunakan canApprove dari API response
+    if (!item.canApprove) {
       Swal.fire({
         icon: "info",
         title: "Akses Terbatas",
@@ -198,6 +192,24 @@ const ListLaporanMahasiswa = () => {
     }
   };
 
+  // Helper untuk menampilkan role badge
+  const getRoleBadge = (item) => {
+    if (item.myRole === "pembimbing_utama") {
+      return (
+        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-md border border-green-200 whitespace-nowrap">
+          Pembimbing Utama
+        </span>
+      );
+    } else if (item.myRole === "pembimbing_pendamping") {
+      return (
+        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200 whitespace-nowrap">
+          Pembimbing Pendamping
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <DosenLayout>
       <div
@@ -207,8 +219,12 @@ const ListLaporanMahasiswa = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-gray-800 truncate">Laporan Akhir Mahasiswa</h1>
-            <p className="text-gray-500 text-sm mt-1">Review & unduh dokumen laporan akhir mahasiswa bimbingan.</p>
+            <h1 className="text-2xl font-semibold text-gray-800 truncate">
+              Laporan Akhir Mahasiswa
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">
+              Review & unduh dokumen laporan akhir mahasiswa bimbingan.
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
@@ -266,37 +282,53 @@ const ListLaporanMahasiswa = () => {
                 >
                   <div className="flex justify-between items-start gap-3">
                     <div className="min-w-0">
-                      <h3 className="text-base font-semibold text-gray-800 leading-tight break-words">{item.Mahasiswa?.nama_lengkap}</h3>
-                      <p className="text-xs text-gray-500 truncate">{item.Mahasiswa?.nim} • {item.Mahasiswa?.email_kampus}</p>
+                      <h3 className="text-base font-semibold text-gray-800 leading-tight break-words">
+                        {item.Mahasiswa?.nama_lengkap}
+                      </h3>
+                      <p className="text-xs text-gray-500 truncate">
+                        {item.Mahasiswa?.nim} • {item.Mahasiswa?.email_kampus}
+                      </p>
                     </div>
 
                     <div className="flex flex-col items-end gap-2 shrink-0">
-                      {isPembimbingUtama(item) ? (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-md border border-green-200 whitespace-nowrap">Pembimbing Utama</span>
-                      ) : isPembimbingPendamping(item) ? (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md border border-gray-200 whitespace-nowrap">Pembimbing Pendamping</span>
-                      ) : null}
+                      {getRoleBadge(item)}
 
                       <div className="text-xs">
                         {complete ? (
-                          <span className="px-2 py-1 rounded-md bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">✔ File lengkap</span>
+                          <span className="px-2 py-1 rounded-md bg-green-50 text-green-700 border border-green-100 whitespace-nowrap">
+                            ✓ File lengkap
+                          </span>
                         ) : (
-                          <span className="px-2 py-1 rounded-md bg-yellow-50 text-yellow-700 border border-yellow-100 whitespace-nowrap">⚠ File belum lengkap ({availableCount}/5)</span>
+                          <span className="px-2 py-1 rounded-md bg-yellow-50 text-yellow-700 border border-yellow-100 whitespace-nowrap">
+                            ⚠ File belum lengkap ({availableCount}/5)
+                          </span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-700 mt-3 line-clamp-3 break-words"><span className="font-medium">Judul:</span> {item.title}</p>
+                  <p className="text-sm text-gray-700 mt-3 line-clamp-3 break-words">
+                    <span className="font-medium">Judul:</span> {item.title}
+                  </p>
 
                   {/* expand toggle */}
                   <button
-                    onClick={() => setExpandedCard(expandedCard === item.id_pengajuan ? null : item.id_pengajuan)}
+                    onClick={() =>
+                      setExpandedCard(
+                        expandedCard === item.id_pengajuan ? null : item.id_pengajuan
+                      )
+                    }
                     className="mt-3 w-full text-left text-gray-600 hover:text-gray-800 flex items-center gap-2 text-sm"
                     aria-expanded={expandedCard === item.id_pengajuan}
                   >
                     Detail Laporan
-                    <span className="ml-auto">{expandedCard === item.id_pengajuan ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
+                    <span className="ml-auto">
+                      {expandedCard === item.id_pengajuan ? (
+                        <ChevronUp size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
+                      )}
+                    </span>
                   </button>
 
                   {/* expandable content */}
@@ -310,13 +342,23 @@ const ListLaporanMahasiswa = () => {
                         className="mt-3 pt-3 border-t border-gray-100 space-y-3"
                       >
                         {!laporan ? (
-                          <p className="text-sm text-gray-500 italic">Belum ada laporan akhir.</p>
+                          <p className="text-sm text-gray-500 italic">
+                            Belum ada laporan akhir.
+                          </p>
                         ) : (
                           <>
                             <div className="flex flex-col gap-2">
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600">Status:</span>
-                                <span className={`px-3 py-1 text-xs rounded-full border font-medium ${statusColor(laporan.status)}`}>{(laporan.status || "MENUNGGU").toString().toUpperCase()}</span>
+                                <span
+                                  className={`px-3 py-1 text-xs rounded-full border font-medium ${statusColor(
+                                    laporan.status
+                                  )}`}
+                                >
+                                  {(laporan.status || "MENUNGGU")
+                                    .toString()
+                                    .toUpperCase()}
+                                </span>
                               </div>
 
                               {/* notes */}
@@ -336,7 +378,10 @@ const ListLaporanMahasiswa = () => {
                                     <button
                                       key={f.key}
                                       onClick={() => has && handleDownload(fileValue, f.label)}
-                                      className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition ${has ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200" : "bg-yellow-100 text-yellow-800 border border-yellow-200"}`}
+                                      className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition ${has
+                                          ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200"
+                                          : "bg-yellow-100 text-yellow-800 border border-yellow-200"
+                                        }`}
                                       style={{ whiteSpace: "nowrap" }}
                                     >
                                       <FileDown size={12} />
@@ -348,7 +393,18 @@ const ListLaporanMahasiswa = () => {
 
                               {/* actions */}
                               <div className="flex flex-col sm:flex-row justify-end gap-3 mt-2">
-                                <button onClick={() => openReview(item)} className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-black">
+                                <button
+                                  onClick={() => openReview(item)}
+                                  className={`flex items-center gap-2 text-sm font-medium transition ${item.canApprove
+                                      ? "text-gray-700 hover:text-black"
+                                      : "text-gray-400 cursor-not-allowed"
+                                    }`}
+                                  title={
+                                    item.canApprove
+                                      ? "Review Laporan"
+                                      : "Hanya pembimbing utama yang dapat mereview"
+                                  }
+                                >
                                   <Edit3 size={14} /> Review Laporan
                                 </button>
                               </div>
@@ -363,19 +419,36 @@ const ListLaporanMahasiswa = () => {
             })}
           </div>
         )}
-
-
       </div>
+
       {/* REVIEW MODAL */}
       <AnimatePresence>
         {selectedItem && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} className="bg-white rounded-xl w-full max-w-md p-4 sm:p-6 shadow-xl max-h-[90svh] overflow-auto">
-              <h2 className="text-lg font-semibold text-gray-800">Review Laporan Akhir</h2>
-              <p className="text-xs text-gray-500 mb-3">{selectedItem?.Mahasiswa?.nama_lengkap}</p>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              className="bg-white rounded-xl w-full max-w-md p-4 sm:p-6 shadow-xl max-h-[90svh] overflow-auto"
+            >
+              <h2 className="text-lg font-semibold text-gray-800">
+                Review Laporan Akhir
+              </h2>
+              <p className="text-xs text-gray-500 mb-3">
+                {selectedItem?.Mahasiswa?.nama_lengkap}
+              </p>
 
               <label className="block text-sm font-medium text-gray-700">Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border mt-1 mb-4 px-3 py-2 rounded-lg text-sm">
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full border mt-1 mb-4 px-3 py-2 rounded-lg text-sm"
+              >
                 <option value="">-- Pilih Status --</option>
                 <option value="diterima">Diterima</option>
                 <option value="revisi">Revisi</option>
@@ -385,15 +458,35 @@ const ListLaporanMahasiswa = () => {
               {(status === "revisi" || status === "ditolak" || status === "diterima") && (
                 <>
                   <label className="block text-sm font-medium text-gray-700">
-                    Catatan {status === "diterima" ? "(opsional)" : "(wajib untuk revisi/ditolak)"}
+                    Catatan{" "}
+                    {status === "diterima"
+                      ? "(opsional)"
+                      : "(wajib untuk revisi/ditolak)"}
                   </label>
-                  <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border px-3 py-2 rounded-lg text-sm mb-3" placeholder={status === "diterima" ? "Catatan opsional..." : "Catatan wajib..."} />
+                  <textarea
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full border px-3 py-2 rounded-lg text-sm mb-3"
+                    placeholder={
+                      status === "diterima" ? "Catatan opsional..." : "Catatan wajib..."
+                    }
+                  />
                 </>
               )}
 
               <div className="flex justify-end gap-3 mt-4">
-                <button onClick={() => setSelectedItem(null)} className="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100">Batal</button>
-                <button disabled={submitting} onClick={handleSubmitReview} className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700">
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-100"
+                >
+                  Batal
+                </button>
+                <button
+                  disabled={submitting}
+                  onClick={handleSubmitReview}
+                  className="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700"
+                >
                   {submitting ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>

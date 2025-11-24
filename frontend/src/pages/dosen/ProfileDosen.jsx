@@ -28,7 +28,6 @@ const ProfileDosen = () => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-
   // MODAL PASSWORD
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -36,14 +35,16 @@ const ProfileDosen = () => {
   const [passErrors, setPassErrors] = useState({});
   const [updatingPass, setUpdatingPass] = useState(false);
 
-  
   // Fetch Data
   const fetchProfile = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${baseUrl}auth/profile`, { withCredentials: true });
       const data = res.data.data;
-      const dsn = data.Dosens[0];
+
+      // FIX: Gunakan Dosen (singular) bukan Dosens (array)
+      const dsn = data.Dosen;
+
       setDosen({ ...dsn, email: data.email, role: data.role, status: data.status });
       setFormData({
         email: data.email,
@@ -62,6 +63,7 @@ const ProfileDosen = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     if (!authLoading) fetchProfile();
   }, [authLoading]);
@@ -101,6 +103,7 @@ const ProfileDosen = () => {
       if (res.data.success) {
         Swal.fire("Berhasil!", "Profil berhasil diperbarui.", "success");
         setEditing(false);
+        setFotoFile(null);
         fetchProfile();
       }
     } catch (err) {
@@ -110,17 +113,7 @@ const ProfileDosen = () => {
     }
   };
 
-  if (loading)
-    return (
-      <DosenLayout>
-        <div className="flex justify-center items-center h-[70vh] text-gray-500">
-          <Loader2 className="animate-spin mr-2" /> Memuat profil dosen...
-        </div>
-      </DosenLayout>
-    );
-
-
-  //  UPDATE PASSWORD FUNCTION 
+  // UPDATE PASSWORD FUNCTION
   const handleUpdatePassword = async () => {
     setUpdatingPass(true);
     setPassErrors({});
@@ -152,15 +145,20 @@ const ProfileDosen = () => {
         setPassErrors(fieldErr);
       }
 
-      Swal.fire(
-        "Gagal",
-        backend?.message || "Terjadi kesalahan",
-        "error"
-      );
+      Swal.fire("Gagal", backend?.message || "Terjadi kesalahan", "error");
     } finally {
       setUpdatingPass(false);
     }
   };
+
+  if (loading)
+    return (
+      <DosenLayout>
+        <div className="flex justify-center items-center h-[70vh] text-gray-500">
+          <Loader2 className="animate-spin mr-2" /> Memuat profil dosen...
+        </div>
+      </DosenLayout>
+    );
 
   return (
     <DosenLayout>
@@ -195,7 +193,6 @@ const ProfileDosen = () => {
             >
               <Lock size={16} /> Ubah Password
             </button>
-
           </div>
         </div>
 
@@ -233,7 +230,7 @@ const ProfileDosen = () => {
               <h2 className="text-xl font-semibold text-gray-800">{formData.nama}</h2>
               <p className="text-sm text-gray-500">{formData.gelar}</p>
               <p className="mt-2 text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-md px-3 py-1 inline-block">
-                {dosen.status_dosen?.toUpperCase()} –{" "}
+                {dosen.status_dosen?.toUpperCase()} •{" "}
                 {dosen.Prodi?.program_studi || "Program Studi Tidak Diketahui"}
               </p>
             </div>
@@ -242,13 +239,13 @@ const ProfileDosen = () => {
           {/* Informasi Profil */}
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              ["Fakultas", formData.fakultas],
-              ["Bidang Keahlian", formData.bidang_keahlian],
-              ["Jabatan Akademik", formData.jabatan_akademik],
-              ["Email Institusi", formData.email_institusi],
-              ["Email Akun", formData.email],
-              ["Kontak", formData.kontak],
-            ].map(([label, value], i) => (
+              ["Fakultas", formData.fakultas, "fakultas"],
+              ["Bidang Keahlian", formData.bidang_keahlian, "bidang_keahlian"],
+              ["Jabatan Akademik", formData.jabatan_akademik, "jabatan_akademik"],
+              ["Email Institusi", formData.email_institusi, "email_institusi"],
+              ["Email Akun", formData.email, "email"],
+              ["Kontak", formData.kontak, "kontak"],
+            ].map(([label, value, key], i) => (
               <div key={i}>
                 <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
                   {label}
@@ -260,7 +257,7 @@ const ProfileDosen = () => {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        [label.toLowerCase().replace(/\s+/g, "_")]: e.target.value,
+                        [key]: e.target.value,
                       })
                     }
                     className="w-full border rounded-md px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-green-300"
@@ -281,18 +278,22 @@ const ProfileDosen = () => {
           <div className="grid sm:grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <Mail size={16} className="text-gray-500" />
-              <p>Email: <span className="font-medium">{dosen.email_institusi}</span></p>
+              <p>
+                Email: <span className="font-medium">{dosen.email_institusi}</span>
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Phone size={16} className="text-gray-500" />
-              <p>Kontak: <span className="font-medium">{dosen.kontak}</span></p>
+              <p>
+                Kontak: <span className="font-medium">{dosen.kontak}</span>
+              </p>
             </div>
             <div>
               <p className="text-gray-500">Status Akun:</p>
               <span
                 className={`px-2 py-1 text-xs rounded-full font-medium ${dosen.status_dosen === "tetap"
-                  ? "bg-green-50 text-green-700 border border-green-200"
-                  : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-yellow-50 text-yellow-700 border border-yellow-200"
                   }`}
               >
                 {dosen.status_dosen?.toUpperCase()}
@@ -320,7 +321,8 @@ const ProfileDosen = () => {
             </button>
           </div>
         )}
-        {/*  MODAL UPDATE PASSWORD  */}
+
+        {/* MODAL UPDATE PASSWORD */}
         <AnimatePresence>
           {showPasswordModal && (
             <motion.div
@@ -372,7 +374,12 @@ const ProfileDosen = () => {
                 {/* Buttons */}
                 <div className="flex justify-end mt-4 gap-3">
                   <button
-                    onClick={() => setShowPasswordModal(false)}
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPassErrors({});
+                      setOldPassword("");
+                      setNewPassword("");
+                    }}
                     className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-100 text-sm"
                   >
                     Batal
@@ -391,7 +398,6 @@ const ProfileDosen = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
       </motion.div>
     </DosenLayout>
   );

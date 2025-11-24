@@ -1,21 +1,17 @@
 import React, { useEffect, useState } from "react";
 import DosenLayout from "./layout/DosenLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { RefreshCw, MessageSquare, FileDown, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
-import { useAuth } from "../../context/AuthContext";
 
 const ListMahasiswaBimbingan = () => {
     const [bimbingan, setBimbingan] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
-    const { user } = useAuth();
-
-    const loggedInDosenId = user?.Dosens?.[0]?.id_dosen;
 
     const fetchMahasiswaBimbingan = async () => {
         setLoading(true);
@@ -52,7 +48,7 @@ const ListMahasiswaBimbingan = () => {
     const handleDownload = (filePath) => {
         if (!filePath)
             return Swal.fire("Info", "File belum tersedia untuk diunduh.", "info");
-        window.open(`${baseUrl}${filePath}`, "_blank");
+        window.open(`${imageUrl}uploads/${filePath}`, "_blank");
     };
 
     const renderStatusColor = (status) => {
@@ -84,21 +80,23 @@ const ListMahasiswaBimbingan = () => {
         );
     };
 
-    // ROLE LABEL (NEW)
+    // ROLE LABEL - gunakan myRole dari API response
     const getRoleLabel = (item) => {
-        if (item.dosenId1 === loggedInDosenId)
+        if (item.myRole === "pembimbing_utama") {
             return (
                 <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-md border border-green-200">
                     Pembimbing Utama
                 </span>
             );
+        }
 
-        if (item.dosenId2 === loggedInDosenId)
+        if (item.myRole === "pembimbing_pendamping") {
             return (
                 <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-md border border-gray-200">
                     Pembimbing Pendamping
                 </span>
             );
+        }
 
         return null;
     };
@@ -186,7 +184,7 @@ const ListMahasiswaBimbingan = () => {
                                                 </p>
                                             </div>
 
-                                            {/* Role label (new) */}
+                                            {/* Role label - menggunakan myRole dari API */}
                                             {getRoleLabel(item)}
 
                                             {renderStatusBadge(item.status)}
@@ -202,7 +200,7 @@ const ListMahasiswaBimbingan = () => {
                                         {lastMessage ? (
                                             <div className="mt-2 bg-gray-50 border border-gray-100 p-2 rounded-md text-xs text-gray-600">
                                                 <p className="italic line-clamp-1">
-                                                    “{lastMessage.content}”
+                                                    "{lastMessage.content}"
                                                 </p>
                                                 <p className="text-[11px] text-gray-400 mt-1">
                                                     {new Date(lastMessage.createdAt).toLocaleString(
@@ -227,8 +225,8 @@ const ListMahasiswaBimbingan = () => {
                                             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                                                 <motion.div
                                                     className={`h-2 rounded-full ${progressPercent === 100
-                                                            ? "bg-green-600"
-                                                            : "bg-gray-800"
+                                                        ? "bg-green-600"
+                                                        : "bg-gray-800"
                                                         }`}
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${progressPercent}%` }}
@@ -249,7 +247,7 @@ const ListMahasiswaBimbingan = () => {
                                         <div className="flex flex-wrap gap-2 mt-3">
                                             {item.proposal_file && (
                                                 <button
-                                                    onClick={() => handleDownload(item.proposal_file)}
+                                                    onClick={() => handleDownload(`proposals/${item.proposal_file}`)}
                                                     className="flex items-center gap-1 bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 rounded-md text-xs"
                                                 >
                                                     <FileDown size={12} /> Proposal
@@ -258,7 +256,7 @@ const ListMahasiswaBimbingan = () => {
                                             {item.BabSubmissions?.map((bab, i) => (
                                                 <button
                                                     key={i}
-                                                    onClick={() => handleDownload(bab.file_path)}
+                                                    onClick={() => handleDownload(`bab/${bab.file_path}`)}
                                                     className="flex items-center gap-1 bg-gray-100 text-gray-700 hover:bg-gray-200 px-3 py-1.5 rounded-md text-xs"
                                                 >
                                                     <FileDown size={12} /> BAB {bab.chapter_number}
