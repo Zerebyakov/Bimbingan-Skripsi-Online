@@ -20,6 +20,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { motion } from "framer-motion"; // optional animasi, jalankan: npm install framer-motion
+import PageMeta from "../../components/PageMeta";
 
 const DashboardAdmin = () => {
   const { user } = useAuth();
@@ -99,6 +100,9 @@ const DashboardAdmin = () => {
 
   return (
     <AdminLayout>
+      <PageMeta
+        title="Dashboard Admin"
+      />
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}

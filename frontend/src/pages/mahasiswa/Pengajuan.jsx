@@ -12,6 +12,7 @@ import {
   PencilLine,
   X,
 } from "lucide-react";
+import PageMeta from "../../components/PageMeta";
 
 const Pengajuan = () => {
   const [pengajuan, setPengajuan] = useState(null);
@@ -170,6 +171,9 @@ const Pengajuan = () => {
 
   return (
     <MahasiswaLayout>
+      <PageMeta
+        title="Pengajuan"
+      />
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}

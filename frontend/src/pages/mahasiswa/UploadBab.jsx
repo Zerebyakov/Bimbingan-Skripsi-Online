@@ -14,6 +14,7 @@ import {
     RefreshCcw,
     Info,
 } from "lucide-react";
+import PageMeta from "../../components/PageMeta";
 
 const UploadBab = () => {
     const [babList, setBabList] = useState([]);
@@ -240,6 +241,9 @@ const UploadBab = () => {
 
     return (
         <MahasiswaLayout>
+            <PageMeta
+                title="Upload Bab"
+            />
             <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}

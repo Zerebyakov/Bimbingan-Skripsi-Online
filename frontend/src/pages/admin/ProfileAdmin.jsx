@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import { baseUrl } from "../../components/api/myAPI";
 import { User, Lock, Save } from "lucide-react";
+import PageMeta from "../../components/PageMeta";
 
 const ProfileAdmin = () => {
     const { user } = useAuth();
@@ -59,6 +60,10 @@ const ProfileAdmin = () => {
 
     return (
         <AdminLayout>
+            <PageMeta
+                title="Profil Admin"
+                description="Kelola informasi profil dan pengaturan akun Anda"
+            />
             <div className="space-y-8">
                 {/* Header */}
                 <div>
@@ -96,8 +101,8 @@ const ProfileAdmin = () => {
                                     </label>
                                     <p
                                         className={`mt-1 text-sm font-medium ${user?.status === "aktif"
-                                                ? "text-green-600"
-                                                : "text-gray-500"
+                                            ? "text-green-600"
+                                            : "text-gray-500"
                                             }`}
                                     >
                                         {user?.status || "-"}
@@ -186,8 +191,8 @@ const ProfileAdmin = () => {
                         {message && (
                             <div
                                 className={`sm:col-span-2 text-sm mt-2 ${message.type === "error"
-                                        ? "text-red-600 bg-red-50 border border-red-200"
-                                        : "text-green-700 bg-green-50 border border-green-200"
+                                    ? "text-red-600 bg-red-50 border border-red-200"
+                                    : "text-green-700 bg-green-50 border border-green-200"
                                     } px-3 py-2 rounded-md`}
                             >
                                 {message.text}

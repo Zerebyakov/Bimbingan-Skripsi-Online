@@ -19,6 +19,7 @@ import {
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import ExportToExcel from "./components/ExportToExcel";
+import PageMeta from "../../components/PageMeta";
 
 const ArsipMahasiswa = () => {
     const [arsip, setArsip] = useState([]);
@@ -208,6 +209,9 @@ const ArsipMahasiswa = () => {
 
     return (
         <AdminLayout>
+            <PageMeta
+                title="Arsip"
+            />
             <div className="space-y-8">
                 {/* Header */}
                 <div>

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import SplitText from "../../components/SplitText";
+import PageMeta from "../../components/PageMeta";
 
 const DashboardDosen = () => {
   const [data, setData] = useState(null);
@@ -58,6 +59,9 @@ const DashboardDosen = () => {
 
   return (
     <DosenLayout>
+      <PageMeta
+        title="Dashboard Dosen"
+      />
       <div
         className={`transition-all duration-500 ease-in-out ${fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
           }`}

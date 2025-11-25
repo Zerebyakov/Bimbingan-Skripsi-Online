@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router"
 import Swal from 'sweetalert2'
 import Arigato from '../assets/deredere.gif'
+import SplitText from "../components/SplitText";
+import PageMeta from "../components/PageMeta";
 const LandingPage = () => {
   const sectionRefs = useRef([]);
   const [formData, setFormData] = useState({
@@ -64,6 +66,10 @@ const LandingPage = () => {
   return (
     <div className="w-full bg-gradient-to-b from-slate-50 to-white text-gray-800 overflow-x-hidden">
       {/* Navigation */}
+      <PageMeta
+        title="Bimbingan Online Skripsi"
+        appendSiteName={false}
+      />
       <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-md border-b border-slate-200 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4">
           <div className="flex justify-between items-center">
@@ -118,12 +124,12 @@ const LandingPage = () => {
               <button onClick={() => scrollToSection('about')} className="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Tentang</button>
               <button onClick={() => scrollToSection('contact')} className="block w-full text-left px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Kontak</button>
               <div className="pt-2 space-y-2">
-                <Link 
-                to={'/login'}
+                <Link
+                  to={'/login'}
                 >
                   <button className="w-full px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Masuk</button>
                 </Link>
-                <button className="w-full px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg">Daftar Gratis</button>
+                {/* <button className="w-full px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg">Daftar Gratis</button> */}
               </div>
             </div>
           )}

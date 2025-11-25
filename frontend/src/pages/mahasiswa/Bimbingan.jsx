@@ -8,6 +8,7 @@ import { Send, Paperclip, Loader2, ArrowLeft, BookOpen, X, FileText, Upload as U
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
+import PageMeta from "../../components/PageMeta";
 
 const Bimbingan = () => {
     const { user } = useAuth();
@@ -292,6 +293,9 @@ const Bimbingan = () => {
 
     return (
         <MahasiswaLayout>
+            <PageMeta
+                title="Bimbingan"
+            />
             <div className="flex flex-col h-[calc(100vh-4rem)] bg-gray-50">
                 {/* Header */}
                 <div className="flex items-center justify-between bg-white border-b px-4 py-3 md:px-6">

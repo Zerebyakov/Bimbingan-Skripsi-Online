@@ -7,6 +7,7 @@ import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
+import PageMeta from "../../components/PageMeta";
 
 const ListMahasiswaBimbingan = () => {
     const [bimbingan, setBimbingan] = useState([]);
@@ -103,6 +104,9 @@ const ListMahasiswaBimbingan = () => {
 
     return (
         <DosenLayout>
+            <PageMeta
+                title="Bimbingan Mahasiswa"
+            />
             <div className="p-6">
                 {/* Header */}
                 <motion.div

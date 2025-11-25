@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import SplitText from "../../components/SplitText";
+import PageMeta from "../../components/PageMeta";
 
 const DashboardMahasiswa = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -56,6 +57,9 @@ const DashboardMahasiswa = () => {
 
   return (
     <MahasiswaLayout>
+      <PageMeta
+        title="Dashboard Mahasiswa"
+      />
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}

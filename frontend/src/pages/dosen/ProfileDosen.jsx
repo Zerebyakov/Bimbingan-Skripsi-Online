@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { baseUrl } from "../../components/api/myAPI";
 import { useAuth } from "../../context/AuthContext";
+import PageMeta from "../../components/PageMeta";
 
 const ProfileDosen = () => {
   const { loading: authLoading } = useAuth();
@@ -162,6 +163,9 @@ const ProfileDosen = () => {
 
   return (
     <DosenLayout>
+      <PageMeta
+        title="Profile Dosen"
+      />
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -292,8 +296,8 @@ const ProfileDosen = () => {
               <p className="text-gray-500">Status Akun:</p>
               <span
                 className={`px-2 py-1 text-xs rounded-full font-medium ${dosen.status_dosen === "tetap"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-yellow-50 text-yellow-700 border border-yellow-200"
                   }`}
               >
                 {dosen.status_dosen?.toUpperCase()}

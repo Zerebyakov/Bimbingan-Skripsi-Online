@@ -15,6 +15,7 @@ import {
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import ExportToExcel from "./components/ExportToExcel";
+import PageMeta from "../../components/PageMeta";
 
 const ListPengajuan = () => {
   const [pengajuan, setPengajuan] = useState([]);
@@ -266,6 +267,10 @@ const ListPengajuan = () => {
 
   return (
     <AdminLayout>
+      <PageMeta
+        title="Semua Pengajuan"
+        description="Manajemen dan Assignmen Dosen Pembimbinga ke Pengajuan Judul"
+      />
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}

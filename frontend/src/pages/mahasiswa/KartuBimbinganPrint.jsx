@@ -6,6 +6,7 @@ import { Printer, Download } from "lucide-react";
 import Swal from "sweetalert2";
 import html2pdf from "html2pdf.js";
 import LogoUPB from "../../assets/PERADABAN.png"
+import PageMeta from "../../components/PageMeta";
 
 const KartuBimbinganPrint = () => {
   const { id } = useParams();
@@ -72,6 +73,9 @@ const KartuBimbinganPrint = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4">
+      <PageMeta
+        title="Kartu Bimbingan"
+      />
       {/* Tombol Aksi */}
       <div className="no-print mb-6 flex justify-end gap-3 w-full max-w-3xl">
         <button

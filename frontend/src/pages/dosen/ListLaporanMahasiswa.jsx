@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
+import PageMeta from "../../components/PageMeta";
 
 const ListLaporanMahasiswa = () => {
   const [bimbingan, setBimbingan] = useState([]);
@@ -212,6 +213,9 @@ const ListLaporanMahasiswa = () => {
 
   return (
     <DosenLayout>
+      <PageMeta
+        title="Kelola Laporan Mahasiswa"
+      />
       <div
         className={`transition-all duration-500 px-4 sm:px-6 lg:px-8 py-6 ${fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
           }`}
@@ -379,8 +383,8 @@ const ListLaporanMahasiswa = () => {
                                       key={f.key}
                                       onClick={() => has && handleDownload(fileValue, f.label)}
                                       className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition ${has
-                                          ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200"
-                                          : "bg-yellow-100 text-yellow-800 border border-yellow-200"
+                                        ? "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200"
+                                        : "bg-yellow-100 text-yellow-800 border border-yellow-200"
                                         }`}
                                       style={{ whiteSpace: "nowrap" }}
                                     >
@@ -396,8 +400,8 @@ const ListLaporanMahasiswa = () => {
                                 <button
                                   onClick={() => openReview(item)}
                                   className={`flex items-center gap-2 text-sm font-medium transition ${item.canApprove
-                                      ? "text-gray-700 hover:text-black"
-                                      : "text-gray-400 cursor-not-allowed"
+                                    ? "text-gray-700 hover:text-black"
+                                    : "text-gray-400 cursor-not-allowed"
                                     }`}
                                   title={
                                     item.canApprove

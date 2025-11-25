@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
+import PageMeta from "../../components/PageMeta";
 
 const ListBabMahasiswa = () => {
   const [data, setData] = useState([]); // array mahasiswaBimbingan
@@ -180,6 +181,9 @@ const ListBabMahasiswa = () => {
 
   return (
     <DosenLayout>
+      <PageMeta
+        title="Kelola Bab Mahasiswa"
+      />
       <div
         className={`transition-all duration-500 ease-in-out px-6 py-6 ${fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
           }`}

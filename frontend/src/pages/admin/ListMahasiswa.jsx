@@ -5,6 +5,7 @@ import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { RefreshCw, Search, Plus, Edit, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
 import ExportToExcel from "./components/ExportToExcel";
+import PageMeta from "../../components/PageMeta";
 
 const ListMahasiswa = () => {
   const [mahasiswa, setMahasiswa] = useState([]);
@@ -282,6 +283,9 @@ const ListMahasiswa = () => {
 
   return (
     <AdminLayout>
+      <PageMeta
+        title="Kelola Mahasiswa"
+      />
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

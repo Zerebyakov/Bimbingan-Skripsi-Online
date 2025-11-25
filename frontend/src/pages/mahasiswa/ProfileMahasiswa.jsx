@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { baseUrl } from "../../components/api/myAPI";
 import { useAuth } from "../../context/AuthContext";
+import PageMeta from "../../components/PageMeta";
 
 const ProfileMahasiswa = () => {
   const { loading: authLoading } = useAuth();
@@ -110,6 +111,9 @@ const ProfileMahasiswa = () => {
 
   return (
     <MahasiswaLayout>
+      <PageMeta
+        title="Profil Mahasiswa"
+      />
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -245,8 +249,8 @@ const ProfileMahasiswa = () => {
               <p className="text-gray-500">Status Akademik:</p>
               <span
                 className={`px-2 py-1 text-xs rounded-full font-medium ${mahasiswa?.status_akademik === "aktif"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
                   }`}
               >
                 {mahasiswa?.status_akademik?.toUpperCase()}

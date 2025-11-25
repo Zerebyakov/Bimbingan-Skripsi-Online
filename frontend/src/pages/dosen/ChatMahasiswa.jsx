@@ -17,6 +17,7 @@ import { useParams, useNavigate } from "react-router";
 import { initSocket, leaveChatRoom } from "../../services/Socket";
 import { useAuth } from "../../context/AuthContext";
 import Swal from "sweetalert2";
+import PageMeta from "../../components/PageMeta";
 
 const ChatMahasiswa = () => {
   const { id_pengajuan } = useParams();
@@ -174,6 +175,9 @@ const ChatMahasiswa = () => {
 
   return (
     <DosenLayout>
+      <PageMeta
+        title="Chat Mahasiswa"
+      />
       <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-8rem)]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
@@ -186,7 +190,7 @@ const ChatMahasiswa = () => {
             </button>
             <div>
               <h2 className="text-lg font-semibold text-gray-800">
-                {bimbingan?.Mahasiswa?.nama_lengkap || "Mahasiswa Bimbingan"} - {bimbingan?.Mahasiswa?.nim || "NIM"} 
+                {bimbingan?.Mahasiswa?.nama_lengkap || "Mahasiswa Bimbingan"} - {bimbingan?.Mahasiswa?.nim || "NIM"}
               </h2>
               <p className="text-sm text-gray-500">{bimbingan?.title || "Mahasiswa Bimbingan"}</p>
             </div>

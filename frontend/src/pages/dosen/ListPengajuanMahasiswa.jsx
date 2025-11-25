@@ -11,6 +11,7 @@ import {
     Edit3,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import PageMeta from "../../components/PageMeta";
 
 const ListPengajuanMahasiswa = () => {
     const [pengajuanList, setPengajuanList] = useState([]);
@@ -135,6 +136,9 @@ const ListPengajuanMahasiswa = () => {
 
     return (
         <DosenLayout>
+            <PageMeta
+                title="Kelola Pengajuan Mahasiswa"
+            />
             <div
                 className={`transition-all duration-500 ease-in-out px-6 py-6 ${fadeIn ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
                     }`}

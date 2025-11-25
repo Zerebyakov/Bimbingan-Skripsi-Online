@@ -13,6 +13,7 @@ import {
     ToggleLeft,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import PageMeta from "../../components/PageMeta";
 
 const KonfigurasiSistem = () => {
     const [config, setConfig] = useState(null);
@@ -299,6 +300,9 @@ const KonfigurasiSistem = () => {
 
     return (
         <AdminLayout>
+            <PageMeta
+                title="Konfigurasi Sistem"
+            />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="col-span-2 bg-white border rounded-xl p-6 space-y-4">
                     <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">

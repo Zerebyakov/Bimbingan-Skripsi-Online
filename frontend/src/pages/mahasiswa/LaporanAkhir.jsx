@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router";
+import PageMeta from "../../components/PageMeta";
 
 
 const LaporanAkhir = () => {
@@ -268,6 +269,9 @@ const LaporanAkhir = () => {
 
   return (
     <MahasiswaLayout>
+      <PageMeta
+        title="Laporan Akhir"
+      />
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-semibold text-gray-800 mb-4">
           Laporan Akhir & Kartu Bimbingan

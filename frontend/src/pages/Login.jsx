@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate,Link } from "react-router";
+import { useNavigate, Link } from "react-router";
 import axios from "axios";
 import { baseUrl } from "../components/api/myAPI";
 import { Eye, EyeOff, Home, ChevronRight } from "lucide-react";
+import PageMeta from "../components/PageMeta";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -41,6 +42,10 @@ const Login = () => {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-200 via-gray-100 to-gray-300 text-gray-800">
+      <PageMeta
+        title="Login"
+        description="Kelola informasi profil dan pengaturan akun Anda"
+      />
       {/* Left Section */}
       <div className="hidden lg:flex w-1/2 justify-center items-center bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 text-gray-200 shadow-xl">
         <div className="max-w-md text-center px-6">
@@ -63,8 +68,8 @@ const Login = () => {
         <nav className="px-8 py-4 border-b border-gray-200 bg-gray-50" aria-label="Breadcrumb">
           <ol className="flex items-center space-x-2 text-sm">
             <li>
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="flex items-center text-gray-500 hover:text-gray-800 transition-colors duration-200"
                 aria-label="Kembali ke beranda"
               >
@@ -95,7 +100,7 @@ const Login = () => {
 
             <form onSubmit={handleLogin} noValidate>
               {error && (
-                <div 
+                <div
                   className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-md mb-4 text-sm"
                   role="alert"
                   aria-live="polite"
@@ -105,8 +110,8 @@ const Login = () => {
               )}
 
               <div className="mb-4">
-                <label 
-                  htmlFor="email" 
+                <label
+                  htmlFor="email"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   Email
@@ -127,8 +132,8 @@ const Login = () => {
               </div>
 
               <div className="mb-4">
-                <label 
-                  htmlFor="password" 
+                <label
+                  htmlFor="password"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
                   Password
@@ -181,7 +186,7 @@ const Login = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Belum punya akun?{" "}
+                Belum punya akun? Silahkan Hubungi Admin
               </p>
             </div>
           </div>
