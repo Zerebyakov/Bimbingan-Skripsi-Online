@@ -11,6 +11,7 @@ import PengajuanJudul from "../models/PengajuanJudul.js";
 import LogAktivitas from "../models/LogAktivitas.js";
 import User from "../models/User.js";
 import PeriodeSkripsi from "../models/PeriodeSkripsi.js";
+import ProgramStudi from "../models/ProgramStudi.js";
 
 // Setup multer untuk upload file
 const storage = multer.diskStorage({
@@ -28,7 +29,12 @@ const upload = multer({ storage });
 export const getMahasiswaDashboard = async (req, res) => {
     try {
         const mahasiswaData = await Mahasiswa.findOne({
-            where: { id_user: req.session.userId }
+            where: { id_user: req.session.userId },
+            include:[
+                {
+                    model: ProgramStudi
+                }
+            ]
         });
 
         if (!mahasiswaData) {
