@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router";
+import { useNavigate,Link } from "react-router";
 import axios from "axios";
 import { baseUrl } from "../components/api/myAPI";
+import { Eye, EyeOff, Home, ChevronRight } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
@@ -56,71 +58,138 @@ const Login = () => {
       </div>
 
       {/* Right Section */}
-      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 bg-white shadow-lg relative">
-        <div className="w-full max-w-sm p-8">
-          <h2 className="text-2xl font-bold text-center mb-2 text-gray-800">
-            Selamat Datang 👋
-          </h2>
-          <p className="text-center text-gray-500 mb-6 text-sm">
-            Masuk ke akun Anda untuk melanjutkan
-          </p>
+      <div className="flex flex-col w-full lg:w-1/2 bg-white shadow-lg relative">
+        {/* Breadcrumb */}
+        <nav className="px-8 py-4 border-b border-gray-200 bg-gray-50" aria-label="Breadcrumb">
+          <ol className="flex items-center space-x-2 text-sm">
+            <li>
+              <Link 
+                to="/" 
+                className="flex items-center text-gray-500 hover:text-gray-800 transition-colors duration-200"
+                aria-label="Kembali ke beranda"
+              >
+                <Home className="w-4 h-4 mr-1" />
+                <span>Beranda</span>
+              </Link>
+            </li>
+            <li>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </li>
+            <li>
+              <span className="text-gray-800 font-medium" aria-current="page">
+                Masuk
+              </span>
+            </li>
+          </ol>
+        </nav>
 
-          <form onSubmit={handleLogin}>
-            {error && (
-              <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-md mb-4 text-sm">
-                {error}
-              </div>
-            )}
+        {/* Login Form */}
+        <div className="flex-1 flex flex-col justify-center items-center px-8">
+          <div className="w-full max-w-sm">
+            <h2 className="text-2xl font-bold text-center mb-2 text-gray-800">
+              Selamat Datang 👋
+            </h2>
+            <p className="text-center text-gray-500 mb-6 text-sm">
+              Masuk ke akun Anda untuk melanjutkan
+            </p>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                placeholder="Masukkan email anda"
-                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-gray-500 outline-none transition"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                required
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="Masukkan password"
-                className="w-full px-4 py-2 border border-gray-300 bg-gray-50 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-gray-500 outline-none transition"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-gray-800 text-gray-100 py-2.5 rounded-md font-semibold hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={loading}
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <span className="animate-spin border-2 border-gray-100 border-t-transparent rounded-full w-4 h-4"></span>
-                  <span>Memproses...</span>
+            <form onSubmit={handleLogin} noValidate>
+              {error && (
+                <div 
+                  className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-md mb-4 text-sm"
+                  role="alert"
+                  aria-live="polite"
+                >
+                  {error}
                 </div>
-              ) : (
-                "Masuk"
               )}
-            </button>
-          </form>
+
+              <div className="mb-4">
+                <label 
+                  htmlFor="email" 
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="contoh@email.com"
+                  className="w-full px-4 py-2 border border-gray-300 bg-gray-50 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-gray-500 outline-none transition"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                  aria-required="true"
+                  aria-invalid={error ? "true" : "false"}
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label 
+                  htmlFor="password" 
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Masukkan password"
+                    className="w-full px-4 py-2 pr-10 border border-gray-300 bg-gray-50 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-gray-500 outline-none transition"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    aria-required="true"
+                    aria-invalid={error ? "true" : "false"}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-gray-800 text-gray-100 py-2.5 rounded-md font-semibold hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading}
+                aria-busy={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="animate-spin border-2 border-gray-100 border-t-transparent rounded-full w-4 h-4"></span>
+                    <span>Memproses...</span>
+                  </div>
+                ) : (
+                  "Masuk"
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Belum punya akun?{" "}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <footer className="absolute bottom-4 text-gray-400 text-xs">
-          © {new Date().getFullYear()} Sistem Bimbingan Online
+        {/* Footer */}
+        <footer className="py-4 text-center text-gray-400 text-xs border-t border-gray-200">
+          © {new Date().getFullYear()} Sistem Bimbingan Online. All rights reserved.
         </footer>
       </div>
     </div>
