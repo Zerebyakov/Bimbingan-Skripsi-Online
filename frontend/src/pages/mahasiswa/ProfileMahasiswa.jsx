@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import MahasiswaLayout from "./layout/MahasiswaLayout";
-import { motion } from "framer-motion";
+import { motion,AnimatePresence } from "framer-motion";
 import axios from "axios";
 import Swal from "sweetalert2";
 import {
@@ -28,6 +28,13 @@ const ProfileMahasiswa = () => {
   const [fotoFile, setFotoFile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Modal Update Password
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [oldPassword, setOldPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [passErrors, setPassErrors] = useState({})
+  const [updatingPass, setUpdatingPass] = useState(false)
 
   // 🔹 Ambil data profil
   const fetchProfile = async () => {
@@ -99,6 +106,39 @@ const ProfileMahasiswa = () => {
       setSaving(false);
     }
   };
+  const handleUpdatePassword = async () => {
+    setUpdatingPass(true)
+    setPassErrors({})
+
+    try {
+      const res = await axios.put(`${baseUrl}auth/password`, {
+        oldPassword,
+        newPassword
+      }, {
+        withCredentials: true
+      });
+      if (res.data.success) {
+        Swal.fire("Berhasil", res.data.message, "success");
+        setShowPasswordModal(false);
+        setOldPassword("");
+        setNewPassword("");
+      }
+    } catch (error) {
+      const backend = err.response?.data;
+
+      if (backend?.errors) {
+        let fieldErr = {};
+        backend.errors.forEach((e) => {
+          fieldErr[e.path] = e.msg;
+        });
+        setPassErrors(fieldErr);
+      }
+
+      Swal.fire("Gagal", backend?.message || "Terjadi kesalahan", "error");
+    } finally {
+      setUpdatingPass(false)
+    }
+  }
 
   if (loading)
     return (
@@ -140,9 +180,7 @@ const ProfileMahasiswa = () => {
               {editing ? "Batal" : "Edit Profil"}
             </button>
             <button
-              onClick={() =>
-                Swal.fire("Gunakan halaman ubah password", "Menu ini terpisah.", "info")
-              }
+              onClick={() => setShowPasswordModal(true)}
               className="flex items-center gap-2 bg-gray-700 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800 transition w-full sm:w-auto justify-center"
             >
               <Lock size={16} /> Ubah Password
@@ -272,6 +310,83 @@ const ProfileMahasiswa = () => {
             </button>
           </div>
         )}
+
+        {/* MODAL UPDATE PASSWORD */}
+        <AnimatePresence>
+          {showPasswordModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+              >
+                <h2 className="text-lg font-semibold text-gray-800 mb-1 flex items-center gap-2">
+                  <Lock size={18} /> Ubah Password
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Silahkan masukkan password lama dan password baru Anda.
+                </p>
+
+                {/* Old Password */}
+                <label className="text-sm font-medium text-gray-700">Password Lama</label>
+                <input
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className={`w-full border px-3 py-2 rounded-lg mt-1 mb-3 text-sm ${passErrors.oldPassword ? "border-red-400" : ""
+                    }`}
+                />
+                {passErrors.oldPassword && (
+                  <p className="text-xs text-red-600 mb-2">{passErrors.oldPassword}</p>
+                )}
+
+                {/* New Password */}
+                <label className="text-sm font-medium text-gray-700">Password Baru</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={`w-full border px-3 py-2 rounded-lg mt-1 mb-3 text-sm ${passErrors.newPassword ? "border-red-400" : ""
+                    }`}
+                />
+                {passErrors.newPassword && (
+                  <p className="text-xs text-red-600 mb-2">{passErrors.newPassword}</p>
+                )}
+
+                {/* Buttons */}
+                <div className="flex justify-end mt-4 gap-3">
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPassErrors({});
+                      setOldPassword("");
+                      setNewPassword("");
+                    }}
+                    className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-100 text-sm"
+                  >
+                    Batal
+                  </button>
+
+                  <button
+                    onClick={handleUpdatePassword}
+                    disabled={updatingPass}
+                    className="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    {updatingPass && <Loader2 className="animate-spin" size={16} />}
+                    Simpan
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </MahasiswaLayout>
   );

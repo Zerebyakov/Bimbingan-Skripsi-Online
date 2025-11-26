@@ -234,7 +234,7 @@ const ArsipMahasiswa = () => {
                     </div>
                     {/* ADVANCED FILTERING */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        <select
+                        {/* <select
                             className="bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm text-sm"
                             value={filterProdi}
                             onChange={(e) => setFilterProdi(e.target.value)}
@@ -247,7 +247,7 @@ const ArsipMahasiswa = () => {
                                     </option>
                                 )
                             )}
-                        </select>
+                        </select> */}
 
                         <select
                             className="bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm text-sm"
@@ -315,7 +315,6 @@ const ArsipMahasiswa = () => {
                         dataFormatter={formatArsipForExcel}
                         buttonText="Export to Excel"
                     />
-
                 </div>
 
 
