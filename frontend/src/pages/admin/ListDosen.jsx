@@ -7,6 +7,9 @@ import Swal from "sweetalert2";
 import ExportToExcel from "./components/ExportToExcel";
 import PageMeta from "../../components/PageMeta";
 
+import ImportUserExcel from "./components/ImportUserExcel";
+
+
 const ListDosen = () => {
   const [dosens, setDosens] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -308,25 +311,31 @@ const ListDosen = () => {
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <ExportToExcel
-              endpoint={`${baseUrl}admin/users/dosen`}
-              filename="Data_Dosen"
-              dataFormatter={formatDosenForExcel}
-              buttonText="Export to Excel"
-            />
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-auto [&>button]:w-full [&>button]:sm:w-auto [&>button]:justify-center [&>button]:whitespace-nowrap">
+              <ExportToExcel
+                endpoint={`${baseUrl}admin/users/dosen`}
+                filename="Data_Dosen"
+                dataFormatter={formatDosenForExcel}
+                buttonText="Export to Excel"
+              />
+            </div>
+
+            <ImportUserExcel type="dosen" onSuccess={fetchDosens} />
+
+
             <button
               onClick={() => {
                 resetForm();
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-md hover:bg-blue-700 transition"
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-md hover:bg-blue-700 transition w-full sm:w-auto whitespace-nowrap"
             >
               <Plus size={16} /> Tambah Dosen
             </button>
             <button
               onClick={() => fetchDosens(currentPage, debouncedSearchTerm)}
-              className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition"
+              className="flex items-center justify-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition w-full sm:w-auto whitespace-nowrap"
             >
               <RefreshCw size={16} /> Refresh
             </button>
@@ -456,12 +465,12 @@ const ListDosen = () => {
 
         {/* Pagination */}
         {!loading && filteredDosens.length > 0 && (
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white px-6 py-4 rounded-lg border border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white px-4 sm:px-6 py-4 rounded-lg border border-gray-200">
             <div className="text-sm text-gray-600">
               Halaman {pagination.page} dari {pagination.totalPages}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               <button
                 onClick={() => fetchDosens(1, debouncedSearchTerm)}
                 disabled={!pagination.hasPrevPage}
@@ -550,8 +559,8 @@ const ListDosen = () => {
 
       {/* Modal Form */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-3 overflow-hidden animate-fade-in">
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 transition px-3 py-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fade-in">
             {/* Header */}
             <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-6 py-4 border-b border-gray-300 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">

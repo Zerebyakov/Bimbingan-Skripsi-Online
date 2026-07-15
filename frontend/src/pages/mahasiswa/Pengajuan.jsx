@@ -20,6 +20,9 @@ const Pengajuan = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  const [checkingSimilarity, setCheckingSimilarity] = useState(false);
+  const [similarityResult, setSimilarityResult] = useState(null);
+
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -84,6 +87,72 @@ const Pengajuan = () => {
 
     setFile(selectedFile);
   };
+
+  const handleCekKemiripan = async () => {
+    if (!form.title || !form.title.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Judul belum diisi",
+        text: "Masukkan judul terlebih dahulu sebelum mengecek kemiripan.",
+        confirmButtonColor: "#f59e0b",
+      });
+      return;
+    }
+
+    setCheckingSimilarity(true);
+    setSimilarityResult(null);
+
+    try {
+      const res = await axios.post(
+        `${baseUrl}pengajuan/cek-kemiripan`,
+        {
+          title: form.title,
+          topK: 10,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      setSimilarityResult(res.data.data);
+
+      const status = res.data.data.status;
+
+      if (status === "MIRIP") {
+        Swal.fire({
+          icon: "warning",
+          title: "Judul Sangat Mirip",
+          text: "Judul memiliki kemiripan tinggi dengan judul yang sudah ada. Silakan tinjau kembali.",
+          confirmButtonColor: "#f59e0b",
+        });
+      } else if (status === "PERLU_REVIEW") {
+        Swal.fire({
+          icon: "info",
+          title: "Perlu Review",
+          text: "Judul memiliki beberapa kemiripan dan perlu ditinjau lebih lanjut.",
+          confirmButtonColor: "#3b82f6",
+        });
+      } else {
+        Swal.fire({
+          icon: "success",
+          title: "Aman",
+          text: "Tidak ditemukan kemiripan tinggi berdasarkan threshold sistem.",
+          confirmButtonColor: "#10b981",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Mengecek Kemiripan",
+        text: err.response?.data?.message || "Terjadi kesalahan saat mengecek kemiripan judul.",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setCheckingSimilarity(false);
+    }
+  };
+
 
   // ✅ Kirim pengajuan atau revisi
   const handleSubmit = async (e) => {
@@ -281,6 +350,50 @@ const Pengajuan = () => {
                 </p>
               )}
 
+              {pengajuan.SimilarityChecks?.length > 0 && (
+                <div className="mt-4 border rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    Hasil Deteksi Kemiripan
+                  </h3>
+
+                  <p>
+                    Status:{" "}
+                    <span className="font-semibold">
+                      {pengajuan.SimilarityChecks[0].status_similarity}
+                    </span>
+                  </p>
+
+                  <p>
+                    Skor tertinggi:{" "}
+                    <span className="font-semibold">
+                      {Number(pengajuan.SimilarityChecks[0].max_score || 0).toFixed(4)}
+                    </span>
+                  </p>
+
+                  <p>
+                    Threshold:{" "}
+                    <span className="font-semibold">
+                      {Number(pengajuan.SimilarityChecks[0].threshold_value || 0).toFixed(4)}
+                    </span>
+                  </p>
+
+                  {pengajuan.SimilarityChecks[0].Results?.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {pengajuan.SimilarityChecks[0].Results.map((item) => (
+                        <div key={item.id_result} className="border rounded-md p-3 bg-white">
+                          <p className="font-medium text-gray-800">
+                            {item.rank_position}. {item.matched_title}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Skor: {Number(item.similarity_score || 0).toFixed(4)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Status Info */}
               {pengajuan.status === "diajukan" && (
                 <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
@@ -364,6 +477,90 @@ const Pengajuan = () => {
                   />
                 </div>
               ))}
+
+              <button
+                type="button"
+                onClick={handleCekKemiripan}
+                disabled={checkingSimilarity || !form.title}
+                className={`w-full py-2.5 rounded-lg text-white font-medium transition ${checkingSimilarity || !form.title
+                  ? "bg-blue-300 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+              >
+                {checkingSimilarity ? "Mengecek Kemiripan..." : "Cek Kemiripan Judul"}
+              </button>
+
+              {similarityResult && (
+                <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-800">
+                      Hasil Cek Kemiripan Judul
+                    </h3>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${similarityResult.status === "MIRIP"
+                        ? "bg-red-100 text-red-700"
+                        : similarityResult.status === "PERLU_REVIEW"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700"
+                        }`}
+                    >
+                      {similarityResult.status}
+                    </span>
+                  </div>
+
+                  <div className="text-sm text-gray-700">
+                    <p>
+                      Skor tertinggi:{" "}
+                      <span className="font-semibold">
+                        {Number(similarityResult.max_score || 0).toFixed(4)}
+                      </span>
+                    </p>
+                    <p>
+                      Threshold:{" "}
+                      <span className="font-semibold">
+                        {similarityResult.threshold !== null
+                          ? Number(similarityResult.threshold).toFixed(4)
+                          : "-"}
+                      </span>
+                    </p>
+                    <p>
+                      Total judul pembanding:{" "}
+                      <span className="font-semibold">
+                        {similarityResult.total_candidates || 0}
+                      </span>
+                    </p>
+                  </div>
+
+                  {similarityResult.results?.length > 0 ? (
+                    <div className="space-y-2">
+                      {similarityResult.results.map((item, index) => (
+                        <div
+                          key={`${item.source}-${item.id}-${index}`}
+                          className="border rounded-md p-3 bg-white"
+                        >
+                          <p className="font-medium text-gray-800">
+                            {index + 1}. {item.title}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Skor: {Number(item.similarity_score).toFixed(4)}
+                          </p>
+                          <p
+                            className={`text-sm font-medium ${item.is_similar ? "text-red-600" : "text-green-600"
+                              }`}
+                          >
+                            {item.is_similar ? "Mirip" : "Tidak Mirip"}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      Tidak ada judul pembanding.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-gray-700 text-sm mb-1">

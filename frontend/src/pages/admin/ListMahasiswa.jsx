@@ -7,6 +7,8 @@ import Swal from "sweetalert2";
 import ExportToExcel from "./components/ExportToExcel";
 import PageMeta from "../../components/PageMeta";
 
+import ImportUserExcel from "./components/ImportUserExcel";
+
 const ListMahasiswa = () => {
   const [mahasiswa, setMahasiswa] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -298,25 +300,31 @@ const ListMahasiswa = () => {
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <ExportToExcel
-              endpoint={`${baseUrl}admin/users/mahasiswa`}
-              filename="Data_Mahasiswa"
-              dataFormatter={formatMahasiswaForExcel}
-              buttonText="Export to Excel"
-            />
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-auto [&>button]:w-full [&>button]:sm:w-auto [&>button]:justify-center [&>button]:whitespace-nowrap">
+              <ExportToExcel
+                endpoint={`${baseUrl}admin/users/mahasiswa`}
+                filename="Data_Mahasiswa"
+                dataFormatter={formatMahasiswaForExcel}
+                buttonText="Export to Excel"
+              />
+            </div>
+
+            <ImportUserExcel type="mahasiswa" onSuccess={fetchMahasiswa} />
+
             <button
               onClick={() => {
                 resetForm();
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-md hover:bg-blue-700 transition"
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white text-sm px-4 py-2 rounded-md hover:bg-blue-700 transition w-full sm:w-auto whitespace-nowrap"
             >
               <Plus size={16} /> Tambah Mahasiswa
             </button>
+
             <button
               onClick={() => fetchMahasiswa(currentPage, debouncedSearchTerm)}
-              className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition"
+              className="flex items-center justify-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition w-full sm:w-auto whitespace-nowrap"
             >
               <RefreshCw size={16} /> Refresh
             </button>

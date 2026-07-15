@@ -367,6 +367,7 @@ const ListPengajuan = () => {
                     <th className="px-4 py-3 text-left">Pembimbing</th>
                     <th className="px-4 py-3 text-left">File Proposal</th>
                     <th className="px-4 py-3 text-left">Tanggal</th>
+                    <th className="px-4 py-3 text-left">Kemiripan</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -461,6 +462,29 @@ const ListPengajuan = () => {
                       <td className="px-4 py-3 text-gray-600">
                         {new Date(item.createdAt).toLocaleDateString("id-ID")}
                       </td>
+
+                      <td className="px-4 py-3">
+                        {item.SimilarityChecks?.length > 0 ? (
+                          <div className="text-xs">
+                            <span
+                              className={`px-2 py-1 rounded font-medium ${item.SimilarityChecks[0].status_similarity === "MIRIP"
+                                  ? "bg-red-100 text-red-700"
+                                  : item.SimilarityChecks[0].status_similarity === "PERLU_REVIEW"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-green-100 text-green-700"
+                                }`}
+                            >
+                              {item.SimilarityChecks[0].status_similarity}
+                            </span>
+                            <p className="mt-1 text-gray-600">
+                              {Number(item.SimilarityChecks[0].max_score || 0).toFixed(4)}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Belum dicek</span>
+                        )}
+                      </td>
+
                     </tr>
                   ))}
                 </tbody>
