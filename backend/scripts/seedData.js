@@ -9,7 +9,7 @@ import { createDefaultAdmin, createDefaultPeriode, createMultiplePeriode } from 
 // Seed Program Studi
 export const seedProgramStudi = async () => {
     try {
-        console.log('🌱 Seeding Program Studi...');
+        console.log(' Seeding Program Studi...');
 
         const prodiData = [
             { kode_prodi: 'TI', program_studi: 'Teknik Informatika' },
@@ -23,13 +23,13 @@ export const seedProgramStudi = async () => {
             const exists = await ProgramStudi.findOne({ where: { kode_prodi: prodi.kode_prodi } });
             if (!exists) {
                 await ProgramStudi.create(prodi);
-                console.log(`✅ Created program studi: ${prodi.program_studi}`);
+                console.log(`Created program studi: ${prodi.program_studi}`);
             }
         }
 
-        console.log('✅ Program Studi seeding completed!');
+        console.log('Program Studi seeding completed!');
     } catch (error) {
-        console.error('❌ Error seeding Program Studi:', error);
+        console.error('Error seeding Program Studi:', error);
         throw error;
     }
 };
@@ -37,7 +37,7 @@ export const seedProgramStudi = async () => {
 // Seed Dosen
 export const seedDosen = async () => {
     try {
-        console.log('🌱 Seeding Dosen...');
+        console.log(' Seeding Dosen...');
 
         const prodiTI = await ProgramStudi.findOne({ where: { kode_prodi: 'TI' } });
         const prodiSI = await ProgramStudi.findOne({ where: { kode_prodi: 'SI' } });
@@ -107,13 +107,13 @@ export const seedDosen = async () => {
                     id_user: user.id_user,
                     ...data.profile
                 });
-                console.log(`✅ Created dosen: ${data.profile.nama}`);
+                console.log(`Created dosen: ${data.profile.nama}`);
             }
         }
 
-        console.log('✅ Dosen seeding completed!');
+        console.log('Dosen seeding completed!');
     } catch (error) {
-        console.error('❌ Error seeding Dosen:', error);
+        console.error('Error seeding Dosen:', error);
         throw error;
     }
 };
@@ -121,7 +121,7 @@ export const seedDosen = async () => {
 // Seed Mahasiswa
 export const seedMahasiswa = async () => {
     try {
-        console.log('🌱 Seeding Mahasiswa...');
+        console.log(' Seeding Mahasiswa...');
 
         const prodiTI = await ProgramStudi.findOne({ where: { kode_prodi: 'TI' } });
         const prodiSI = await ProgramStudi.findOne({ where: { kode_prodi: 'SI' } });
@@ -217,13 +217,13 @@ export const seedMahasiswa = async () => {
                     id_user: user.id_user,
                     ...data.profile
                 });
-                console.log(`✅ Created mahasiswa: ${data.profile.nama_lengkap}`);
+                console.log(`Created mahasiswa: ${data.profile.nama_lengkap}`);
             }
         }
 
-        console.log('✅ Mahasiswa seeding completed!');
+        console.log('Mahasiswa seeding completed!');
     } catch (error) {
-        console.error('❌ Error seeding Mahasiswa:', error);
+        console.error('Error seeding Mahasiswa:', error);
         throw error;
     }
 };
@@ -231,7 +231,7 @@ export const seedMahasiswa = async () => {
 // Seed Sample Pengajuan Judul
 export const seedSamplePengajuan = async () => {
     try {
-        console.log('🌱 Seeding Sample Pengajuan...');
+        console.log(' Seeding Sample Pengajuan...');
 
         const mahasiswa1 = await Mahasiswa.findOne({ where: { nim: '210001' } });
         const mahasiswa2 = await Mahasiswa.findOne({ where: { nim: '210002' } });
@@ -269,13 +269,13 @@ export const seedSamplePengajuan = async () => {
             });
             if (!exists) {
                 await PengajuanJudul.create(data);
-                console.log(`✅ Created pengajuan: ${data.title.substring(0, 50)}...`);
+                console.log(`Created pengajuan: ${data.title.substring(0, 50)}...`);
             }
         }
 
-        console.log('✅ Sample Pengajuan seeding completed!');
+        console.log('Sample Pengajuan seeding completed!');
     } catch (error) {
-        console.error('❌ Error seeding Sample Pengajuan:', error);
+        console.error('Error seeding Sample Pengajuan:', error);
         throw error;
     }
 };
@@ -295,12 +295,12 @@ export const runAllSeeders = async () => {
 
         console.log('\n🎉 All seeders completed successfully!');
         console.log('\n📋 Summary:');
-        console.log('👤 Admin: admin@bimbingan.ac.id / admin123');
-        console.log('👨‍🏫 Dosen: dosen1@bimbingan.ac.id / dosen123');
-        console.log('👨‍🎓 Mahasiswa: mahasiswa1@bimbingan.ac.id / mahasiswa123');
+        console.log('Admin: admin@bimbingan.ac.id / admin123');
+        console.log('Dosen: dosen1@bimbingan.ac.id / dosen123');
+        console.log('Mahasiswa: mahasiswa1@bimbingan.ac.id / mahasiswa123');
 
     } catch (error) {
-        console.error('❌ Seeding failed:', error);
+        console.error('Seeding failed:', error);
         throw error;
     }
 };

@@ -1,0 +1,593 @@
+
+
+@baseUrl = https://bimbingan.alcethiya.my.id/api/v1/
+
+### Health
+GET {{baseUrl}}health
+
+
+### ================================
+### AUTHENTICATION TESTS
+### ================================
+
+### Login admin
+POST {{baseUrl}}auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@bimbingan.ac.id",
+    "password": "!YSBpYco3j}xq;_"
+}
+
+### Login Dosen
+POST http://localhost:5000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "fathulloh@bimbingan.ac.id",
+    "password": "dosen123"
+}
+
+### Login Mahasiswa
+POST http://localhost:5000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "zlfnaras@bimbingan.ac.id",
+    "password": "mahasiswa123"
+}
+
+
+### Get Me /Profile
+GET http://localhost:5000/api/v1/auth/profile
+
+### Update Profile Dosen
+PUT http://localhost:5000/api/v1/auth/profile
+Content-Type: application/json
+
+{
+  "email": "fathulloh@bimbingan.ac.id",
+  "nama": "Fathulloh",
+  "gelar": "M.Kom, Ph.D",
+  "bidang_keahlian": "Deep Learning & AI",
+  "jabatan_akademik": "Lektor Kepala",
+  "kontak": "081234567890",
+  "email_institusi": "fathulloh@univ.ac.id",
+  "foto": "profile_photo.jpg"
+}
+
+### Update Profile Mahasiswa
+PUT http://localhost:5000/api/v1/auth/profile
+Content-Type: application/json
+
+{
+  "email": "mahasiswa_baru@email.com",
+  "nama_lengkap": "John Doe Ahmad",
+  "kontak": "081234567890",
+  "email_kampus": "john.doe@kampus.ac.id",
+  "foto": "url_foto.jpg"
+}
+
+
+### Update Password 
+PUT http://localhost:5000/api/v1/auth/password
+Content-Type: application/json
+
+{
+    "oldPassword": "dosen123",
+    "newPassword": "123ok123"
+}
+
+
+### Logout
+POST http://localhost:5000/api/v1/auth/logout
+
+
+
+
+### ================================
+### ADMIN TESTS (Login sebagai Admin)
+### ================================
+
+
+### GET Dashboard Admin Statistic
+GET {{baseUrl}}admin/dashboard
+
+### GET Dashboard Admin Statistic
+GET {{baseUrl}}admin/konfigurasi
+
+
+### Update Sistem Konfigurasi
+PUT {{baseUrl}}admin/konfigurasi
+Content-Type: application/json
+
+{
+  "tahun_akademik": "1000/1001",
+  "semesterAktif": "Ganjil",
+  "kuotaPerDosen": 15,
+  "formatNomorKartu": "KB-"
+}
+
+
+# kuotaPerDosen,
+# formatNomorKartu,
+# tanggalMulaiBimbingan,
+# tanggalSelesaiBimbingan
+
+
+### Get All Dosen
+GET {{baseUrl}}admin/users/dosen
+
+### Get All Dosen
+GET {{baseUrl}}admin/users/dosen?search=Ahmad
+### Delete Dosen
+DELETE  {{baseUrl}}admin/users/10
+
+
+
+
+
+
+
+### Get All Mahasiswa
+GET {{baseUrl}}admin/users/mahasiswa
+
+### Get Mahasiswa
+GET {{baseUrl}}admin/users/mahasiswa?search=
+
+
+### 6. Toggle User Status
+PATCH {{baseUrl}}admin/users/10/toggle-status
+
+### Delete User
+DELETE {{baseUrl}}admin/users/11
+
+
+
+
+
+### Get All Users Dosen dan Mahasiswa
+GET {{baseUrl}}admin/users/5
+
+### Create New Dosen
+POST {{baseUrl}}admin/users
+Content-Type: application/json
+
+{
+  "email": "asep@bimbingan.ac.id",
+  "password": "dosen123",
+  "role": "dosen",
+  "profileData": {
+    "nidn": "0841293021",
+    "nama": "Asep Saeful M.Kom",
+    "gelar": "M.Kom",
+    "prodi_id": 1,
+    "fakultas": "Fakultas Teknik",
+    "bidang_keahlian": "Animasi 4D",
+    "jabatan_akademik": "Asisten Ahli",
+    "kontak": "084123412321",
+    "email_institusi": "asep@gmail.com"
+  }
+}
+
+
+### Create New Mahasiswa
+POST {{baseUrl}}admin/users
+Content-Type: application/json
+
+
+{
+  "email": "contoh@gmail.com",
+  "password": "mahasiswa123",
+  "role": "mahasiswa",
+  "profileData": {
+    "nim": "4242203545",
+    "nama_lengkap": "contoh nama lengkap",
+    "prodi_id": 2,
+    "angkatan": 2022,
+    "semester": 8,
+    "kontak": "0841234123",
+    "email_kampus": "zeddd@gmail.com"
+  }
+}
+
+
+
+### Update User (Mahasiswa) 
+PUT {{baseUrl}}admin/users/12
+Content-Type: application/json
+
+{
+  "email": "contoh@peradaban.ac.id",
+  "password": "janedoe",
+  "status": "aktif",
+  "profileData": {
+    "nim": "4242203231",
+    "nama_lengkap": "Jane Doe Upd",
+    "prodi_id": 1,
+    "angkatan": 2022,
+    "semester": 8,
+    "kontak": "082324732404"
+  }
+}
+
+### Update User (Dosen)
+PUT {{baseUrl}}admin/users/10
+Content-Type: application/json
+
+{
+  "email": "asep@bimbingan.ac.id",
+  "password": "dosen123",
+  "status": "aktif",
+  "profileData": {
+    "nidn": "0841293021",
+    "nama": "Asep Saeful M.Kom",
+    "gelar": "M.Kom",
+    "prodi_id": 1,
+    "fakultas": "Fakultas Teknik",
+    "bidang_keahlian": "Web Development",
+    "jabatan_akademik": "Asisten Ahli",
+    "kontak": "084123412321",
+    "email_institusi": "asep@gmail.com"
+  }
+}
+
+### 8. Update User Password Only
+PUT {{baseUrl}}admin/users/41
+Content-Type: application/json
+
+{
+  "password": "passwordbaru123"
+}
+
+
+### 9. Toggle User Status (aktif <-> nonaktif)
+PATCH {{baseUrl}}admin/users/5/toggle-status
+Content-Type: application/json
+
+### Soft Delete User
+DELETE {{baseUrl}}admin/users/12
+Content-Type: application/json
+
+### 11. Restore Soft Deleted User
+PATCH {{baseUrl}}admin/users/5/restore
+Content-Type: application/json
+
+### 12. Permanent Delete User (Hard Delete)
+DELETE {{baseUrl}}admin/users/41/permanent
+Content-Type: application/json
+
+
+
+### Get All Users
+GET {{baseUrl}}prodi
+
+
+### Get Statistic====================================
+GET {{baseUrl}}arsip/statistics
+
+### Get All Arsip 
+GET {{baseUrl}}arsip
+
+### Get Arsip by Id
+GET {{baseUrl}}arsip/1
+
+
+### create Arsip (manual) note: biasanya sudah tergenerate secara otomatis
+POST {{baseUrl}}arsip
+Content-Type: application/json
+
+{
+  "id_pengajuan": 3
+}
+
+
+### Update Arsip --status : "SELESAI", "LULUS", "REVISI_ULANG"
+PUT {{baseUrl}}arsip/1
+Content-Type: application/json
+
+{
+  "status": "SELESAI",
+  "fileFinal": "updated_final_2024.pdf"
+}
+
+### Test 4.5: Update with all fields
+PUT {{baseUrl}}/arsip/1
+Content-Type: application/json
+
+{
+  "status": "LULUS",
+  "fileFinal": "updated_final_2024.pdf",
+  "kartuBimbinganFile": "KB/2024/UPDATE/001",
+  "tanggalSelesai": "2024-12-31"
+}
+
+
+### Get All Users
+GET {{baseUrl}}prodi
+
+
+### delete prodi
+DELETE {{baseUrl}}prodi/10
+
+
+### Get All Users
+POST {{baseUrl}}prodi
+Content-Type: application/json
+
+{
+    "kode_prodi": "AG",
+    "program_studi": "Agribisnis"
+}
+
+### Get All Pengajuan 
+GET {{baseUrl}}pengajuan
+
+
+### Get Pengajuan By Id  --Admin dan Dosen, perlu diperbaiki agar only admin,dosen pembimbing 3 tidak muncul
+GET {{baseUrl}}pengajuan/2
+
+
+### Assigne Dosen Pembimbing
+PUT {{baseUrl}}admin/pengajuan/2/assign-dosen
+Content-Type: application/json
+
+{
+  "dosenId1" : 5,
+  "dosenId2" : 4
+}
+
+
+
+### ================================ PERIODE ENDPOINT ADMIN
+### All periode
+GET {{baseUrl}}admin/periode
+
+### Create periode baru
+POST {{baseUrl}}admin/periode
+Content-Type: application/json
+
+{
+  "tahun_akademik": "2045/2046",
+  "semester": "ganjil",
+  "isActive": false
+}
+
+
+### Update periode
+PUT {{baseUrl}}admin/periode/4
+Content-Type: application/json
+
+{
+  "tahun_akademik": "2000/2001",
+  "semester": "ganjil"
+}
+
+### Toggle status periode
+PATCH {{baseUrl}}admin/periode/4/toggle-status
+
+### Delete periode
+DELETE {{baseUrl}}admin/periode/5
+
+
+### ================================ PERIODE ENDPOINT
+
+### Get semua periode
+GET {{baseUrl}}admin/periode?page=1&limit=10
+
+### Get periode aktif
+GET {{baseUrl}}admin/periode/aktif
+
+### Get statistik periode
+GET {{baseUrl}}admin/periode/statistics
+
+### Get detail periode
+GET {{baseUrl}}admin/periode/2
+
+
+### ================================
+### MAHASISWA TESTS (Login as Mahasiswa first)
+### ================================
+
+### Get Mahasiswa Dashboard
+GET {{baseUrl}}mahasiswa/dashboard
+
+
+
+### Upload Laporan Akhir
+POST {{baseUrl}}mahasiswa/laporan-akhir
+Content-Type: application/json
+
+{
+  "finaleFile" : "finaleFile.pdf",
+  "abstrackFile" : "abstrackFile.pdf",
+  "pengesahanFile" : "pengesahanFile.pdf",
+  "pernyataanFile" : "pernyataanFile.pdf",
+  "presentasiFile" : "presentasiFile.pdf"
+}
+
+
+### Generate Kartu Bimbingan
+GET {{baseUrl}}mahasiswa/kartu-bimbingan
+Content-Type: application/json
+
+### Get Supervised Students
+POST {{baseUrl}}mahasiswa/pengajuan-judul
+Content-Type: application/json
+
+{
+  "title": "Pengembangan Sistem Informasi Pengelolaan Skripsi Digital Berbasis Web",
+  "description": "Penelitian ini bertujuan untuk merancang dan mengembangkan sistem informasi berbasis web yang digunakan dalam pengelolaan skripsi secara digital. Sistem ini membantu mahasiswa dan dosen pembimbing dalam proses bimbingan, pengajuan judul, hingga penilaian akhir secara online. Fitur utama meliputi pelacakan progres bimbingan, notifikasi otomatis, serta penyimpanan dokumen skripsi dalam bentuk digital. Aplikasi ini dikembangkan menggunakan framework Laravel dan database MySQL untuk menjamin keandalan dan kemudahan penggunaan.",
+  "bidang_topik": "Sistem Informasi, Manajemen Akademik",
+  "keywords": "pengelolaan skripsi, sistem informasi, web, Laravel, MySQL, digitalisasi akademik"
+}
+
+
+
+### Get Supervised Students --ERROR
+PUT {{baseUrl}}mahasiswa/pengajuan-judul/4
+Content-Type: application/json
+
+{
+  "title": "Pengembangan Sistem Informasi Pengelolaan Skripsi Digital Berbasis Web Update",
+  "description": "Penelitian ini bertujuan untuk merancang dan mengembangkan sistem informasi berbasis web yang digunakan dalam pengelolaan skripsi secara digital. Sistem ini membantu mahasiswa dan dosen pembimbing dalam proses bimbingan, pengajuan judul, hingga penilaian akhir secara online. Fitur utama meliputi pelacakan progres bimbingan, notifikasi otomatis, serta penyimpanan dokumen skripsi dalam bentuk digital. Aplikasi ini dikembangkan menggunakan framework Laravel dan database MySQL untuk menjamin keandalan dan kemudahan penggunaan.",
+  "bidang_topik": "Sistem Informasi, Manajemen Akademik",
+  "keywords": "pengelolaan skripsi, sistem informasi, web, Laravel, MySQL, digitalisasi akademik"
+}
+
+
+### Upload Bab
+
+POST {{baseUrl}}mahasiswa/upload-bab
+Content-Type: application/json
+
+{
+  "chapter_number": 1
+}
+
+
+
+### ================================
+### DOSEN TESTS (Login as Dosen first)
+### ================================
+
+### Dosen Dashboard
+GET {{baseUrl}}dosen/dashboard
+
+### Get Mahasiswa Bimbingan 
+GET {{baseUrl}}dosen/mahasiswa-bimbingan
+
+### Review Title - Approve
+PUT {{baseUrl}}dosen/pengajuan/3/review
+Content-Type: application/json
+
+{
+  "status": "diterima"
+}
+
+### Review Title - Revision
+PUT {{baseUrl}}dosen/pengajuan/3/review
+Content-Type: application/json
+
+{
+  "status": "revisi", 
+  "rejection_reason": "judul perlu diperbaiki lagi!"
+}
+
+### Review Bab 
+PUT {{baseUrl}}dosen/bab/7/review
+Content-Type: application/json
+
+{
+  "status": "diterima"
+}
+
+### Review Bab -- revisi
+PUT {{baseUrl}}dosen/bab/7/review
+Content-Type: application/json
+
+{
+  "status": "revisi",
+  "notes" : "bab 2 kurang"
+}
+
+
+### Review Laporan Akhir
+PUT {{baseUrl}}dosen/laporan/1/review
+Content-Type: application/json
+
+{
+  "status" : "diterima"
+}
+
+### Review Laporan Akhir  --dengan notes
+PUT {{baseUrl}}dosen/laporan/1/review
+Content-Type: application/json
+
+{
+  "status" : "diterima",
+  "notes" : "Laporan sudah bagus"
+
+}
+
+### Review Laporan Akhir --revisi
+PUT {{baseUrl}}dosen/laporan/1/review
+Content-Type: application/json
+
+{
+  "status" : "revisi",
+  "notes" : "2 file lain belum diunggah"
+}
+
+### Review Laporan Akhir --ditolak
+PUT {{baseUrl}}dosen/laporan/1/review
+Content-Type: application/json
+
+{
+  "status" : "ditolak",
+  "notes" : "salah semua"
+}
+
+
+
+### ================================
+### CHAT TES -
+### ================================
+
+### Send Text Message /Kirim Pesan
+POST {{baseUrl}}chat/pengajuan/1/message
+Content-Type: application/json
+
+{
+    "content": "ini dosen"
+}
+
+### Send Text Message /Kirim Pesan Mahasiswa
+POST {{baseUrl}}chat/pengajuan/1/message
+Content-Type: application/json
+
+{
+    "content": "bagaimana pak?"
+}
+
+
+### Get Messages
+GET {{baseUrl}}chat/pengajuan/1/messages
+
+
+
+
+
+### ================================
+### NOTIFICATION TESTS
+### ================================
+
+
+
+### Get Notifications
+GET {{baseUrl}}notifikasi
+
+### Get Unread Count
+GET {{baseUrl}}notifikasi/unread-count
+
+### Mark as Read
+PUT {{baseUrl}}notifikasi/1/read
+
+### Mark as Read
+PUT {{baseUrl}}notifikasi/read-all
+
+
+
+
+### ================================
+### ERROR TESTS
+### ================================
+
+### Login with wrong password (should fail)
+POST {{baseUrl}}auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@bimbingan.ac.id",
+    "password": "admi2n123"
+}

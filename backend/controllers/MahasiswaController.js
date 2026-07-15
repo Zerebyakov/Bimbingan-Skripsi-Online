@@ -13,6 +13,12 @@ import User from "../models/User.js";
 import PeriodeSkripsi from "../models/PeriodeSkripsi.js";
 import ProgramStudi from "../models/ProgramStudi.js";
 
+
+
+import PengajuanSimilarityCheck from "../models/PengajuanSimilarityCheck.js";
+import PengajuanSimilarityResult from "../models/PengajuanSimilarityResult.js";
+import { runAndSaveSimilarityForPengajuan } from "../services/titleSimilarityWorkflow.js";
+
 // Setup multer untuk upload file
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -30,7 +36,7 @@ export const getMahasiswaDashboard = async (req, res) => {
     try {
         const mahasiswaData = await Mahasiswa.findOne({
             where: { id_user: req.session.userId },
-            include:[
+            include: [
                 {
                     model: ProgramStudi
                 }
@@ -67,6 +73,16 @@ export const getMahasiswaDashboard = async (req, res) => {
                 {
                     model: LaporanAkhir,
                     as: 'LaporanAkhir'
+                },
+                {
+                    model: PengajuanSimilarityCheck,
+                    as: "SimilarityChecks",
+                    include: [
+                        {
+                            model: PengajuanSimilarityResult,
+                            as: "Results",
+                        },
+                    ],
                 }
             ],
         });
@@ -146,6 +162,16 @@ export const ajukanJudul = async (req, res) => {
             proposal_file,
             status: "diajukan",
         });
+        let similarityResult = null;
+
+        try {
+            similarityResult = await runAndSaveSimilarityForPengajuan({
+                pengajuan,
+                title,
+            });
+        } catch (similarityError) {
+            console.error("Similarity check gagal:", similarityError.message);
+        }
 
         await LogAktivitas.create({
             id_user: req.session.userId,
@@ -157,7 +183,10 @@ export const ajukanJudul = async (req, res) => {
         res.status(201).json({
             success: true,
             message: "Judul berhasil diajukan",
-            data: pengajuan,
+            data: {
+                ...pengajuan.toJSON(),
+                similarityResult,
+            },
         });
     } catch (error) {
         console.error("Ajukan Judul Error:", error);
@@ -215,6 +244,17 @@ export const updatePengajuanJudul = async (req, res) => {
         pengajuan.status = "diajukan";
         await pengajuan.save();
 
+        let similarityResult = null;
+
+        try {
+            similarityResult = await runAndSaveSimilarityForPengajuan({
+                pengajuan,
+                title: pengajuan.title,
+            });
+        } catch (similarityError) {
+            console.error("Similarity check gagal:", similarityError.message);
+        }
+
         await LogAktivitas.create({
             id_user: req.session.userId,
             id_pengajuan: pengajuan.id_pengajuan,
@@ -225,7 +265,10 @@ export const updatePengajuanJudul = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Pengajuan judul berhasil diperbarui",
-            data: pengajuan,
+            data: {
+                ...pengajuan.toJSON(),
+                similarityResult,
+            },
         });
     } catch (error) {
         console.error("Update Pengajuan Error:", error);

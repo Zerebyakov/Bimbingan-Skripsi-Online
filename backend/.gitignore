@@ -2,6 +2,7 @@
 node_modules/
 uploads/
 catatan.txt
+start.txt
 
 # Logs
 logs/
@@ -10,7 +11,7 @@ request.rest
 
 # dotenv environment files
 .env
-request.rest
+request.dev.rest
 
 # OS-specific
 .DS_Store
@@ -23,3 +24,6 @@ yarn.lock
 # Build files
 dist/
 build/
+
+# seed
+/data

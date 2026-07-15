@@ -10,12 +10,15 @@ import arsipRoutes from './arsipRoutes.js';
 import prodiRoutes from './prodiRoutes.js';
 
 
+import importRoutes from './importRoutes.js';
+
 
 const router = express.Router();
 
 // API Prefix
 router.use('/auth', authRoutes);
 router.use('/admin', adminRoutes);
+router.use('/admin/import', importRoutes);
 router.use('/dosen', dosenRoutes);
 router.use('/mahasiswa', mahasiswaRoutes);
 router.use('/chat', chatRoutes);

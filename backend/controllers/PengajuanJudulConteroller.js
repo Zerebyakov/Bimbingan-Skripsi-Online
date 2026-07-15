@@ -8,7 +8,9 @@ import Mahasiswa from "../models/Mahasiswa.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import ProgramStudi from "../models/ProgramStudi.js";
 
-
+import PengajuanSimilarityCheck from "../models/PengajuanSimilarityCheck.js";
+import PengajuanSimilarityResult from "../models/PengajuanSimilarityResult.js";
+import { checkSimilarityOnly } from "../services/titleSimilarityWorkflow.js";
 
 
 // Get all pengajuan judul (untuk admin/dosen)
@@ -80,6 +82,16 @@ export const getAllPengajuanJudul = async (req, res) => {
                     model: Dosen,
                     as: 'Pembimbing2',
                     attributes: ['nama', 'gelar']
+                },
+                {
+                    model: PengajuanSimilarityCheck,
+                    as: "SimilarityChecks",
+                    include: [
+                        {
+                            model: PengajuanSimilarityResult,
+                            as: "Results",
+                        },
+                    ],
                 }
             ],
             order: [['createdAt', 'DESC']],
@@ -195,6 +207,38 @@ export const updatePengajuanJudul = async (req, res) => {
             success: false,
             message: "Internal server error",
             error: error.message
+        });
+    }
+};
+
+
+export const cekKemiripanJudul = async (req, res) => {
+    try {
+        const { title, topK = 10 } = req.body;
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Judul wajib diisi",
+            });
+        }
+
+        const result = await checkSimilarityOnly({
+            title,
+            topK: Number(topK) || 10,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Pengecekan kemiripan judul berhasil",
+            data: result,
+        });
+    } catch (error) {
+        console.error("Error in cekKemiripanJudul:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Gagal mengecek kemiripan judul",
+            error: error.message,
         });
     }
 };

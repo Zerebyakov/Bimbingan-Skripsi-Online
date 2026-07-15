@@ -1,6 +1,10 @@
 import express from 'express'
 import { verifyAdminOrDosen, verifyAllRoles, verifySession } from '../middleware/authMiddleware.js';
-import { getAllPengajuanJudul, getPengajuanJudulById, updatePengajuanJudul } from '../controllers/PengajuanJudulConteroller.js';
+import { 
+    getAllPengajuanJudul, 
+    getPengajuanJudulById, 
+    updatePengajuanJudul,
+    cekKemiripanJudul } from '../controllers/PengajuanJudulConteroller.js';
 import { logActivity } from '../middleware/loggingMiddleware.js';
 import { downloadBabFile, getBabSubmissionById, getBabSubmissions } from '../controllers/BabSubmissionController.js';
 import { validatePagination, validatePengajuanJudul } from '../middleware/validationMiddleware.js';
@@ -15,6 +19,7 @@ router.use(verifySession);
 // Get all pengajuan (admin/dosen only)
 router.get('/', verifyAdminOrDosen, validatePagination, getAllPengajuanJudul);
 
+router.post('/cek-kemiripan', verifyAllRoles, cekKemiripanJudul);
 // Get pengajuan by ID
 router.get('/:id_pengajuan', verifyAllRoles, getPengajuanJudulById);
 
