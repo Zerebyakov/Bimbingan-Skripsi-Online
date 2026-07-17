@@ -1,0 +1,18 @@
+# Environment
+.venv/
+
+# dotenv environment files
+.env
+
+# models anu
+models/
+threshold_config.json
+
+# npm & yarn
+package-lock.json
+yarn.lock
+
+# Build files
+dist/
+build/
+__pycache__
