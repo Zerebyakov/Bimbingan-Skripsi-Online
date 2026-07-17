@@ -84,13 +84,18 @@ export const buildCandidateTitles = async ({ excludePengajuanId = null } = {}) =
         const title = pengajuan?.title;
         const key = normalizeKey(title);
 
+        // Tahun arsip: prioritas tanggalSelesai (tahun lulus), fallback tanggal pengajuan
+        const arsipYear = raw.tanggalSelesai
+            ? String(new Date(raw.tanggalSelesai).getFullYear())
+            : extractYear(pengajuan);
+
         if (key) {
             candidatesMap.set(key, {
                 id: String(raw.id_arsip),
                 title,
                 source: "arsip",
                 author: pengajuan?.Mahasiswa?.nama_lengkap || null,
-                year: extractYear(pengajuan),
+                year: arsipYear,
             });
         }
     });
