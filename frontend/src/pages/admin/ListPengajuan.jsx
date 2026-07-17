@@ -11,6 +11,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
@@ -23,6 +25,9 @@ const ListPengajuan = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("semua");
+
+  // Baris detail kemiripan yang sedang terbuka
+  const [expandedSimilarity, setExpandedSimilarity] = useState(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -372,8 +377,8 @@ const ListPengajuan = () => {
                 </thead>
                 <tbody>
                   {pengajuan.map((item, index) => (
+                    <React.Fragment key={item.id_pengajuan}>
                     <tr
-                      key={item.id_pengajuan}
                       className="border-t hover:bg-gray-50 transition"
                     >
                       <td className="px-4 py-3 font-medium text-gray-700">
@@ -479,6 +484,24 @@ const ListPengajuan = () => {
                             <p className="mt-1 text-gray-600">
                               {Number(item.SimilarityChecks[0].max_score || 0).toFixed(4)}
                             </p>
+                            {item.SimilarityChecks[0].Results?.length > 0 && (
+                              <button
+                                onClick={() =>
+                                  setExpandedSimilarity(
+                                    expandedSimilarity === item.id_pengajuan
+                                      ? null
+                                      : item.id_pengajuan
+                                  )
+                                }
+                                className="mt-1 flex items-center gap-1 text-gray-700 hover:text-gray-900 underline underline-offset-2"
+                              >
+                                {expandedSimilarity === item.id_pengajuan ? (
+                                  <>Tutup <ChevronUp size={12} /></>
+                                ) : (
+                                  <>Detail <ChevronDown size={12} /></>
+                                )}
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-gray-400 text-xs">Belum dicek</span>
@@ -486,6 +509,85 @@ const ListPengajuan = () => {
                       </td>
 
                     </tr>
+
+                    {/* Baris detail kemiripan: daftar judul terdahulu + nama & tahun */}
+                    {expandedSimilarity === item.id_pengajuan &&
+                      item.SimilarityChecks?.length > 0 && (
+                        <tr className="border-t bg-gray-50">
+                          <td colSpan={9} className="px-4 py-4">
+                            <p className="text-xs font-semibold text-gray-700 mb-2">
+                              Judul terdahulu yang paling mirip
+                              <span className="font-normal text-gray-400">
+                                {" "}· Threshold:{" "}
+                                {Number(
+                                  item.SimilarityChecks[0].threshold_value || 0
+                                ).toFixed(2)}
+                              </span>
+                            </p>
+                            <table className="w-full text-xs text-left text-gray-700 border border-gray-200 rounded overflow-hidden">
+                              <thead className="bg-gray-100 text-gray-600 uppercase text-[10px]">
+                                <tr>
+                                  <th className="px-3 py-2 w-10">#</th>
+                                  <th className="px-3 py-2">Judul Terdahulu</th>
+                                  <th className="px-3 py-2 w-44">Mahasiswa</th>
+                                  <th className="px-3 py-2 w-16 text-center">Tahun</th>
+                                  <th className="px-3 py-2 w-24 text-center">Skor</th>
+                                  <th className="px-3 py-2 w-28 text-center">Keterangan</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[...(item.SimilarityChecks[0].Results || [])]
+                                  .sort((a, b) => {
+                                    if (a.rank_position != null && b.rank_position != null) {
+                                      return a.rank_position - b.rank_position;
+                                    }
+                                    return (
+                                      Number(b.similarity_score) -
+                                      Number(a.similarity_score)
+                                    );
+                                  })
+                                  .map((r, idx) => (
+                                    <tr
+                                      key={r.id_result}
+                                      className="border-t border-gray-200 bg-white"
+                                    >
+                                      <td className="px-3 py-2 text-gray-500">
+                                        {r.rank_position ?? idx + 1}
+                                      </td>
+                                      <td className="px-3 py-2">{r.matched_title}</td>
+                                      <td className="px-3 py-2">
+                                        {r.source_author || "—"}
+                                        {r.source_table === "arsip" && (
+                                          <span className="ml-1 text-[10px] text-gray-400">
+                                            (Arsip)
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-2 text-center">
+                                        {r.source_year || "—"}
+                                      </td>
+                                      <td className="px-3 py-2 text-center font-medium">
+                                        {Number(r.similarity_score || 0).toFixed(4)}
+                                      </td>
+                                      <td className="px-3 py-2 text-center">
+                                        {r.is_similar ? (
+                                          <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 font-medium">
+                                            Di atas threshold
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                                            Di bawah threshold
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

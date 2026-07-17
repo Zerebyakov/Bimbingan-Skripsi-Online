@@ -9,6 +9,9 @@ import {
     Search,
     FileDown,
     Edit3,
+    ShieldCheck,
+    ShieldAlert,
+    ShieldX,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import PageMeta from "../../components/PageMeta";
@@ -28,6 +31,7 @@ const ListPengajuanMahasiswa = () => {
 
     // ANIMASI
     const [fadeIn, setFadeIn] = useState(false);
+    const fadeTimeoutRef = React.useRef(null); // simpan ID timeout agar bisa dibersihkan
 
     const itemsPerPage = 6;
 
@@ -45,8 +49,9 @@ const ListPengajuanMahasiswa = () => {
             setPengajuanList(list);
             setFilteredList(list);
 
-            // delay fade for smooth transition
-            setTimeout(() => setFadeIn(true), 350);
+            // delay fade for smooth transition (dibersihkan saat unmount)
+            if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+            fadeTimeoutRef.current = setTimeout(() => setFadeIn(true), 350);
 
         } catch (error) {
             Swal.fire("Gagal", "Tidak dapat memuat data pengajuan", "error");
@@ -57,6 +62,10 @@ const ListPengajuanMahasiswa = () => {
 
     useEffect(() => {
         fetchPengajuan();
+        // Cleanup: cegah setState setelah komponen unmount
+        return () => {
+            if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+        };
     }, []);
 
     useEffect(() => {
@@ -75,6 +84,7 @@ const ListPengajuanMahasiswa = () => {
             filtered = filtered.filter(
                 (item) =>
                     item.Mahasiswa?.nama_lengkap?.toLowerCase().includes(q) ||
+                    item.Mahasiswa?.nim?.toLowerCase().includes(q) ||
                     item.title?.toLowerCase().includes(q)
             );
         }
@@ -134,6 +144,103 @@ const ListPengajuanMahasiswa = () => {
         }
     };
 
+    /** ===== KEMIRIPAN JUDUL ===== */
+
+    // Ambil pengecekan kemiripan TERBARU (backend mengurutkan checkedAt DESC)
+    const getLatestCheck = (item) =>
+        item.SimilarityChecks?.length > 0 ? item.SimilarityChecks[0] : null;
+
+    // Konfigurasi badge status kemiripan (konsisten dengan halaman admin)
+    const similarityBadge = {
+        MIRIP: { className: "bg-red-100 text-red-700", Icon: ShieldX, label: "Mirip" },
+        PERLU_REVIEW: { className: "bg-yellow-100 text-yellow-700", Icon: ShieldAlert, label: "Perlu Review" },
+        AMAN: { className: "bg-green-100 text-green-700", Icon: ShieldCheck, label: "Aman" },
+    };
+
+    // Badge ringkas kemiripan pada muka kartu
+    const renderSimilarityBadge = (item) => {
+        const check = getLatestCheck(item);
+        if (!check) {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-400 italic">
+                    Belum dicek
+                </span>
+            );
+        }
+        const cfg = similarityBadge[check.status_similarity] || similarityBadge.AMAN;
+        const { Icon } = cfg;
+        return (
+            <span
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${cfg.className}`}
+                title={`Skor kemiripan tertinggi: ${Number(check.max_score || 0).toFixed(4)}`}
+            >
+                <Icon size={12} /> {cfg.label} · {Number(check.max_score || 0).toFixed(2)}
+            </span>
+        );
+    };
+
+    // Blok detail kemiripan di bagian expanded kartu
+    const renderSimilarityDetail = (item) => {
+        const check = getLatestCheck(item);
+        if (!check) return null;
+
+        const results = [...(check.Results || [])].sort((a, b) => {
+            if (a.rank_position != null && b.rank_position != null) {
+                return a.rank_position - b.rank_position;
+            }
+            return Number(b.similarity_score) - Number(a.similarity_score);
+        });
+
+        return (
+            <div className="border-t border-gray-200 pt-3 mt-1">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-700">
+                        Hasil Cek Kemiripan Judul
+                    </p>
+                    <span className="text-[11px] text-gray-400">
+                        Threshold: {Number(check.threshold_value || 0).toFixed(2)}
+                        {check.checkedAt &&
+                            ` · ${new Date(check.checkedAt).toLocaleDateString("id-ID")}`}
+                    </span>
+                </div>
+
+                {results.length === 0 ? (
+                    <p className="text-xs text-gray-400 italic">
+                        Tidak ada judul terdahulu yang melewati ambang penyimpanan.
+                    </p>
+                ) : (
+                    <ul className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                        {results.map((r, idx) => (
+                            <li
+                                key={r.id_result}
+                                className="flex items-start justify-between gap-2 text-xs bg-gray-50 border border-gray-100 rounded-md px-2.5 py-1.5"
+                            >
+                                <div className="text-gray-700 leading-snug">
+                                    <span className="text-gray-400 mr-1">
+                                        {r.rank_position ?? idx + 1}.
+                                    </span>
+                                    {r.matched_title}
+                                    <p className="text-[11px] text-gray-500 mt-0.5">
+                                        {r.source_author || "—"}
+                                        {r.source_year ? ` · ${r.source_year}` : ""}
+                                        {r.source_table === "arsip" ? " · Arsip" : ""}
+                                    </p>
+                                </div>
+                                <span
+                                    className={`shrink-0 font-semibold ${r.is_similar ? "text-red-600" : "text-gray-500"
+                                        }`}
+                                    title={r.is_similar ? "Di atas threshold" : "Di bawah threshold"}
+                                >
+                                    {Number(r.similarity_score || 0).toFixed(4)}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        );
+    };
+
     return (
         <DosenLayout>
             <PageMeta
@@ -189,6 +296,7 @@ const ListPengajuanMahasiswa = () => {
                                 className="border border-gray-300 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
                             >
                                 <option value="">Semua Status</option>
+                                <option value="diajukan">Diajukan</option>
                                 <option value="diterima">Diterima</option>
                                 <option value="revisi">Revisi</option>
                                 <option value="ditolak">Ditolak</option>
@@ -238,8 +346,11 @@ const ListPengajuanMahasiswa = () => {
                                                     src={
                                                         item.Mahasiswa?.foto
                                                             ? `${imageUrl}${item.Mahasiswa.foto}`
-                                                            : `https://ui-avatars.com/api/?name=${item.Mahasiswa?.nama_lengkap}`
+                                                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                                                item.Mahasiswa?.nama_lengkap || "Mahasiswa"
+                                                            )}`
                                                     }
+                                                    alt={`Foto ${item.Mahasiswa?.nama_lengkap || "mahasiswa"}`}
                                                     className="w-12 h-12 rounded-full object-cover border"
                                                 />
                                                 <div>
@@ -261,13 +372,18 @@ const ListPengajuanMahasiswa = () => {
 
                                             {/* STATUS */}
                                             <div className="flex justify-between items-center mt-3">
-                                                <span
-                                                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                                                        item.status
-                                                    )}`}
-                                                >
-                                                    {item.status?.toUpperCase()}
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span
+                                                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                                                            item.status
+                                                        )}`}
+                                                    >
+                                                        {item.status?.toUpperCase()}
+                                                    </span>
+
+                                                    {/* BADGE KEMIRIPAN */}
+                                                    {renderSimilarityBadge(item)}
+                                                </div>
 
                                                 <button
                                                     onClick={() =>
@@ -290,7 +406,7 @@ const ListPengajuanMahasiswa = () => {
                                             {/* EXPANDED */}
                                             <div
                                                 className={`transition-all duration-300 overflow-hidden ${expandedCard === item.id_pengajuan
-                                                    ? "max-h-[600px] opacity-100 mt-3"
+                                                    ? "max-h-[1200px] opacity-100 mt-3"
                                                     : "max-h-0 opacity-0"
                                                     }`}
                                             >
@@ -305,6 +421,9 @@ const ListPengajuanMahasiswa = () => {
                                                     <p>
                                                         <b>Keyword:</b> {item.keywords}
                                                     </p>
+
+                                                    {/* DETAIL KEMIRIPAN JUDUL */}
+                                                    {renderSimilarityDetail(item)}
 
                                                     {/* File proposal */}
                                                     {item.proposal_file && (

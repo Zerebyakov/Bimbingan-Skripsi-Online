@@ -384,6 +384,11 @@ const Pengajuan = () => {
                           <p className="font-medium text-gray-800">
                             {item.rank_position}. {item.matched_title}
                           </p>
+                          <p className="text-xs text-gray-500">
+                            {item.source_author || "—"}
+                            {item.source_year ? ` · ${item.source_year}` : ""}
+                            {item.source_table === "arsip" ? " · Arsip" : ""}
+                          </p>
                           <p className="text-sm text-gray-600">
                             Skor: {Number(item.similarity_score || 0).toFixed(4)}
                           </p>
@@ -541,6 +546,11 @@ const Pengajuan = () => {
                         >
                           <p className="font-medium text-gray-800">
                             {index + 1}. {item.title}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {item.author || "—"}
+                            {item.year ? ` · ${item.year}` : ""}
+                            {item.source === "arsip" ? " · Arsip" : ""}
                           </p>
                           <p className="text-sm text-gray-600">
                             Skor: {Number(item.similarity_score).toFixed(4)}
