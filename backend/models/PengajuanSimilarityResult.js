@@ -26,6 +26,15 @@ const PengajuanSimilarityResult = db.define("PengajuanSimilarityResult", {
         type: DataTypes.TEXT,
         allowNull: false,
     },
+    // Metadata pemilik judul pembanding (nullable: hasil pengecekan lama tidak memilikinya)
+    source_author: {
+        type: DataTypes.STRING(150),
+        allowNull: true,
+    },
+    source_year: {
+        type: DataTypes.STRING(10),
+        allowNull: true,
+    },
     similarity_score: {
         type: DataTypes.DECIMAL(8, 6),
         defaultValue: 0,

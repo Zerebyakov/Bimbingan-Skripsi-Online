@@ -8,6 +8,8 @@ import PengajuanJudul from "../models/PengajuanJudul.js";
 import { Op } from "sequelize";
 import User from "../models/User.js";
 import LaporanAkhir from "../models/LaporanAkhir.js";
+import PengajuanSimilarityCheck from "../models/PengajuanSimilarityCheck.js";
+import PengajuanSimilarityResult from "../models/PengajuanSimilarityResult.js";
 
 //  Helper function untuk mencegah error "Data too long for column 'message'"
 const truncateMessage = (message, maxLength = 250) => {
@@ -500,7 +502,25 @@ export const getMahasiswaBimbingan = async (req, res) => {
                 },
                 { model: LaporanAkhir },
                 { model: Dosen, as: 'Pembimbing1', attributes: ['id_dosen', 'nama', 'gelar'] },
-                { model: Dosen, as: 'Pembimbing2', attributes: ['id_dosen', 'nama', 'gelar'] }
+                { model: Dosen, as: 'Pembimbing2', attributes: ['id_dosen', 'nama', 'gelar'] },
+                {
+                    model: PengajuanSimilarityCheck,
+                    as: "SimilarityChecks",
+                    separate: true, // query terpisah agar limit Message tidak bentrok & order berlaku
+                    order: [["checkedAt", "DESC"]], // index [0] = pengecekan terbaru
+                    include: [
+                        {
+                            model: PengajuanSimilarityResult,
+                            as: "Results",
+                            // hanya kolom yang dibutuhkan tampilan dosen
+                            attributes: [
+                                'id_result', 'matched_title', 'similarity_score',
+                                'is_similar', 'rank_position', 'source_table',
+                                'source_author', 'source_year'
+                            ],
+                        },
+                    ],
+                }
             ]
         });
 

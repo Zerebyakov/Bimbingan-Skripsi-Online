@@ -86,6 +86,8 @@ export const getAllPengajuanJudul = async (req, res) => {
                 {
                     model: PengajuanSimilarityCheck,
                     as: "SimilarityChecks",
+                    separate: true, // query terpisah agar order berlaku; index [0] = pengecekan terbaru
+                    order: [["checkedAt", "DESC"]],
                     include: [
                         {
                             model: PengajuanSimilarityResult,
