@@ -25,7 +25,7 @@ const Navbar = ({ onToggleSidebar }) => {
             <div className="flex items-center gap-4">
                 <button
                     onClick={onToggleSidebar}
-                    className="text-gray-700 hover:text-gray-900 focus:outline-none transition md:hidden"
+                    className="text-gray-700 hover:text-gray-900 focus:outline-none transition" aria-label="Buka/tutup sidebar"
                 >
                     <MenuIcon size={24} />
                 </button>

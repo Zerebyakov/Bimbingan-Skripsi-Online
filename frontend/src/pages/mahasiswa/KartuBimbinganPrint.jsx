@@ -44,24 +44,77 @@ const KartuBimbinganPrint = () => {
     window.print();
   };
 
-  const handleDownloadPDF = () => {
+  const pdfOptions = () => ({
+    margin: [0.5, 0.5, 0.5, 0.5],
+    filename: `Kartu_Bimbingan_${mahasiswa?.nim || "mahasiswa"}.pdf`,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: {
+      unit: "in",
+      format: "a4",
+      orientation: "portrait",
+    },
+    pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+  });
+
+  // Hasilkan PDF sebagai Blob (dipakai untuk unduh lokal & simpan ke server)
+  const generatePdfBlob = async () => {
     const element = printRef.current;
-
-    const opt = {
-      margin: [0.5, 0.5, 0.5, 0.5],
-      filename: `Kartu_Bimbingan_${mahasiswa?.nim || "mahasiswa"}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: {
-        unit: "in",
-        format: "a4",
-        orientation: "portrait",
-      },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-    };
-
-    html2pdf().set(opt).from(element).save();
+    if (!element) return null;
+    return await html2pdf().set(pdfOptions()).from(element).outputPdf("blob");
   };
+
+  // Simpan PDF kartu ke server agar tersedia di arsip (halaman admin)
+  const uploadKartuPdf = async (blob) => {
+    try {
+      const formData = new FormData();
+      formData.append(
+        "kartu",
+        blob,
+        `Kartu_Bimbingan_${mahasiswa?.nim || "mahasiswa"}.pdf`
+      );
+      await axios.post(`${baseUrl}mahasiswa/kartu-bimbingan/upload`, formData, {
+        withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return true;
+    } catch (err) {
+      console.error("Gagal menyimpan kartu ke server:", err);
+      return false;
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    const blob = await generatePdfBlob();
+    if (!blob) return;
+
+    // Simpan ke server (tidak memblokir unduhan lokal)
+    uploadKartuPdf(blob);
+
+    // Unduh lokal
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Kartu_Bimbingan_${mahasiswa?.nim || "mahasiswa"}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // Auto-simpan ke server sekali saat kartu tampil dan belum punya file tersimpan,
+  // sehingga arsip admin tetap terisi walau mahasiswa hanya menekan "Cetak".
+  const autoSavedRef = useRef(false);
+  useEffect(() => {
+    if (!kartu || !mahasiswa || kartu.filePath || autoSavedRef.current) return;
+    autoSavedRef.current = true;
+    const timer = setTimeout(async () => {
+      const blob = await generatePdfBlob();
+      if (blob) await uploadKartuPdf(blob);
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kartu, mahasiswa]);
 
   if (!kartu || !mahasiswa) {
     return (

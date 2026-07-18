@@ -140,8 +140,11 @@ const DashboardAdmin = () => {
               }
             }}
             className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition shrink-0"
+            aria-label="Export database"
           >
-            <DatabaseBackup size={16} /> Export Database
+            <DatabaseBackup size={16} />
+            <span className="hidden sm:inline">Export Database</span>
+            <span className="sm:hidden">Export</span>
           </button>
         </div>
 

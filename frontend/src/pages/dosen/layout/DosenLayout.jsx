@@ -5,14 +5,22 @@ import Footbar from "./Footbar";
 
 const DosenLayout = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    // Sidebar desktop bisa disembunyikan/ditampilkan manual oleh user
+    const [desktopCollapsed, setDesktopCollapsed] = useState(false);
 
-    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+    const toggleSidebar = () => {
+        if (window.innerWidth >= 768) {
+            setDesktopCollapsed((prev) => !prev);
+        } else {
+            setIsSidebarOpen((prev) => !prev);
+        }
+    };
     const closeSidebar = () => setIsSidebarOpen(false);
 
     return (
         <div className="flex h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100 text-gray-900">
             {/* Sidebar */}
-            <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
+            <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} desktopCollapsed={desktopCollapsed} />
 
             {/* Overlay for mobile */}
             {isSidebarOpen && (

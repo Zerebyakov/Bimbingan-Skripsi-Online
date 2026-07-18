@@ -521,8 +521,9 @@ const ArsipMahasiswa = () => {
                                         <span className="font-medium">File Final:</span>{" "}
                                         {selectedArsip.fileFinal ? (
                                             <a
-                                                href={`${baseUrl}uploads/${selectedArsip.fileFinal}`}
+                                                href={`${imageUrl}uploads/laporan/${selectedArsip.fileFinal}`}
                                                 target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="text-blue-600 hover:underline text-xs"
                                             >
                                                 Lihat File
@@ -536,14 +537,17 @@ const ArsipMahasiswa = () => {
                                         <span className="font-medium">Kartu Bimbingan:</span>{" "}
                                         {selectedArsip.kartuBimbinganFile ? (
                                             <a
-                                                href={`${baseUrl}uploads/${selectedArsip.kartuBimbinganFile}`}
+                                                href={`${imageUrl}uploads/kartu/${selectedArsip.kartuBimbinganFile}`}
                                                 target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="text-blue-600 hover:underline text-xs flex items-center gap-1"
                                             >
                                                 <Download size={14} /> Download
                                             </a>
                                         ) : (
-                                            <span className="text-gray-400 text-xs">Tidak ada</span>
+                                            <span className="text-gray-400 text-xs">
+                                                Belum digenerate mahasiswa
+                                            </span>
                                         )}
                                     </div>
                                 </div>

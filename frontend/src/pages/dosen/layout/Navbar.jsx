@@ -68,6 +68,17 @@ const Navbar = ({ onToggleSidebar }) => {
         }
     };
 
+    // ✅ Tandai SEMUA notifikasi dibaca (termasuk yang tidak tampil di daftar)
+    const markAllAsRead = async () => {
+        try {
+            await axios.put(`${baseUrl}notifikasi/read-all`, {}, { withCredentials: true });
+            setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+            setUnreadCount(0);
+        } catch (error) {
+            console.error("❌ Error marking all as read:", error);
+        }
+    };
+
     // 🔌 Setup Socket & Notifications
     useEffect(() => {
         if (!user?.id_user) return;
@@ -123,7 +134,7 @@ const Navbar = ({ onToggleSidebar }) => {
             <div className="flex items-center gap-4">
                 <button
                     onClick={onToggleSidebar}
-                    className="text-gray-700 hover:text-gray-900 focus:outline-none transition md:hidden"
+                    className="text-gray-700 hover:text-gray-900 focus:outline-none transition" aria-label="Buka/tutup sidebar"
                 >
                     <MenuIcon size={24} />
                 </button>
@@ -165,20 +176,36 @@ const Navbar = ({ onToggleSidebar }) => {
                         leaveFrom="opacity-100 translate-y-0"
                         leaveTo="opacity-0 translate-y-1"
                     >
-                        <div className="absolute right-0 mt-3 w-80 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
-                            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                        <div className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 mt-3 sm:w-96 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
+                            <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                                 <h3 className="text-sm font-semibold text-gray-800">
                                     Notifikasi
+                                    {unreadCount > 0 && (
+                                        <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                                            {unreadCount} baru
+                                        </span>
+                                    )}
                                 </h3>
-                                <button
-                                    onClick={() => fetchNotifications()}
-                                    className="text-xs text-gray-500 hover:text-gray-800 transition"
-                                >
-                                    Refresh
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    {unreadCount > 0 && (
+                                        <button
+                                            onClick={markAllAsRead}
+                                            className="text-xs text-blue-600 hover:text-blue-800 font-medium transition"
+                                        >
+                                            Tandai semua dibaca
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => fetchNotifications()}
+                                        aria-label="Muat ulang notifikasi"
+                                        className="text-xs text-gray-500 hover:text-gray-800 transition"
+                                    >
+                                        Refresh
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                            <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto divide-y divide-gray-100">
                                 {loadingNotif ? (
                                     <div className="flex justify-center py-6 text-gray-500 text-sm">
                                         <Loader2 size={16} className="animate-spin mr-1" /> Memuat...
@@ -188,25 +215,31 @@ const Navbar = ({ onToggleSidebar }) => {
                                         <button
                                             key={notif.id_notif}
                                             onClick={() => markAsRead(notif.id_notif)}
-                                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition ${!notif.isRead ? "bg-blue-50" : ""
+                                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition flex gap-2 ${!notif.isRead ? "bg-blue-50/60" : ""
                                                 }`}
                                         >
-                                            <p
-                                                className={`text-sm ${notif.isRead
+                                            <span
+                                                className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${notif.isRead ? "bg-transparent" : "bg-blue-500"
+                                                    }`}
+                                            />
+                                            <span className="min-w-0">
+                                                <p
+                                                    className={`text-sm break-words ${notif.isRead
                                                         ? "text-gray-600"
                                                         : "text-gray-800 font-medium"
-                                                    }`}
-                                            >
-                                                {notif.message}
-                                            </p>
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                {new Date(notif.createdAt).toLocaleString("id-ID", {
-                                                    day: "2-digit",
-                                                    month: "short",
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </p>
+                                                        }`}
+                                                >
+                                                    {notif.message}
+                                                </p>
+                                                <p className="text-xs text-gray-400 mt-1">
+                                                    {new Date(notif.createdAt).toLocaleString("id-ID", {
+                                                        day: "2-digit",
+                                                        month: "short",
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </p>
+                                            </span>
                                         </button>
                                     ))
                                 ) : (
@@ -222,8 +255,9 @@ const Navbar = ({ onToggleSidebar }) => {
                 {/* 👤 User menu */}
                 <Menu as="div" className="relative">
                     <Menu.Button className="flex items-center gap-2 focus:outline-none">
-                        <span className="hidden sm:block text-sm text-gray-800 font-medium truncate max-w-[100px]">
-                            {user?.Dosens?.[0]?.nama || "Dosen"}
+                        <span className="hidden sm:block text-sm text-gray-800 font-medium truncate max-w-[140px]">
+                            {/* Asosiasi User-Dosen adalah hasOne → properti "Dosen" (tunggal) */}
+                            {user?.Dosen?.nama || user?.profile?.nama || user?.Dosens?.[0]?.nama || "Dosen"}
                         </span>
                         <ChevronDown className="w-4 h-4 text-gray-600" />
                     </Menu.Button>

@@ -105,16 +105,28 @@ const ListMahasiswaBimbingan = () => {
     };
 
     // Filter pencarian (nama / NIM / judul) dan status
-    const filteredBimbingan = bimbingan.filter((item) => {
-        if (filterStatus && item.status !== filterStatus) return false;
-        if (!searchQuery.trim()) return true;
-        const q = searchQuery.toLowerCase();
-        return (
-            item.Mahasiswa?.nama_lengkap?.toLowerCase().includes(q) ||
-            item.Mahasiswa?.nim?.toLowerCase().includes(q) ||
-            item.title?.toLowerCase().includes(q)
-        );
-    });
+    const filteredBimbingan = bimbingan
+        .filter((item) => {
+            if (filterStatus && item.status !== filterStatus) return false;
+            if (!searchQuery.trim()) return true;
+            const q = searchQuery.toLowerCase();
+            return (
+                item.Mahasiswa?.nama_lengkap?.toLowerCase().includes(q) ||
+                item.Mahasiswa?.nim?.toLowerCase().includes(q) ||
+                item.title?.toLowerCase().includes(q)
+            );
+        })
+        // Urutkan seperti aplikasi chat: yang punya pesan terbaru tampil paling atas
+        // (Messages[0] = pesan terbaru karena API mengurutkan DESC)
+        .sort((a, b) => {
+            const ta = a.Messages?.[0]
+                ? new Date(a.Messages[0].createdAt).getTime()
+                : new Date(a.updatedAt).getTime();
+            const tb = b.Messages?.[0]
+                ? new Date(b.Messages[0].createdAt).getTime()
+                : new Date(b.updatedAt).getTime();
+            return tb - ta;
+        });
 
     // ROLE LABEL - gunakan myRole dari API response
     const getRoleLabel = (item) => {
@@ -166,7 +178,9 @@ const ListMahasiswaBimbingan = () => {
                         disabled={loading}
                     >
                         <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-                        {loading ? "Menyegarkan..." : "Refresh"}
+                        <span className="hidden sm:inline">
+                            {loading ? "Menyegarkan..." : "Refresh"}
+                        </span>
                     </button>
                 </motion.div>
 

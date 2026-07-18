@@ -382,8 +382,10 @@ const ChatMahasiswa = () => {
             onClick={handleExportChat}
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 hover:border-gray-400 px-3 py-1.5 rounded-md transition shrink-0"
             title="Ekspor riwayat percakapan"
+            aria-label="Ekspor riwayat percakapan"
           >
-            <FileDown size={14} /> Export
+            <FileDown size={14} />
+            <span className="hidden sm:inline">Export</span>
           </button>
         </div>
 

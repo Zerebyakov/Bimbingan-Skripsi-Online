@@ -99,7 +99,9 @@ const DashboardDosen = () => {
               disabled={loading}
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              {loading ? "Menyegarkan..." : "Refresh"}
+              <span className="hidden sm:inline">
+                {loading ? "Menyegarkan..." : "Refresh"}
+              </span>
             </button>
           </div>
 
