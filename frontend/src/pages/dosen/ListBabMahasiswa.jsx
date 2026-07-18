@@ -43,7 +43,10 @@ const ListBabMahasiswa = () => {
         withCredentials: true,
       });
       // Important: data.mahasiswaBimbingan is the array
-      const list = res.data?.data?.mahasiswaBimbingan || [];
+      // Mahasiswa yang sudah selesai (diarsipkan) tidak ditampilkan di sini
+      const list = (res.data?.data?.mahasiswaBimbingan || []).filter(
+        (item) => !item.isSelesai
+      );
       setData(list);
       // small delay for nicer transition
       setTimeout(() => setFadeIn(true), 300);
@@ -283,7 +286,7 @@ const ListBabMahasiswa = () => {
                         src={
                           pengajuan.Mahasiswa?.foto
                             ? `${imageUrl}${pengajuan.Mahasiswa.foto}`
-                            : `https://ui-avatars.com/api/?name=${pengajuan.Mahasiswa?.nama_lengkap}`
+                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(pengajuan.Mahasiswa?.nama_lengkap || "Mahasiswa")}`
                         }
                         alt="foto"
                         className="w-12 h-12 rounded-full object-cover border"

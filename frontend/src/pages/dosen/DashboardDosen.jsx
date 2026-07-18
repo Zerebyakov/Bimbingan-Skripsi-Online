@@ -71,10 +71,10 @@ const DashboardDosen = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               {data?.dosenInfo && (
-                <h1 className="text-2xl font-semibold text-gray-800">
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 break-words">
                   <SplitText
                     text={`Selamat Datang, ${data.dosenInfo.nama} ${data.dosenInfo.gelar} `}
-                    className="text-2xl font-semibold text-center"
+                    className="text-xl sm:text-2xl font-semibold"
                     delay={100}
                     duration={0.6}
                     ease="power3.out"
@@ -83,7 +83,7 @@ const DashboardDosen = () => {
                     to={{ opacity: 1, y: 0 }}
                     threshold={0.1}
                     rootMargin="-100px"
-                    textAlign="center"
+                    textAlign="left"
                   />
                 </h1>
               )}
@@ -106,10 +106,11 @@ const DashboardDosen = () => {
           {/* MINI PROFILE DOSEN (simple) */}
           {data?.dosenInfo && (
             <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl shadow-sm p-4">
-              <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center shrink-0">
                 {data.dosenInfo.foto ? (
                   <img
                     src={`${imageUrl}${data.dosenInfo.foto}`}
+                    alt={`Foto ${data.dosenInfo.nama}`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -117,11 +118,11 @@ const DashboardDosen = () => {
                 )}
               </div>
 
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-800 truncate">
                   {data.dosenInfo.nama} {data.dosenInfo.gelar}
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 truncate">
                   {data.dosenInfo.bidang_keahlian || "-"} •{" "}
                   {data.dosenInfo.jabatan_akademik || "-"}
                 </p>
@@ -130,7 +131,7 @@ const DashboardDosen = () => {
           )}
 
           {/*  STATISTIK  */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
             {[
               {
                 title: "Total Bimbingan",
@@ -141,6 +142,11 @@ const DashboardDosen = () => {
                 title: "Aktif",
                 value: data?.statistics?.bimbinganAktif ?? 0,
                 icon: FolderOpen,
+              },
+              {
+                title: "Selesai",
+                value: data?.statistics?.bimbinganSelesai ?? 0,
+                icon: CheckCircle,
               },
               {
                 title: "Pembimbing I",
@@ -160,14 +166,18 @@ const DashboardDosen = () => {
             ].map((item, idx) => (
               <div
                 key={idx}
-                className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-all duration-300"
+                className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 sm:p-4 flex items-center gap-3 hover:shadow-md transition-all duration-300"
               >
-                <div className="bg-gray-100 p-3 rounded-lg">
-                  <item.icon className="text-gray-700" size={24} />
+                <div className="bg-gray-100 p-2 sm:p-2.5 rounded-lg shrink-0">
+                  <item.icon className="text-gray-700" size={20} />
                 </div>
-                <div>
-                  <h2 className="text-sm text-gray-500 font-medium">{item.title}</h2>
-                  <p className="text-xl font-semibold text-gray-800">{item.value}</p>
+                <div className="min-w-0">
+                  <h2 className="text-xs text-gray-500 font-medium leading-tight">
+                    {item.title}
+                  </h2>
+                  <p className="text-lg sm:text-xl font-semibold text-gray-800">
+                    {item.value}
+                  </p>
                 </div>
               </div>
             ))}
@@ -188,83 +198,60 @@ const DashboardDosen = () => {
             {loading ? (
               <p className="text-center py-8 text-gray-500 text-sm">Memuat...</p>
             ) : data?.mahasiswaBimbingan?.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-                {data.mahasiswaBimbingan.map((mhs) => (
-                  <div
-                    key={mhs.id_pengajuan}
-                    className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-all"
+              <>
+                {/* Baris ringkas per mahasiswa (maksimal 6) agar dashboard tidak memanjang */}
+                <div className="divide-y divide-gray-100">
+                  {data.mahasiswaBimbingan.slice(0, 6).map((mhs) => {
+                    const babDiterima = (mhs.BabSubmissions || []).filter(
+                      (b) => b.status === "diterima"
+                    ).length;
+                    return (
+                      <div
+                        key={mhs.id_pengajuan}
+                        className="flex items-center gap-4 px-6 py-3 hover:bg-gray-50 transition"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center shrink-0">
+                          {mhs.Mahasiswa?.foto ? (
+                            <img
+                              src={`${imageUrl}${mhs.Mahasiswa.foto}`}
+                              alt={`Foto ${mhs.Mahasiswa?.nama_lengkap || "mahasiswa"}`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User size={18} className="text-gray-500" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-800 truncate">
+                            {mhs.Mahasiswa?.nama_lengkap}{" "}
+                            <span className="font-normal text-gray-400">
+                              · {mhs.Mahasiswa?.nim}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">{mhs.title}</p>
+                        </div>
+
+                        <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500 shrink-0">
+                          <BookOpen size={12} /> Bab {babDiterima}/5
+                        </div>
+
+                        <div className="shrink-0">{statusBadge(mhs.status)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer: link ke daftar lengkap */}
+                <div className="px-6 py-3 border-t border-gray-100 bg-gray-50 text-right">
+                  <button
+                    onClick={() => navigate("/dosen/mahasiswa-bimbingan")}
+                    className="text-sm text-gray-700 hover:text-gray-900 font-medium"
                   >
-                    {/* HEADER */}
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
-                        {mhs.Mahasiswa?.foto ? (
-                          <img
-                            src={`${imageUrl}${mhs.Mahasiswa.foto}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <User size={22} className="text-gray-500" />
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <h3 className="text-base font-medium text-gray-800 truncate">
-                          {mhs.Mahasiswa.nama_lengkap}
-                        </h3>
-                        <p className="text-sm text-gray-500">{mhs.Mahasiswa.nim}</p>
-                      </div>
-                    </div>
-
-                    {/* JUDUL */}
-                    <p className="text-sm text-gray-700 line-clamp-2 mb-2">
-                      <span className="font-medium text-gray-800">Judul:</span>{" "}
-                      {mhs.title}
-                    </p>
-
-                    {/* DESKRIPSI */}
-                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-                      {mhs.description}
-                    </p>
-
-                    {/* TOPIK + EMAIL + UPDATED */}
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mb-3 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <BookOpen size={12} /> {mhs.bidang_topik}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Mail size={12} /> {mhs.Mahasiswa.email_kampus}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} />{" "}
-                        {new Date(mhs.updatedAt).toLocaleDateString("id-ID")}
-                      </span>
-                    </div>
-
-                    {/* BADGE STATUS */}
-                    <div className="mb-3">{statusBadge(mhs.status)}</div>
-
-                    {/* ACTIONS */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          navigate(`/dosen/mahasiswa-bab`)
-                        }
-                        className="text-sm px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:shadow-sm transition"
-                      >
-                        Lihat Progress
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigate(`/dosen/mahasiswa-pengajuan`)
-                        }
-                        className="text-sm px-3 py-1.5 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition"
-                      >
-                        Detail Pengajuan
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    Lihat semua {data.mahasiswaBimbingan.length} mahasiswa →
+                  </button>
+                </div>
+              </>
             ) : (
               <p className="text-center py-8 text-gray-500 text-sm">
                 Belum ada mahasiswa bimbingan.

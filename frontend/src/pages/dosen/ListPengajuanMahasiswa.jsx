@@ -5,6 +5,8 @@ import DosenLayout from "./layout/DosenLayout";
 import {
     ChevronDown,
     ChevronUp,
+    ChevronLeft,
+    ChevronRight,
     RefreshCw,
     Search,
     FileDown,
@@ -15,6 +17,9 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import PageMeta from "../../components/PageMeta";
+import StatusBadge from "../../components/ui/StatusBadge";
+import { SIMILARITY_STYLES } from "../../components/ui/SimilarityBadge";
+import { formatScore } from "../../utils/format";
 
 const ListPengajuanMahasiswa = () => {
     const [pengajuanList, setPengajuanList] = useState([]);
@@ -44,7 +49,10 @@ const ListPengajuanMahasiswa = () => {
                 withCredentials: true,
             });
 
-            const list = res.data?.data?.mahasiswaBimbingan || [];
+            // Mahasiswa yang sudah selesai (diarsipkan) tidak ditampilkan di sini
+            const list = (res.data?.data?.mahasiswaBimbingan || []).filter(
+                (item) => !item.isSelesai
+            );
 
             setPengajuanList(list);
             setFilteredList(list);
@@ -99,6 +107,25 @@ const ListPengajuanMahasiswa = () => {
     const currentItems = filteredList.slice(indexOfFirst, indexOfLast);
     const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
+    // Jendela nomor halaman terbatas agar tidak meluber saat data banyak
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 3) {
+            for (let i = 1; i <= 5; i++) pages.push(i);
+            pages.push("...", totalPages);
+        } else if (currentPage >= totalPages - 2) {
+            pages.push(1, "...");
+            for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1, "...");
+            for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+            pages.push("...", totalPages);
+        }
+        return pages;
+    };
+
     /** REVIEW STATUS */
     const handleReview = async () => {
         if (!status) {
@@ -130,31 +157,17 @@ const ListPengajuanMahasiswa = () => {
         }
     };
 
-    /** STATUS COLOR */
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "diterima":
-                return "bg-green-100 text-green-700";
-            case "revisi":
-                return "bg-yellow-100 text-yellow-700";
-            case "ditolak":
-                return "bg-red-100 text-red-700";
-            default:
-                return "bg-gray-100 text-gray-700";
-        }
-    };
-
     /** ===== KEMIRIPAN JUDUL ===== */
 
     // Ambil pengecekan kemiripan TERBARU (backend mengurutkan checkedAt DESC)
     const getLatestCheck = (item) =>
         item.SimilarityChecks?.length > 0 ? item.SimilarityChecks[0] : null;
 
-    // Konfigurasi badge status kemiripan (konsisten dengan halaman admin)
-    const similarityBadge = {
-        MIRIP: { className: "bg-red-100 text-red-700", Icon: ShieldX, label: "Mirip" },
-        PERLU_REVIEW: { className: "bg-yellow-100 text-yellow-700", Icon: ShieldAlert, label: "Perlu Review" },
-        AMAN: { className: "bg-green-100 text-green-700", Icon: ShieldCheck, label: "Aman" },
+    // Ikon per status kemiripan; warna & label diambil dari SIMILARITY_STYLES bersama
+    const similarityIcons = {
+        MIRIP: ShieldX,
+        PERLU_REVIEW: ShieldAlert,
+        AMAN: ShieldCheck,
     };
 
     // Badge ringkas kemiripan pada muka kartu
@@ -167,14 +180,14 @@ const ListPengajuanMahasiswa = () => {
                 </span>
             );
         }
-        const cfg = similarityBadge[check.status_similarity] || similarityBadge.AMAN;
-        const { Icon } = cfg;
+        const cfg = SIMILARITY_STYLES[check.status_similarity] || SIMILARITY_STYLES.AMAN;
+        const Icon = similarityIcons[check.status_similarity] || ShieldCheck;
         return (
             <span
                 className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${cfg.className}`}
-                title={`Skor kemiripan tertinggi: ${Number(check.max_score || 0).toFixed(4)}`}
+                title={`Skor kemiripan tertinggi: ${formatScore(check.max_score)}`}
             >
-                <Icon size={12} /> {cfg.label} · {Number(check.max_score || 0).toFixed(2)}
+                <Icon size={12} /> {cfg.label} · {formatScore(check.max_score, 2)}
             </span>
         );
     };
@@ -198,7 +211,7 @@ const ListPengajuanMahasiswa = () => {
                         Hasil Cek Kemiripan Judul
                     </p>
                     <span className="text-[11px] text-gray-400">
-                        Threshold: {Number(check.threshold_value || 0).toFixed(2)}
+                        Threshold: {formatScore(check.threshold_value, 2)}
                         {check.checkedAt &&
                             ` · ${new Date(check.checkedAt).toLocaleDateString("id-ID")}`}
                     </span>
@@ -231,7 +244,7 @@ const ListPengajuanMahasiswa = () => {
                                         }`}
                                     title={r.is_similar ? "Di atas threshold" : "Di bawah threshold"}
                                 >
-                                    {Number(r.similarity_score || 0).toFixed(4)}
+                                    {formatScore(r.similarity_score)}
                                 </span>
                             </li>
                         ))}
@@ -373,13 +386,12 @@ const ListPengajuanMahasiswa = () => {
                                             {/* STATUS */}
                                             <div className="flex justify-between items-center mt-3">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span
-                                                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                                                            item.status
-                                                        )}`}
+                                                    <StatusBadge
+                                                        status={item.status}
+                                                        className="inline-block px-3 py-1 rounded-full text-xs font-semibold"
                                                     >
                                                         {item.status?.toUpperCase()}
-                                                    </span>
+                                                    </StatusBadge>
 
                                                     {/* BADGE KEMIRIPAN */}
                                                     {renderSimilarityBadge(item)}
@@ -392,6 +404,11 @@ const ListPengajuanMahasiswa = () => {
                                                                 ? null
                                                                 : item.id_pengajuan
                                                         )
+                                                    }
+                                                    aria-label={
+                                                        expandedCard === item.id_pengajuan
+                                                            ? "Tutup detail pengajuan"
+                                                            : "Buka detail pengajuan"
                                                     }
                                                     className="text-gray-600 hover:text-gray-800 transition"
                                                 >
@@ -488,20 +505,53 @@ const ListPengajuanMahasiswa = () => {
 
                             </div>
 
-                            {/* PAGINATION */}
-                            <div className="flex justify-center gap-2 mt-8">
-                                {Array.from({ length: totalPages }, (_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setCurrentPage(i + 1)}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium ${currentPage === i + 1
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                            } transition`}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
+                            {/* PAGINATION: Prev/Next + jendela nomor terbatas */}
+                            <div className="flex justify-center items-center gap-2 mt-8">
+                                <button
+                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    aria-label="Halaman sebelumnya"
+                                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${currentPage === 1
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    <ChevronLeft size={14} /> Prev
+                                </button>
+
+                                {getPageNumbers().map((page, idx) =>
+                                    page === "..." ? (
+                                        <span
+                                            key={`ellipsis-${idx}`}
+                                            className="px-2 py-1.5 text-sm text-gray-500"
+                                        >
+                                            ...
+                                        </span>
+                                    ) : (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${currentPage === page
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                } transition`}
+                                        >
+                                            {page}
+                                        </button>
+                                    )
+                                )}
+
+                                <button
+                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    aria-label="Halaman berikutnya"
+                                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${currentPage === totalPages
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    Next <ChevronRight size={14} />
+                                </button>
                             </div>
 
                         </>

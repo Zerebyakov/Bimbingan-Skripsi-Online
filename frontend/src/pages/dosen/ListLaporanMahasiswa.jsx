@@ -6,6 +6,8 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   FileDown,
   Edit3,
   Loader2,
@@ -30,6 +32,10 @@ const ListLaporanMahasiswa = () => {
   // filter: all | diterima | revisi | ditolak | belum_upload
   const [filter, setFilter] = useState("all");
 
+  // pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
   // FILE order (default agreed): final, abstrak, pengesahan, pernyataan, presentasi
   const FILE_FIELDS = [
     { key: "finalFile", label: "Laporan Final" },
@@ -46,7 +52,10 @@ const ListLaporanMahasiswa = () => {
       const res = await axios.get(`${baseUrl}dosen/mahasiswa-bimbingan`, {
         withCredentials: true,
       });
-      const list = res.data?.data?.mahasiswaBimbingan || [];
+      // Mahasiswa yang sudah selesai (diarsipkan) tidak ditampilkan di sini
+      const list = (res.data?.data?.mahasiswaBimbingan || []).filter(
+        (item) => !item.isSelesai
+      );
       setBimbingan(list);
       setTimeout(() => setFadeIn(true), 220);
     } catch (err) {
@@ -112,6 +121,14 @@ const ListLaporanMahasiswa = () => {
     if (!laporan) return false;
     return (laporan.status || "").toLowerCase() === filter;
   });
+
+  // Pagination (client-side)
+  const totalPages = Math.max(Math.ceil(filteredList.length / itemsPerPage), 1);
+  const safePage = Math.min(currentPage, totalPages);
+  const currentItems = filteredList.slice(
+    (safePage - 1) * itemsPerPage,
+    safePage * itemsPerPage
+  );
 
   const openReview = (item) => {
     const laporan = item.LaporanAkhir;
@@ -237,7 +254,10 @@ const ListLaporanMahasiswa = () => {
               <label className="text-xs text-gray-500 whitespace-nowrap">Filter</label>
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value)}
+                onChange={(e) => {
+                  setFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="text-sm outline-none ml-2 bg-transparent"
               >
                 <option value="all">Semua Status</option>
@@ -271,7 +291,7 @@ const ListLaporanMahasiswa = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredList.map((item, idx) => {
+            {currentItems.map((item, idx) => {
               const laporan = item.LaporanAkhir;
               const availableCount = countAvailableFiles(laporan);
               const complete = isFileComplete(laporan);
@@ -421,6 +441,37 @@ const ListLaporanMahasiswa = () => {
                 </motion.div>
               );
             })}
+          </div>
+        )}
+
+        {/* PAGINATION */}
+        {!loading && filteredList.length > itemsPerPage && (
+          <div className="flex justify-center items-center gap-2 mt-8">
+            <button
+              onClick={() => setCurrentPage(safePage - 1)}
+              disabled={safePage === 1}
+              aria-label="Halaman sebelumnya"
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${safePage === 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+            >
+              <ChevronLeft size={14} /> Prev
+            </button>
+            <span className="text-sm text-gray-600">
+              Halaman <b>{safePage}</b> dari <b>{totalPages}</b>
+            </span>
+            <button
+              onClick={() => setCurrentPage(safePage + 1)}
+              disabled={safePage === totalPages}
+              aria-label="Halaman berikutnya"
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${safePage === totalPages
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+            >
+              Next <ChevronRight size={14} />
+            </button>
           </div>
         )}
       </div>

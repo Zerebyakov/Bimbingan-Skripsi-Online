@@ -18,6 +18,9 @@ import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import ExportToExcel from "./components/ExportToExcel";
 import PageMeta from "../../components/PageMeta";
+import StatusBadge from "../../components/ui/StatusBadge";
+import SimilarityBadge from "../../components/ui/SimilarityBadge";
+import { formatScore } from "../../utils/format";
 
 const ListPengajuan = () => {
   const [pengajuan, setPengajuan] = useState([]);
@@ -397,18 +400,7 @@ const ListPengajuan = () => {
                         {item.Mahasiswa?.Prodi?.program_studi || "-"}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium capitalize ${item.status === "diterima"
-                            ? "bg-green-100 text-green-700"
-                            : item.status === "revisi"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : item.status === "diajukan"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                        >
-                          {item.status}
-                        </span>
+                        <StatusBadge status={item.status} />
                       </td>
 
                       {/* Pembimbing dengan Action Buttons */}
@@ -418,12 +410,12 @@ const ListPengajuan = () => {
                             <div>
                               {item.Pembimbing1?.nama && (
                                 <p className="text-sm font-medium text-gray-800">
-                                  {item.Pembimbing1?.nama}, {item.Pembimbing1.gelar}
+                                  {item.Pembimbing1?.nama}, {item.Pembimbing1?.gelar}
                                 </p>
                               )}
                               {item.Pembimbing2?.nama && (
                                 <p className="text-xs text-gray-600">
-                                  • {item.Pembimbing2?.nama}, {item.Pembimbing1.gelar}
+                                  • {item.Pembimbing2?.nama}, {item.Pembimbing2?.gelar}
                                 </p>
                               )}
                             </div>
@@ -471,18 +463,14 @@ const ListPengajuan = () => {
                       <td className="px-4 py-3">
                         {item.SimilarityChecks?.length > 0 ? (
                           <div className="text-xs">
-                            <span
-                              className={`px-2 py-1 rounded font-medium ${item.SimilarityChecks[0].status_similarity === "MIRIP"
-                                  ? "bg-red-100 text-red-700"
-                                  : item.SimilarityChecks[0].status_similarity === "PERLU_REVIEW"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-green-100 text-green-700"
-                                }`}
+                            <SimilarityBadge
+                              status={item.SimilarityChecks[0].status_similarity}
+                              className="px-2 py-1 rounded font-medium"
                             >
                               {item.SimilarityChecks[0].status_similarity}
-                            </span>
+                            </SimilarityBadge>
                             <p className="mt-1 text-gray-600">
-                              {Number(item.SimilarityChecks[0].max_score || 0).toFixed(4)}
+                              {formatScore(item.SimilarityChecks[0].max_score)}
                             </p>
                             {item.SimilarityChecks[0].Results?.length > 0 && (
                               <button
@@ -519,9 +507,7 @@ const ListPengajuan = () => {
                               Judul terdahulu yang paling mirip
                               <span className="font-normal text-gray-400">
                                 {" "}· Threshold:{" "}
-                                {Number(
-                                  item.SimilarityChecks[0].threshold_value || 0
-                                ).toFixed(2)}
+                                {formatScore(item.SimilarityChecks[0].threshold_value, 2)}
                               </span>
                             </p>
                             <table className="w-full text-xs text-left text-gray-700 border border-gray-200 rounded overflow-hidden">
@@ -567,7 +553,7 @@ const ListPengajuan = () => {
                                         {r.source_year || "—"}
                                       </td>
                                       <td className="px-3 py-2 text-center font-medium">
-                                        {Number(r.similarity_score || 0).toFixed(4)}
+                                        {formatScore(r.similarity_score)}
                                       </td>
                                       <td className="px-3 py-2 text-center">
                                         {r.is_similar ? (
@@ -710,6 +696,7 @@ const ListPengajuan = () => {
 
                 <button
                   onClick={() => setIsModalOpen(false)}
+                  aria-label="Tutup modal"
                   className="text-gray-500 hover:text-gray-700 transition"
                 >
                   ✕

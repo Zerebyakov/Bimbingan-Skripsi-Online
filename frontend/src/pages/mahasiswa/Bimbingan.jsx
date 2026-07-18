@@ -1,14 +1,33 @@
 import React, { useEffect, useState, useRef } from "react";
 import MahasiswaLayout from "./layout/MahasiswaLayout";
 import axios from "axios";
-import { baseUrl } from "../../components/api/myAPI";
+import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { useAuth } from "../../context/AuthContext";
 import { initSocket, leaveChatRoom } from "../../services/Socket";
-import { Send, Paperclip, Loader2, ArrowLeft, BookOpen, X, FileText, Upload as UploadIcon } from "lucide-react";
+import { Send, Paperclip, Loader2, ArrowLeft, BookOpen, X, FileText, Upload as UploadIcon, FileDown, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import PageMeta from "../../components/PageMeta";
+import LinkifiedText from "../../components/ui/LinkifiedText";
+
+// Pesan dianggap pernah diedit jika updatedAt terpaut > 5 detik dari createdAt
+const isMessageEdited = (msg) =>
+    msg?.updatedAt &&
+    new Date(msg.updatedAt).getTime() - new Date(msg.createdAt).getTime() > 5000;
+
+// URL lampiran chat: path polos disajikan dari uploads/chat,
+// path dengan "/" (mis. "bab/xxx.pdf") disajikan dari uploads langsung
+const chatFileUrl = (filePath) =>
+    filePath.includes("/")
+        ? `${imageUrl}uploads/${filePath}`
+        : `${imageUrl}uploads/chat/${filePath}`;
+
+// Lampiran bertipe gambar ditampilkan sebagai preview
+const isImageAttachment = (name = "") =>
+    ["jpg", "jpeg", "png", "gif", "webp"].includes(
+        String(name).split(".").pop().toLowerCase()
+    );
 
 const Bimbingan = () => {
     const { user } = useAuth();
@@ -34,6 +53,10 @@ const Bimbingan = () => {
     const messagesEndRef = useRef(null);
     const socketRef = useRef(null);
     const fileInputRef = useRef(null);
+
+    // Lampiran chat (terpisah dari upload bab)
+    const [chatAttachment, setChatAttachment] = useState(null);
+    const chatFileInputRef = useRef(null);
 
     // === Ambil data dashboard mahasiswa ===
     const fetchDashboard = async () => {
@@ -82,32 +105,69 @@ const Bimbingan = () => {
         }
     };
 
-    // === Kirim pesan ===
+    // === Kirim pesan (teks dan/atau lampiran) ===
     const handleSend = async (e) => {
         e.preventDefault();
-        if (!message.trim() || sending || chatDisabled) return;
+        if ((!message.trim() && !chatAttachment) || sending || chatDisabled) return;
 
         const msgContent = message.trim();
         setMessage("");
         setSending(true);
 
         try {
+            const formData = new FormData();
+            if (msgContent) formData.append("content", msgContent);
+            if (chatAttachment) formData.append("file", chatAttachment);
+
             await axios.post(
                 `${baseUrl}chat/pengajuan/${pengajuan.id_pengajuan}/message`,
-                { content: msgContent },
-                { withCredentials: true }
+                formData,
+                {
+                    withCredentials: true,
+                    headers: { "Content-Type": "multipart/form-data" },
+                }
             );
+            setChatAttachment(null);
         } catch (error) {
             console.error("❌ Gagal mengirim pesan:", error);
             Swal.fire({
                 icon: "error",
                 title: "Gagal mengirim pesan",
-                text: "Silakan coba lagi.",
+                text: error.response?.data?.message || "Silakan coba lagi.",
                 confirmButtonColor: "#dc2626",
             });
         } finally {
             setSending(false);
         }
+    };
+
+    // === Pilih lampiran chat (dokumen/gambar, maks 5MB) ===
+    const handleChatFileSelect = (e) => {
+        const file = e.target.files[0];
+        e.target.value = "";
+        if (!file) return;
+
+        const allowedExt = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".txt"];
+        const ext = `.${file.name.split(".").pop().toLowerCase()}`;
+        if (!allowedExt.includes(ext)) {
+            Swal.fire({
+                icon: "warning",
+                title: "Format tidak didukung",
+                text: `Format yang diizinkan: ${allowedExt.join(", ")}`,
+                confirmButtonColor: "#f59e0b",
+            });
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            Swal.fire({
+                icon: "warning",
+                title: "File terlalu besar",
+                text: "Ukuran lampiran chat maksimal 5MB.",
+                confirmButtonColor: "#f59e0b",
+            });
+            return;
+        }
+        setChatAttachment(file);
     };
 
     // === Handle file selection ===
@@ -189,9 +249,9 @@ const Bimbingan = () => {
             // ✅ Gunakan field name yang sesuai middleware baru
             formData.append("bab", selectedFile);
 
-            const url = existingBab
-                ? `${baseUrl}mahasiswa/upload-bab/${existingBab.id}`
-                : `${baseUrl}mahasiswa/upload-bab`;
+            // Backend meng-upsert berdasarkan chapter_number, jadi endpoint sama
+            // untuk upload baru maupun re-upload.
+            const url = `${baseUrl}mahasiswa/upload-bab`;
 
             const res = await axios.post(url, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
@@ -205,15 +265,7 @@ const Bimbingan = () => {
             });
 
             if (res.data.success) {
-                const notifMessage = existingBab
-                    ? `📄 Bab ${selectedBab} telah di-reupload (${selectedFile.name})`
-                    : `📄 Bab ${selectedBab} telah diupload (${selectedFile.name})`;
-
-                await axios.post(
-                    `${baseUrl}chat/pengajuan/${pengajuan.id_pengajuan}/message`,
-                    { content: notifMessage },
-                    { withCredentials: true }
-                );
+                // Notifikasi chat (dengan lampiran file bab) dikirim otomatis oleh backend
 
                 Swal.fire({
                     icon: "success",
@@ -269,11 +321,92 @@ const Bimbingan = () => {
             }
         });
 
+        socket.on("message:updated", (msg) => {
+            if (Number(msg.id_pengajuan) === Number(pengajuan.id_pengajuan)) {
+                setMessages((prev) =>
+                    prev.map((m) => (m.id_message === msg.id_message ? msg : m))
+                );
+            }
+        });
+
+        socket.on("message:deleted", (payload) => {
+            if (Number(payload.id_pengajuan) === Number(pengajuan.id_pengajuan)) {
+                setMessages((prev) =>
+                    prev.filter((m) => m.id_message !== payload.id_message)
+                );
+            }
+        });
+
         return () => {
             leaveChatRoom(pengajuan.id_pengajuan);
             socket.off("message:new");
+            socket.off("message:updated");
+            socket.off("message:deleted");
         };
     }, [pengajuan, user]);
+
+    // === Edit pesan sendiri ===
+    const handleEditMessage = async (msg) => {
+        const { value: newContent } = await Swal.fire({
+            title: "Edit Pesan",
+            input: "textarea",
+            inputValue: msg.content || "",
+            showCancelButton: true,
+            confirmButtonText: "Simpan",
+            cancelButtonText: "Batal",
+            confirmButtonColor: "#16a34a",
+            inputValidator: (value) => (!value || !value.trim() ? "Isi pesan tidak boleh kosong" : null),
+        });
+
+        if (newContent === undefined || newContent.trim() === (msg.content || "")) return;
+
+        try {
+            const res = await axios.put(
+                `${baseUrl}chat/message/${msg.id_message}`,
+                { content: newContent.trim() },
+                { withCredentials: true }
+            );
+            const updated = res.data?.data;
+            if (updated) {
+                setMessages((prev) =>
+                    prev.map((m) => (m.id_message === updated.id_message ? updated : m))
+                );
+            }
+        } catch (error) {
+            console.error("Gagal edit pesan:", error);
+            Swal.fire("Gagal", error.response?.data?.message || "Gagal mengedit pesan.", "error");
+        }
+    };
+
+    // === Hapus pesan sendiri ===
+    const handleDeleteMessage = async (msg) => {
+        const confirm = await Swal.fire({
+            title: "Hapus Pesan?",
+            text: "Pesan yang dihapus tidak dapat dikembalikan.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Ya, hapus",
+            cancelButtonText: "Batal",
+            confirmButtonColor: "#dc2626",
+        });
+        if (!confirm.isConfirmed) return;
+
+        try {
+            await axios.delete(`${baseUrl}chat/message/${msg.id_message}`, {
+                withCredentials: true,
+            });
+            setMessages((prev) => prev.filter((m) => m.id_message !== msg.id_message));
+        } catch (error) {
+            console.error("Gagal hapus pesan:", error);
+            Swal.fire("Gagal", error.response?.data?.message || "Gagal menghapus pesan.", "error");
+        }
+    };
+
+    // === Unduh lampiran chat ===
+    const handleDownloadAttachment = (filePath) => {
+        if (!filePath) return;
+        window.open(chatFileUrl(filePath), "_blank");
+    };
 
     // === Auto scroll ===
     useEffect(() => {
@@ -351,11 +484,12 @@ const Bimbingan = () => {
                         </div>
                     ) : (
                         messages.map((msg) => {
-                            const isMe = msg.User?.role === "mahasiswa";
+                            const isMe = Number(msg.senderId) === Number(user?.id_user);
+                            // Asosiasi User-Dosen adalah hasOne → properti "Dosen" (tunggal)
                             const senderName =
                                 msg.User?.role === "dosen"
-                                    ? msg.User?.Dosens?.[0]?.nama
-                                    : msg.User?.Mahasiswa?.nama_lengkap;
+                                    ? msg.User?.Dosen?.nama || msg.User?.Dosens?.[0]?.nama || "Dosen"
+                                    : msg.User?.Mahasiswa?.nama_lengkap || "Mahasiswa";
 
                             return (
                                 <motion.div
@@ -363,25 +497,81 @@ const Bimbingan = () => {
                                     initial={{ opacity: 0, y: 5 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.2 }}
-                                    className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                                    className={`group flex ${isMe ? "justify-end" : "justify-start"}`}
                                 >
-                                    <div
-                                        className={`max-w-[80%] sm:max-w-[70%] px-4 py-2 text-sm rounded-2xl shadow-sm ${isMe
-                                            ? "bg-green-600 text-white rounded-br-none"
-                                            : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"
-                                            }`}
-                                    >
-                                        <p className="text-xs mb-1 opacity-70 font-medium">{senderName}</p>
-                                        <p>{msg.content}</p>
-                                        <p
-                                            className={`text-[10px] mt-1 ${isMe ? "text-green-200" : "text-gray-400"
+                                    <div className={`flex items-end gap-1 max-w-[80%] sm:max-w-[70%] ${isMe ? "flex-row-reverse" : ""}`}>
+                                        <div
+                                            className={`px-4 py-2 text-sm rounded-2xl shadow-sm ${isMe
+                                                ? "bg-green-600 text-white rounded-br-none"
+                                                : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"
                                                 }`}
                                         >
-                                            {new Date(msg.createdAt).toLocaleTimeString("id-ID", {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })}
-                                        </p>
+                                            <p className="text-xs mb-1 opacity-70 font-medium">{senderName}</p>
+                                            {msg.content && <LinkifiedText text={msg.content} />}
+
+                                            {msg.attachmentPath && (
+                                                <div className="mt-2">
+                                                    {isImageAttachment(msg.attachmentName || msg.attachmentPath) ? (
+                                                        <img
+                                                            src={chatFileUrl(msg.attachmentPath)}
+                                                            alt={msg.attachmentName || "Lampiran gambar"}
+                                                            onClick={() => handleDownloadAttachment(msg.attachmentPath)}
+                                                            className="max-w-[220px] max-h-60 rounded-lg cursor-pointer border border-gray-200 object-cover"
+                                                        />
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDownloadAttachment(msg.attachmentPath)}
+                                                            className={`${isMe
+                                                                ? "bg-green-700 hover:bg-green-800 text-white"
+                                                                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                                                } inline-flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium`}
+                                                        >
+                                                            <FileText size={14} />
+                                                            <span className="max-w-[180px] truncate">
+                                                                {msg.attachmentName || "Lampiran File"}
+                                                            </span>
+                                                            <FileDown size={12} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <p
+                                                className={`text-[10px] mt-1 ${isMe ? "text-green-200" : "text-gray-400"
+                                                    }`}
+                                            >
+                                                {new Date(msg.createdAt).toLocaleTimeString("id-ID", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                                {isMessageEdited(msg) && <span className="italic"> · diedit</span>}
+                                            </p>
+                                        </div>
+
+                                        {/* Aksi edit/hapus untuk pesan sendiri (muncul saat hover) */}
+                                        {isMe && (
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition pb-1">
+                                                {msg.content && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleEditMessage(msg)}
+                                                        aria-label="Edit pesan"
+                                                        className="text-gray-400 hover:text-gray-700 p-1"
+                                                    >
+                                                        <Pencil size={13} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteMessage(msg)}
+                                                    aria-label="Hapus pesan"
+                                                    className="text-gray-400 hover:text-red-600 p-1"
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             );
@@ -396,6 +586,7 @@ const Bimbingan = () => {
                     className={`border-t bg-white p-3 sm:p-4 flex items-center gap-3 ${chatDisabled ? "opacity-60 pointer-events-none" : ""
                         }`}
                 >
+                    {/* Upload Bab (PDF → modal) */}
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -407,11 +598,51 @@ const Bimbingan = () => {
                     <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
+                        title="Upload Bab (PDF)"
+                        aria-label="Upload Bab"
+                        className="cursor-pointer text-gray-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={chatDisabled}
+                    >
+                        <UploadIcon size={20} />
+                    </button>
+
+                    {/* Lampiran chat (dokumen/gambar) */}
+                    <input
+                        ref={chatFileInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                        onChange={handleChatFileSelect}
+                        className="hidden"
+                        disabled={chatDisabled}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => chatFileInputRef.current?.click()}
+                        title="Lampirkan file ke chat"
+                        aria-label="Lampirkan file ke chat"
                         className="cursor-pointer text-gray-500 hover:text-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={chatDisabled}
                     >
                         <Paperclip size={20} />
                     </button>
+
+                    {/* Preview lampiran chat */}
+                    {chatAttachment && (
+                        <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-full max-w-[40%]">
+                            <span className="text-xs text-gray-700 truncate">
+                                {chatAttachment.name}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setChatAttachment(null)}
+                                aria-label="Hapus lampiran"
+                                className="text-gray-500 hover:text-gray-700 shrink-0"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    )}
+
                     <input
                         type="text"
                         placeholder={
@@ -426,7 +657,7 @@ const Bimbingan = () => {
                     />
                     <button
                         type="submit"
-                        disabled={!message.trim() || sending || chatDisabled}
+                        disabled={(!message.trim() && !chatAttachment) || sending || chatDisabled}
                         className="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition disabled:bg-green-400"
                     >
                         {sending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
@@ -494,7 +725,7 @@ const Bimbingan = () => {
                                         </option>
                                     ))}
                                     {revisiBabs.map(bab => (
-                                        <option key={bab.id} value={bab.chapter_number}>
+                                        <option key={bab.id_bab} value={bab.chapter_number}>
                                             Bab {bab.chapter_number} (Revisi)
                                         </option>
                                     ))}

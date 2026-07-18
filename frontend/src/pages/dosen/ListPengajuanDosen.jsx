@@ -16,7 +16,8 @@ const ListPengajuanDosen = () => {
             const res = await axios.get(`${baseUrl}dosen/mahasiswa-bimbingan`, {
                 withCredentials: true,
             });
-            setBimbingan(res.data.data || []);
+            // Response backend: { data: { dosenInfo, mahasiswaBimbingan } }
+            setBimbingan(res.data?.data?.mahasiswaBimbingan || []);
         } catch (err) {
             console.error("Error fetching bimbingan:", err);
         } finally {

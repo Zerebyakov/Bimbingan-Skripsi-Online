@@ -1,31 +1,36 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { useAuth } from './context/AuthContext'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router'
-import Login from './pages/Login';
-import DashboardAdmin from './pages/admin/DashboardAdmin';
-import DashboardDosen from './pages/dosen/DashboardDosen';
-import DashboardMahasiswa from './pages/mahasiswa/DashboardMahasiswa';
+
+// Halaman awal dimuat langsung agar first paint cepat
 import LandingPage from './pages/LandingPage';
-import ListPengajuan from './pages/admin/ListPengajuan';
-import ListDosen from './pages/admin/ListDosen';
-import ListMahasiswa from './pages/admin/ListMahasiswa';
-import KonfigurasiSistem from './pages/admin/KonfigurasiSistem';
-import ProfileAdmin from './pages/admin/ProfileAdmin';
-import ListMahasiswaBimbingan from './pages/dosen/ListMahasiswaBimbingan';
-import ChatMahasiswa from './pages/dosen/ChatMahasiswa';
-import ListPengajuanDosen from './pages/dosen/ListPengajuanDosen';
-import ProfileDosen from './pages/dosen/ProfileDosen';
-import MahasiswaProfile from './pages/mahasiswa/ProfileMahasiswa';
-import Pengajuan from './pages/mahasiswa/Pengajuan';
-import UploadBab from './pages/mahasiswa/UploadBab';
-import Bimbingan from './pages/mahasiswa/Bimbingan';
-import LaporanAkhir from './pages/mahasiswa/LaporanAkhir';
-import KartuBimbinganPrint from './pages/mahasiswa/KartuBimbinganPrint';
-import ProfileMahasiswa from './pages/mahasiswa/ProfileMahasiswa';
-import ListPengajuanMahasiswa from './pages/dosen/ListPengajuanMahasiswa';
-import ListBabMahasiswa from './pages/dosen/ListBabMahasiswa';
-import ListLaporanMahasiswa from './pages/dosen/ListLaporanMahasiswa';
-import ArsipMahasiswa from './pages/admin/ArsipMahasiswa';
+import Login from './pages/Login';
+
+// Halaman per-role dimuat lazy (code splitting) agar bundle awal kecil
+const DashboardAdmin = lazy(() => import('./pages/admin/DashboardAdmin'));
+const ListPengajuan = lazy(() => import('./pages/admin/ListPengajuan'));
+const ListDosen = lazy(() => import('./pages/admin/ListDosen'));
+const ListMahasiswa = lazy(() => import('./pages/admin/ListMahasiswa'));
+const KonfigurasiSistem = lazy(() => import('./pages/admin/KonfigurasiSistem'));
+const ProfileAdmin = lazy(() => import('./pages/admin/ProfileAdmin'));
+const ArsipMahasiswa = lazy(() => import('./pages/admin/ArsipMahasiswa'));
+
+const DashboardDosen = lazy(() => import('./pages/dosen/DashboardDosen'));
+const ListMahasiswaBimbingan = lazy(() => import('./pages/dosen/ListMahasiswaBimbingan'));
+const MahasiswaSelesai = lazy(() => import('./pages/dosen/MahasiswaSelesai'));
+const ChatMahasiswa = lazy(() => import('./pages/dosen/ChatMahasiswa'));
+const ProfileDosen = lazy(() => import('./pages/dosen/ProfileDosen'));
+const ListPengajuanMahasiswa = lazy(() => import('./pages/dosen/ListPengajuanMahasiswa'));
+const ListBabMahasiswa = lazy(() => import('./pages/dosen/ListBabMahasiswa'));
+const ListLaporanMahasiswa = lazy(() => import('./pages/dosen/ListLaporanMahasiswa'));
+
+const DashboardMahasiswa = lazy(() => import('./pages/mahasiswa/DashboardMahasiswa'));
+const Pengajuan = lazy(() => import('./pages/mahasiswa/Pengajuan'));
+const UploadBab = lazy(() => import('./pages/mahasiswa/UploadBab'));
+const Bimbingan = lazy(() => import('./pages/mahasiswa/Bimbingan'));
+const LaporanAkhir = lazy(() => import('./pages/mahasiswa/LaporanAkhir'));
+const KartuBimbinganPrint = lazy(() => import('./pages/mahasiswa/KartuBimbinganPrint'));
+const ProfileMahasiswa = lazy(() => import('./pages/mahasiswa/ProfileMahasiswa'));
 
 const App = () => {
   const { user, loading } = useAuth();
@@ -62,6 +67,7 @@ const App = () => {
 
   return (
     <Router>
+      <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route index path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
@@ -166,6 +172,14 @@ const App = () => {
           }
         />
         <Route
+          path="/dosen/mahasiswa-selesai"
+          element={
+            <DosenRoute>
+              <MahasiswaSelesai />
+            </DosenRoute>
+          }
+        />
+        <Route
           path="/dosen/profile"
           element={
             <DosenRoute>
@@ -240,6 +254,7 @@ const App = () => {
           }
         />
       </Routes>
+      </Suspense>
     </Router>
   );
 };

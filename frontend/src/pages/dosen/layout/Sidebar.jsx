@@ -11,6 +11,7 @@ import {
     ListCheck,
     BookCopy,
     LibraryBig,
+    GraduationCap,
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -28,6 +29,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'Review BAB', icon: <BookCopy size={20} />, path: '/dosen/mahasiswa-bab' },
         { name: 'Mahasiswa Bimbingan', icon: <Users size={20} />, path: '/dosen/mahasiswa-bimbingan' },
         { name: 'Laporan Akhir', icon: <LibraryBig size={20} />, path: '/dosen/mahasiswa-laporan' },
+        { name: 'Mahasiswa Selesai', icon: <GraduationCap size={20} />, path: '/dosen/mahasiswa-selesai' },
     ]
     return (
         <aside

@@ -9,6 +9,7 @@ import {
   BarChart3,
   Clock,
   RefreshCw,
+  GraduationCap,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -141,6 +142,11 @@ const DashboardAdmin = () => {
               title: "Mahasiswa Aktif",
               value: stats.mahasiswaAktif,
               icon: <Users size={18} />,
+            },
+            {
+              title: "Mahasiswa Selesai",
+              value: stats.mahasiswaSelesai ?? 0,
+              icon: <GraduationCap size={18} />,
             },
             {
               title: "Dosen Aktif",

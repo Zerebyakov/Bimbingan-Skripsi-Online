@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import PageMeta from "../../components/PageMeta";
+import SimilarityBadge from "../../components/ui/SimilarityBadge";
+import { formatScore } from "../../utils/format";
 
 const Pengajuan = () => {
   const [pengajuan, setPengajuan] = useState(null);
@@ -53,6 +55,11 @@ const Pengajuan = () => {
       ...form,
       [e.target.name]: e.target.value,
     });
+
+    // Judul berubah = hasil cek kemiripan sebelumnya tidak lagi berlaku
+    if (e.target.name === "title") {
+      setSimilarityResult(null);
+    }
   };
 
   // ✅ Validasi dan preview file
@@ -366,14 +373,14 @@ const Pengajuan = () => {
                   <p>
                     Skor tertinggi:{" "}
                     <span className="font-semibold">
-                      {Number(pengajuan.SimilarityChecks[0].max_score || 0).toFixed(4)}
+                      {formatScore(pengajuan.SimilarityChecks[0].max_score)}
                     </span>
                   </p>
 
                   <p>
                     Threshold:{" "}
                     <span className="font-semibold">
-                      {Number(pengajuan.SimilarityChecks[0].threshold_value || 0).toFixed(4)}
+                      {formatScore(pengajuan.SimilarityChecks[0].threshold_value)}
                     </span>
                   </p>
 
@@ -390,7 +397,7 @@ const Pengajuan = () => {
                             {item.source_table === "arsip" ? " · Arsip" : ""}
                           </p>
                           <p className="text-sm text-gray-600">
-                            Skor: {Number(item.similarity_score || 0).toFixed(4)}
+                            Skor: {formatScore(item.similarity_score)}
                           </p>
                         </div>
                       ))}
@@ -459,6 +466,7 @@ const Pengajuan = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
+                  aria-label="Batalkan pengeditan"
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X size={18} />
@@ -502,16 +510,12 @@ const Pengajuan = () => {
                       Hasil Cek Kemiripan Judul
                     </h3>
 
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${similarityResult.status === "MIRIP"
-                        ? "bg-red-100 text-red-700"
-                        : similarityResult.status === "PERLU_REVIEW"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-green-100 text-green-700"
-                        }`}
+                    <SimilarityBadge
+                      status={similarityResult.status}
+                      className="px-3 py-1 rounded-full text-xs font-semibold"
                     >
                       {similarityResult.status}
-                    </span>
+                    </SimilarityBadge>
                   </div>
 
                   <div className="text-sm text-gray-700">

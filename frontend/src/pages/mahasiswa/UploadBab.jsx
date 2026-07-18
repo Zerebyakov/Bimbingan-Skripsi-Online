@@ -26,27 +26,29 @@ const UploadBab = () => {
     const totalBab = 5;
 
     // === Ambil data Bab ===
+    const fetchData = async () => {
+        try {
+            const res = await axios.get(`${baseUrl}mahasiswa/dashboard`, {
+                withCredentials: true,
+            });
+            const data = res.data.data.pengajuan?.BabSubmissions || [];
+            setBabList(data);
+        } catch (err) {
+            console.error("Gagal memuat data Bab:", err);
+            Swal.fire({
+                icon: "error",
+                title: "Gagal Memuat Data",
+                text: "Terjadi kesalahan saat memuat data Bab. Silakan coba lagi.",
+                confirmButtonColor: "#16a34a",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await axios.get(`${baseUrl}mahasiswa/dashboard`, {
-                    withCredentials: true,
-                });
-                const data = res.data.data.pengajuan?.BabSubmissions || [];
-                setBabList(data);
-            } catch (err) {
-                console.error("Gagal memuat data Bab:", err);
-                Swal.fire({
-                    icon: "error",
-                    title: "Gagal Memuat Data",
-                    text: "Terjadi kesalahan saat memuat data Bab. Silakan coba lagi.",
-                    confirmButtonColor: "#16a34a",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // === Handle file change ===
@@ -97,8 +99,9 @@ const UploadBab = () => {
             formData.append("chapter_number", bab);
             formData.append("bab", file);
 
-            const url = `${baseUrl}mahasiswa/upload-bab${reupload && existingId ? `/${existingId}` : ""
-                }`;
+            // Backend meng-upsert berdasarkan chapter_number, jadi endpoint sama
+            // untuk upload baru maupun re-upload.
+            const url = `${baseUrl}mahasiswa/upload-bab`;
 
             const res = await axios.post(url, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
@@ -122,15 +125,9 @@ const UploadBab = () => {
                     timer: 2000,
                 });
 
-                if (reupload) {
-                    setBabList((prev) =>
-                        prev.map((b) =>
-                            b.id === existingId ? { ...b, ...res.data.data } : b
-                        )
-                    );
-                } else {
-                    setBabList((prev) => [...prev, res.data.data]);
-                }
+                // Ambil ulang data dari server agar status ("menunggu") dan
+                // field lain langsung tampil tanpa perlu refresh halaman.
+                await fetchData();
 
                 setSelectedFile(null);
                 setSelectedBab("");
@@ -203,7 +200,7 @@ const UploadBab = () => {
         if (!confirm.isConfirmed) return;
 
         try {
-            await axios.delete(`${baseUrl}mahasiswa/delete-bab/${bab.id}`, {
+            await axios.delete(`${baseUrl}mahasiswa/delete-bab/${bab.id_bab}`, {
                 withCredentials: true,
             });
 
@@ -215,7 +212,7 @@ const UploadBab = () => {
                 timer: 1500,
             });
 
-            setBabList((prev) => prev.filter((b) => b.id !== bab.id));
+            setBabList((prev) => prev.filter((b) => b.id_bab !== bab.id_bab));
         } catch (err) {
             console.error("Gagal hapus Bab:", err);
             Swal.fire({
@@ -280,7 +277,7 @@ const UploadBab = () => {
                     {[...Array(totalBab)].map((_, index) => {
                         const babNumber = index + 1;
                         const babUploaded = babList.find(
-                            (b) => b.chapter_number === babNumber
+                            (b) => Number(b.chapter_number) === babNumber
                         );
 
                         return (

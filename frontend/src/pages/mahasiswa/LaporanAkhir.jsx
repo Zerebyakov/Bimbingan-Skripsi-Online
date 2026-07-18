@@ -307,11 +307,11 @@ const LaporanAkhir = () => {
           className="space-y-6 bg-white border border-gray-100 rounded-xl p-6 shadow-sm"
         >
           {[
-            { key: "finalFile", label: "Laporan Final" },
-            { key: "abstrakFile", label: "Abstrak" },
-            { key: "pengesahanFile", label: "Lembar Pengesahan" },
-            { key: "pernyataanFile", label: "Surat Pernyataan" },
-            { key: "presentasiFile", label: "File Presentasi" },
+            { key: "finalFile", label: "Laporan Final", accept: ".pdf,.doc,.docx" },
+            { key: "abstrakFile", label: "Abstrak", accept: ".pdf,.doc,.docx" },
+            { key: "pengesahanFile", label: "Lembar Pengesahan", accept: ".pdf,.doc,.docx" },
+            { key: "pernyataanFile", label: "Surat Pernyataan", accept: ".pdf,.doc,.docx" },
+            { key: "presentasiFile", label: "File Presentasi", accept: ".pdf,.ppt,.pptx" },
           ].map((item) => (
             <div
               key={item.key}
@@ -334,7 +334,7 @@ const LaporanAkhir = () => {
                   Pilih File
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept={item.accept}
                     className="hidden"
                     disabled={isDisabled}
                     onChange={(e) => handleFileChange(e, item.key)}
