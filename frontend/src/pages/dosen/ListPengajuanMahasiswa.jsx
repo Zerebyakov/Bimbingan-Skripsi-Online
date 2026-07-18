@@ -19,7 +19,7 @@ import Swal from "sweetalert2";
 import PageMeta from "../../components/PageMeta";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { SIMILARITY_STYLES } from "../../components/ui/SimilarityBadge";
-import { formatScore } from "../../utils/format";
+import { formatPercent } from "../../utils/format";
 
 const ListPengajuanMahasiswa = () => {
     const [pengajuanList, setPengajuanList] = useState([]);
@@ -185,9 +185,9 @@ const ListPengajuanMahasiswa = () => {
         return (
             <span
                 className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${cfg.className}`}
-                title={`Skor kemiripan tertinggi: ${formatScore(check.max_score)}`}
+                title={`Kemiripan tertinggi: ${formatPercent(check.max_score)}`}
             >
-                <Icon size={12} /> {cfg.label} · {formatScore(check.max_score, 2)}
+                <Icon size={12} /> {cfg.label} · {formatPercent(check.max_score, 0)}
             </span>
         );
     };
@@ -211,7 +211,7 @@ const ListPengajuanMahasiswa = () => {
                         Hasil Cek Kemiripan Judul
                     </p>
                     <span className="text-[11px] text-gray-400">
-                        Threshold: {formatScore(check.threshold_value, 2)}
+                        Ambang batas: {formatPercent(check.threshold_value, 0)}
                         {check.checkedAt &&
                             ` · ${new Date(check.checkedAt).toLocaleDateString("id-ID")}`}
                     </span>
@@ -242,9 +242,9 @@ const ListPengajuanMahasiswa = () => {
                                 <span
                                     className={`shrink-0 font-semibold ${r.is_similar ? "text-red-600" : "text-gray-500"
                                         }`}
-                                    title={r.is_similar ? "Di atas threshold" : "Di bawah threshold"}
+                                    title={r.is_similar ? "Di atas ambang batas" : "Di bawah ambang batas"}
                                 >
-                                    {formatScore(r.similarity_score)}
+                                    {formatPercent(r.similarity_score)}
                                 </span>
                             </li>
                         ))}

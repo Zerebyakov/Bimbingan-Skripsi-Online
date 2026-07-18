@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import PageMeta from "../../components/PageMeta";
 import SimilarityBadge from "../../components/ui/SimilarityBadge";
-import { formatScore } from "../../utils/format";
+import { formatPercent } from "../../utils/format";
 
 const Pengajuan = () => {
   const [pengajuan, setPengajuan] = useState(null);
@@ -371,16 +371,16 @@ const Pengajuan = () => {
                   </p>
 
                   <p>
-                    Skor tertinggi:{" "}
+                    Kemiripan tertinggi:{" "}
                     <span className="font-semibold">
-                      {formatScore(pengajuan.SimilarityChecks[0].max_score)}
+                      {formatPercent(pengajuan.SimilarityChecks[0].max_score)}
                     </span>
                   </p>
 
                   <p>
-                    Threshold:{" "}
+                    Ambang batas:{" "}
                     <span className="font-semibold">
-                      {formatScore(pengajuan.SimilarityChecks[0].threshold_value)}
+                      {formatPercent(pengajuan.SimilarityChecks[0].threshold_value, 0)}
                     </span>
                   </p>
 
@@ -397,7 +397,7 @@ const Pengajuan = () => {
                             {item.source_table === "arsip" ? " · Arsip" : ""}
                           </p>
                           <p className="text-sm text-gray-600">
-                            Skor: {formatScore(item.similarity_score)}
+                            Kemiripan: {formatPercent(item.similarity_score)}
                           </p>
                         </div>
                       ))}
@@ -520,16 +520,16 @@ const Pengajuan = () => {
 
                   <div className="text-sm text-gray-700">
                     <p>
-                      Skor tertinggi:{" "}
+                      Kemiripan tertinggi:{" "}
                       <span className="font-semibold">
-                        {Number(similarityResult.max_score || 0).toFixed(4)}
+                        {formatPercent(similarityResult.max_score)}
                       </span>
                     </p>
                     <p>
-                      Threshold:{" "}
+                      Ambang batas:{" "}
                       <span className="font-semibold">
                         {similarityResult.threshold !== null
-                          ? Number(similarityResult.threshold).toFixed(4)
+                          ? formatPercent(similarityResult.threshold, 0)
                           : "-"}
                       </span>
                     </p>
@@ -557,7 +557,7 @@ const Pengajuan = () => {
                             {item.source === "arsip" ? " · Arsip" : ""}
                           </p>
                           <p className="text-sm text-gray-600">
-                            Skor: {Number(item.similarity_score).toFixed(4)}
+                            Kemiripan: {formatPercent(item.similarity_score)}
                           </p>
                           <p
                             className={`text-sm font-medium ${item.is_similar ? "text-red-600" : "text-green-600"

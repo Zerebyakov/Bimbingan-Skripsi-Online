@@ -10,7 +10,9 @@ import {
   Clock,
   RefreshCw,
   GraduationCap,
+  DatabaseBackup,
 } from "lucide-react";
+import Swal from "sweetalert2";
 import {
   ResponsiveContainer,
   BarChart,
@@ -111,13 +113,36 @@ const DashboardAdmin = () => {
         className="space-y-10"
       >
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-800">
-            Selamat Datang, {user?.name || "Admin"}
-          </h1>
-          <p className="text-gray-500 text-sm">
-            Pantau statistik, pengajuan, arsip, dan aktivitas terbaru di sistem.
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-800">
+              Selamat Datang, {user?.name || "Admin"}
+            </h1>
+            <p className="text-gray-500 text-sm">
+              Pantau statistik, pengajuan, arsip, dan aktivitas terbaru di sistem.
+            </p>
+          </div>
+
+          {/* Backup seluruh data (JSON, tanpa password) */}
+          <button
+            onClick={async () => {
+              const confirm = await Swal.fire({
+                icon: "question",
+                title: "Export Database?",
+                text: "Seluruh data utama akan diunduh sebagai file JSON (tanpa password pengguna).",
+                showCancelButton: true,
+                confirmButtonText: "Ya, unduh",
+                cancelButtonText: "Batal",
+                confirmButtonColor: "#1f2937",
+              });
+              if (confirm.isConfirmed) {
+                window.open(`${baseUrl}admin/export-database`, "_blank");
+              }
+            }}
+            className="flex items-center gap-2 bg-gray-800 text-white text-sm px-4 py-2 rounded-md hover:bg-gray-700 transition shrink-0"
+          >
+            <DatabaseBackup size={16} /> Export Database
+          </button>
         </div>
 
         {/* Statistik Kartu */}

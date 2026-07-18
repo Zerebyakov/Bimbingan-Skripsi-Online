@@ -9,13 +9,17 @@ import {
   FileText,
   Bell,
   Loader2,
+  CalendarDays,
+  GraduationCap,
 } from "lucide-react";
 import SplitText from "../../components/SplitText";
 import PageMeta from "../../components/PageMeta";
+import GraduationCelebration from "../../components/ui/GraduationCelebration";
 
 const DashboardMahasiswa = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -32,6 +36,28 @@ const DashboardMahasiswa = () => {
     };
     fetchDashboard();
   }, []);
+
+  // Tampilkan perayaan kelulusan sekali saat skripsi sudah diarsipkan
+  useEffect(() => {
+    const pengajuan = dashboardData?.pengajuan;
+    if (pengajuan?.Arsip) {
+      const flagKey = `graduation_celebrated_${pengajuan.id_pengajuan}`;
+      if (!localStorage.getItem(flagKey)) {
+        setShowCelebration(true);
+      }
+    }
+  }, [dashboardData]);
+
+  const closeCelebration = () => {
+    const pengajuan = dashboardData?.pengajuan;
+    if (pengajuan) {
+      localStorage.setItem(
+        `graduation_celebrated_${pengajuan.id_pengajuan}`,
+        String(Date.now())
+      );
+    }
+    setShowCelebration(false);
+  };
 
   if (loading) {
     return (
@@ -53,7 +79,17 @@ const DashboardMahasiswa = () => {
     );
   }
 
-  const { mahasiswa, pengajuan, progress, notifikasi } = dashboardData;
+  const { mahasiswa, pengajuan, progress, notifikasi, periodeAktif } = dashboardData;
+
+  const isSelesai = Boolean(pengajuan?.Arsip);
+
+  // Hitung sisa hari menuju akhir periode bimbingan
+  const deadlineDate = periodeAktif?.tanggalSelesaiBimbingan
+    ? new Date(periodeAktif.tanggalSelesaiBimbingan)
+    : null;
+  const daysLeft = deadlineDate
+    ? Math.ceil((deadlineDate.getTime() - Date.now()) / 86400000)
+    : null;
 
   return (
     <MahasiswaLayout>
@@ -87,6 +123,108 @@ const DashboardMahasiswa = () => {
             Pantau perkembangan bimbingan dan pengajuan skripsimu di sini.
           </p>
         </div>
+
+        {/* Banner kelulusan */}
+        {isSelesai && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md"
+          >
+            <div className="flex items-center gap-3">
+              <GraduationCap size={28} />
+              <div>
+                <p className="font-semibold text-lg">Skripsi Selesai — Selamat! 🎉</p>
+                <p className="text-sm text-emerald-50">
+                  Skripsimu telah diarsipkan
+                  {pengajuan.Arsip?.tanggalSelesai
+                    ? ` pada ${new Date(pengajuan.Arsip.tanggalSelesai).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}`
+                    : ""}.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCelebration(true)}
+              className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-medium transition shrink-0"
+            >
+              Rayakan lagi 🎉
+            </button>
+          </motion.div>
+        )}
+
+        {/* Deadline periode bimbingan */}
+        {!isSelesai && periodeAktif && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`mb-6 rounded-xl p-5 border shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${daysLeft !== null && daysLeft < 0
+              ? "bg-red-50 border-red-200"
+              : daysLeft !== null && daysLeft <= 14
+                ? "bg-yellow-50 border-yellow-200"
+                : "bg-white border-gray-100"
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <CalendarDays
+                size={24}
+                className={
+                  daysLeft !== null && daysLeft < 0
+                    ? "text-red-600"
+                    : daysLeft !== null && daysLeft <= 14
+                      ? "text-yellow-600"
+                      : "text-gray-600"
+                }
+              />
+              <div>
+                <p className="text-xs text-gray-500 uppercase">
+                  Periode Bimbingan Aktif
+                </p>
+                <p className="font-semibold text-gray-800">
+                  {periodeAktif.tahun_akademik} — Semester{" "}
+                  <span className="capitalize">{periodeAktif.semester}</span>
+                </p>
+                {deadlineDate ? (
+                  <p className="text-sm text-gray-600">
+                    Batas akhir bimbingan:{" "}
+                    <span className="font-medium">
+                      {deadlineDate.toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">
+                    Batas akhir periode belum ditetapkan admin.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {daysLeft !== null && (
+              <div
+                className={`text-center px-4 py-2 rounded-lg font-semibold shrink-0 ${daysLeft < 0
+                  ? "bg-red-100 text-red-700"
+                  : daysLeft <= 14
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-emerald-50 text-emerald-700"
+                  }`}
+              >
+                {daysLeft < 0 ? (
+                  <span className="text-sm">
+                    Periode berakhir — bimbingan dilanjutkan ke periode berikutnya
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-xl">{daysLeft}</span>
+                    <span className="text-sm block">hari tersisa</span>
+                  </>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Info Utama */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -341,6 +479,14 @@ const DashboardMahasiswa = () => {
           )}
         </motion.div>
       </motion.div>
+
+      {/* Overlay perayaan kelulusan */}
+      {showCelebration && (
+        <GraduationCelebration
+          nama={mahasiswa?.nama_lengkap || "Mahasiswa"}
+          onClose={closeCelebration}
+        />
+      )}
     </MahasiswaLayout>
   );
 };

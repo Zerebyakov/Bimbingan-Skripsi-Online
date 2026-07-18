@@ -20,7 +20,7 @@ import ExportToExcel from "./components/ExportToExcel";
 import PageMeta from "../../components/PageMeta";
 import StatusBadge from "../../components/ui/StatusBadge";
 import SimilarityBadge from "../../components/ui/SimilarityBadge";
-import { formatScore } from "../../utils/format";
+import { formatPercent } from "../../utils/format";
 
 const ListPengajuan = () => {
   const [pengajuan, setPengajuan] = useState([]);
@@ -470,7 +470,7 @@ const ListPengajuan = () => {
                               {item.SimilarityChecks[0].status_similarity}
                             </SimilarityBadge>
                             <p className="mt-1 text-gray-600">
-                              {formatScore(item.SimilarityChecks[0].max_score)}
+                              {formatPercent(item.SimilarityChecks[0].max_score)}
                             </p>
                             {item.SimilarityChecks[0].Results?.length > 0 && (
                               <button
@@ -506,8 +506,8 @@ const ListPengajuan = () => {
                             <p className="text-xs font-semibold text-gray-700 mb-2">
                               Judul terdahulu yang paling mirip
                               <span className="font-normal text-gray-400">
-                                {" "}· Threshold:{" "}
-                                {formatScore(item.SimilarityChecks[0].threshold_value, 2)}
+                                {" "}· Ambang batas:{" "}
+                                {formatPercent(item.SimilarityChecks[0].threshold_value, 0)}
                               </span>
                             </p>
                             <table className="w-full text-xs text-left text-gray-700 border border-gray-200 rounded overflow-hidden">
@@ -553,7 +553,7 @@ const ListPengajuan = () => {
                                         {r.source_year || "—"}
                                       </td>
                                       <td className="px-3 py-2 text-center font-medium">
-                                        {formatScore(r.similarity_score)}
+                                        {formatPercent(r.similarity_score)}
                                       </td>
                                       <td className="px-3 py-2 text-center">
                                         {r.is_similar ? (
