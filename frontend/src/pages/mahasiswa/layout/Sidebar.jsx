@@ -32,9 +32,10 @@ const Sidebar = ({ isOpen, onClose, desktopCollapsed = false }) => {
     ]
     return (
         <aside
-            className={`fixed top-0 left-0 h-full bg-gray-900 text-gray-200 shadow-xl z-40 transform transition-transform duration-300 ease-in-out
+            className={`fixed top-0 left-0 h-full w-64 bg-gray-900 text-gray-200 shadow-xl z-40 flex flex-col transform transition-all duration-300 ease-in-out
       ${isOpen ? "translate-x-0" : "-translate-x-full"}
-      ${desktopCollapsed ? "md:hidden" : "md:static md:translate-x-0"}
+      md:static md:translate-x-0
+      ${desktopCollapsed ? "md:w-0 md:overflow-hidden" : "md:w-64"}
       w-64`}
         >
             {/* Header */}

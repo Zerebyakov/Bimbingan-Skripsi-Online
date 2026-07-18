@@ -10,7 +10,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { setUser } = useAuth();
+  const { setUser, getMe } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,10 @@ const Login = () => {
 
       setUser(response.data.data);
       const role = response.data.data.role;
+
+      // Muat profil lengkap (nama, foto, relasi Dosen/Mahasiswa) SEBELUM
+      // pindah halaman, agar navbar langsung menampilkan nama & foto user.
+      await getMe();
 
       if (role === "admin") navigate("/admin/dashboard");
       else if (role === "dosen") navigate("/dosen/dashboard");

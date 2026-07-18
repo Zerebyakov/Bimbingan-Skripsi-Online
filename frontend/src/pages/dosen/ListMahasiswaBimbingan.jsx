@@ -5,6 +5,7 @@ import { baseUrl, imageUrl } from "../../components/api/myAPI";
 import { RefreshCw, MessageSquare, FileDown, Loader2, Search } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../context/AuthContext";
+import { initSocket } from "../../services/Socket";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -57,6 +58,42 @@ const ListMahasiswaBimbingan = () => {
     useEffect(() => {
         fetchMahasiswaBimbingan();
     }, []);
+
+    // Real-time: dengarkan pesan baru dari semua room bimbingan sehingga
+    // daftar otomatis terurut ulang (dan badge unread ter-update) tanpa refresh
+    useEffect(() => {
+        if (!user?.id_user || bimbingan.length === 0) return;
+
+        const socket = initSocket(user.id_user);
+        const roomIds = bimbingan.map((b) => b.id_pengajuan);
+        roomIds.forEach((id) => socket.emit("joinRoom", id));
+
+        const handleNewMessage = (msg) => {
+            setBimbingan((prev) =>
+                prev.map((item) =>
+                    Number(item.id_pengajuan) === Number(msg.id_pengajuan)
+                        ? {
+                            ...item,
+                            Messages: [
+                                msg,
+                                ...(item.Messages || []).filter(
+                                    (m) => m.id_message !== msg.id_message
+                                ),
+                            ].slice(0, 5),
+                        }
+                        : item
+                )
+            );
+        };
+
+        socket.on("message:new", handleNewMessage);
+
+        return () => {
+            socket.off("message:new", handleNewMessage);
+            roomIds.forEach((id) => socket.emit("leaveRoom", id));
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bimbingan.length, user?.id_user]);
 
     // Progress
     const getProgressData = (babSubmissions = []) => {

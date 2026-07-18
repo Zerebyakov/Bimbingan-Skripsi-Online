@@ -24,12 +24,15 @@ import {
 } from "recharts";
 import { motion } from "framer-motion"; // optional animasi, jalankan: npm install framer-motion
 import PageMeta from "../../components/PageMeta";
+import { useNavigate } from "react-router";
 
 const DashboardAdmin = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [arsipStats, setArsipStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAllLogs, setShowAllLogs] = useState(false);
 
   // Fetch main dashboard
   const fetchDashboard = async () => {
@@ -123,19 +126,24 @@ const DashboardAdmin = () => {
             </p>
           </div>
 
-          {/* Backup seluruh data (JSON, tanpa password) */}
+          {/* Backup database: SQL (mysqldump, bisa di-restore) atau JSON */}
           <button
             onClick={async () => {
-              const confirm = await Swal.fire({
+              const result = await Swal.fire({
                 icon: "question",
-                title: "Export Database?",
-                text: "Seluruh data utama akan diunduh sebagai file JSON (tanpa password pengguna).",
+                title: "Backup Database",
+                text: "Pilih format backup. SQL dapat di-restore utuh ke MySQL; JSON untuk ekspor data yang mudah dibaca.",
                 showCancelButton: true,
-                confirmButtonText: "Ya, unduh",
+                showDenyButton: true,
+                confirmButtonText: "Backup SQL",
+                denyButtonText: "Export JSON",
                 cancelButtonText: "Batal",
                 confirmButtonColor: "#1f2937",
+                denyButtonColor: "#4b5563",
               });
-              if (confirm.isConfirmed) {
+              if (result.isConfirmed) {
+                window.open(`${baseUrl}admin/export-database-sql`, "_blank");
+              } else if (result.isDenied) {
                 window.open(`${baseUrl}admin/export-database`, "_blank");
               }
             }}
@@ -314,11 +322,16 @@ const DashboardAdmin = () => {
           </div>
         </section>
 
-        {/* Progress Pengajuan */}
+        {/* Progress Pengajuan (ringkas: 5 terbaru + tautan ke halaman lengkap) */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">
-            Pengajuan Terbaru
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Pengajuan Terbaru
+            </h2>
+            <span className="text-xs text-gray-400">
+              {progress.length} pengajuan
+            </span>
+          </div>
           {progress.length === 0 ? (
             <p className="text-gray-500 text-sm italic">
               Belum ada pengajuan baru.
@@ -335,7 +348,10 @@ const DashboardAdmin = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {progress.map((item) => (
+                  {[...progress]
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .slice(0, 5)
+                    .map((item) => (
                     <tr
                       key={item.id_pengajuan}
                       className="border-t hover:bg-gray-50"
@@ -361,6 +377,17 @@ const DashboardAdmin = () => {
                   ))}
                 </tbody>
               </table>
+
+              {progress.length > 5 && (
+                <div className="bg-gray-50 border border-t-0 border-gray-200 rounded-b-lg px-4 py-2.5 text-right">
+                  <button
+                    onClick={() => navigate("/admin/judul")}
+                    className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+                  >
+                    Lihat semua {progress.length} pengajuan →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -375,21 +402,39 @@ const DashboardAdmin = () => {
               Belum ada aktivitas tercatat.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-200 bg-white rounded-lg border border-gray-200 shadow-sm">
-              {logs.map((log) => (
-                <li key={log.id_log} className="p-4 hover:bg-gray-50">
-                  <p className="text-gray-800 text-sm font-medium">
-                    {log.description}
-                  </p>
-                  <p className="text-gray-500 text-xs mt-1">
-                    {new Date(log.createdAt).toLocaleString("id-ID")}
-                  </p>
-                  <p className="text-gray-400 text-xs italic">
-                    oleh {log.User?.email}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="divide-y divide-gray-200 bg-white rounded-lg border border-gray-200 shadow-sm">
+                {(showAllLogs ? logs : logs.slice(0, 5)).map((log) => (
+                  <li key={log.id_log} className="px-4 py-3 hover:bg-gray-50">
+                    <p className="text-gray-800 text-sm font-medium">
+                      {log.description}
+                    </p>
+                    <p className="text-gray-400 text-xs mt-0.5">
+                      {new Date(log.createdAt).toLocaleString("id-ID", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      · {log.User?.email}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              {logs.length > 5 && (
+                <div className="text-center mt-2">
+                  <button
+                    onClick={() => setShowAllLogs(!showAllLogs)}
+                    className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+                  >
+                    {showAllLogs
+                      ? "Tampilkan lebih sedikit ▲"
+                      : `Tampilkan ${logs.length - 5} aktivitas lainnya ▼`}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       </motion.div>

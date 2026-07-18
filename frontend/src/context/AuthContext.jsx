@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { baseUrl } from "../components/api/myAPI";
 import axios from "axios";
+import { initPushNotifications } from "../services/PushNotification";
 
 const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
@@ -33,6 +34,13 @@ export const AuthProvider = ({ children }) => {
     useEffect(()=>{
         getMe();
     },[])
+
+    // Daftarkan push notification setelah user login (build produksi saja)
+    useEffect(() => {
+        if (user?.id_user && import.meta.env.PROD) {
+            initPushNotifications();
+        }
+    }, [user?.id_user]);
 
     return (
         <AuthContext.Provider value={{ user, setUser, getMe, loading, logout }}>

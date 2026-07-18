@@ -255,10 +255,30 @@ const Navbar = ({ onToggleSidebar }) => {
                 {/* 👤 User menu */}
                 <Menu as="div" className="relative">
                     <Menu.Button className="flex items-center gap-2 focus:outline-none">
-                        <span className="hidden sm:block text-sm text-gray-800 font-medium truncate max-w-[140px]">
-                            {/* Asosiasi User-Dosen adalah hasOne → properti "Dosen" (tunggal) */}
-                            {user?.Dosen?.nama || user?.profile?.nama || user?.Dosens?.[0]?.nama || "Dosen"}
-                        </span>
+                        {/* Foto profil dosen (asosiasi hasOne → properti "Dosen" tunggal) */}
+                        {(() => {
+                            const fotoDosen = user?.Dosen?.foto || user?.profile?.foto || null;
+                            const namaDosen =
+                                user?.Dosen?.nama || user?.profile?.nama || user?.Dosens?.[0]?.nama || "Dosen";
+                            return (
+                                <>
+                                    {fotoDosen ? (
+                                        <img
+                                            src={fotoDosen}
+                                            alt={namaDosen}
+                                            className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center text-xs font-semibold">
+                                            {namaDosen.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                    <span className="hidden sm:block text-sm text-gray-800 font-medium truncate max-w-[140px]">
+                                        {namaDosen}
+                                    </span>
+                                </>
+                            );
+                        })()}
                         <ChevronDown className="w-4 h-4 text-gray-600" />
                     </Menu.Button>
 

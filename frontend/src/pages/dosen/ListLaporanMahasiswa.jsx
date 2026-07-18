@@ -12,6 +12,7 @@ import {
   Edit3,
   Loader2,
   StickyNote,
+  Search,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,7 @@ const ListLaporanMahasiswa = () => {
 
   // filter: all | diterima | revisi | ditolak | belum_upload
   const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,8 +112,17 @@ const ListLaporanMahasiswa = () => {
     window.open(url, "_blank");
   };
 
-  // Filtering logic based on `filter`
+  // Filtering logic based on `filter` + pencarian nama/NIM/judul
   const filteredList = bimbingan.filter((item) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const cocok =
+        item.Mahasiswa?.nama_lengkap?.toLowerCase().includes(q) ||
+        item.Mahasiswa?.nim?.toLowerCase().includes(q) ||
+        item.title?.toLowerCase().includes(q);
+      if (!cocok) return false;
+    }
+
     const laporan = item.LaporanAkhir;
     if (filter === "all") return true;
     if (filter === "belum_upload") {
@@ -129,6 +140,25 @@ const ListLaporanMahasiswa = () => {
     (safePage - 1) * itemsPerPage,
     safePage * itemsPerPage
   );
+
+  // Jendela nomor halaman terbatas (konsisten dengan halaman Pengajuan Judul)
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else if (safePage <= 3) {
+      for (let i = 1; i <= 5; i++) pages.push(i);
+      pages.push("...", totalPages);
+    } else if (safePage >= totalPages - 2) {
+      pages.push(1, "...");
+      for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1, "...");
+      for (let i = safePage - 1; i <= safePage + 1; i++) pages.push(i);
+      pages.push("...", totalPages);
+    }
+    return pages;
+  };
 
   const openReview = (item) => {
     const laporan = item.LaporanAkhir;
@@ -249,6 +279,21 @@ const ListLaporanMahasiswa = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            {/* Pencarian */}
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Cari nama, NIM, atau judul..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-gray-400 outline-none text-sm"
+              />
+              <Search size={16} className="absolute top-2.5 left-3 text-gray-400" />
+            </div>
+
             {/* Filter */}
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm w-full sm:w-auto">
               <label className="text-xs text-gray-500 whitespace-nowrap">Filter</label>
@@ -444,9 +489,9 @@ const ListLaporanMahasiswa = () => {
           </div>
         )}
 
-        {/* PAGINATION */}
+        {/* PAGINATION: Prev/Next + jendela nomor (seperti halaman Pengajuan Judul) */}
         {!loading && filteredList.length > itemsPerPage && (
-          <div className="flex justify-center items-center gap-2 mt-8">
+          <div className="flex justify-center items-center gap-2 mt-8 flex-wrap">
             <button
               onClick={() => setCurrentPage(safePage - 1)}
               disabled={safePage === 1}
@@ -458,9 +503,26 @@ const ListLaporanMahasiswa = () => {
             >
               <ChevronLeft size={14} /> Prev
             </button>
-            <span className="text-sm text-gray-600">
-              Halaman <b>{safePage}</b> dari <b>{totalPages}</b>
-            </span>
+
+            {getPageNumbers().map((page, idx) =>
+              page === "..." ? (
+                <span key={`ellipsis-${idx}`} className="px-2 py-1.5 text-sm text-gray-500">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${safePage === page
+                    ? "bg-gray-800 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                >
+                  {page}
+                </button>
+              )
+            )}
+
             <button
               onClick={() => setCurrentPage(safePage + 1)}
               disabled={safePage === totalPages}
