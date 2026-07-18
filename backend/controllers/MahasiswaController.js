@@ -12,6 +12,7 @@ import LogAktivitas from "../models/LogAktivitas.js";
 import User from "../models/User.js";
 import PeriodeSkripsi from "../models/PeriodeSkripsi.js";
 import ProgramStudi from "../models/ProgramStudi.js";
+import Arsip from "../models/Arsip.js";
 
 
 
@@ -76,6 +77,7 @@ export const getMahasiswaDashboard = async (req, res) => {
                     model: LaporanAkhir,
                     as: 'LaporanAkhir'
                 },
+                { model: Arsip }, // ada baris Arsip = skripsi sudah selesai
                 {
                     model: PengajuanSimilarityCheck,
                     as: "SimilarityChecks",
@@ -113,6 +115,11 @@ export const getMahasiswaDashboard = async (req, res) => {
             limit: 10
         });
 
+        // Periode aktif untuk info deadline bimbingan di dashboard
+        const periodeAktif = await PeriodeSkripsi.findOne({
+            where: { isActive: true }
+        });
+
         res.status(200).json({
             success: true,
             data: {
@@ -121,7 +128,8 @@ export const getMahasiswaDashboard = async (req, res) => {
                 laporan,
                 laporanAkhir: laporan,
                 progress,
-                notifikasi
+                notifikasi,
+                periodeAktif
             }
         });
     } catch (error) {

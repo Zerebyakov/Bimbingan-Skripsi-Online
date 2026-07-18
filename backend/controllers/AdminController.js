@@ -9,6 +9,9 @@ import User from "../models/User.js";
 import ProgramStudi from "../models/ProgramStudi.js";
 import argon2 from 'argon2'
 import PeriodeSkripsi from "../models/PeriodeSkripsi.js";
+import LaporanAkhir from "../models/LaporanAkhir.js";
+import KartuBimbingan from "../models/KartuBimbingan.js";
+import Message from "../models/Message.js";
 
 
 // Dashboard admin - statistik global
@@ -74,6 +77,61 @@ export const getDashboardStats = async (req, res) => {
             }
         });
     } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+// Export seluruh data utama sebagai backup JSON.
+// Kolom sensitif (password) tidak ikut diekspor.
+export const exportDatabase = async (req, res) => {
+    try {
+        const [
+            users, prodi, mahasiswa, dosen, periode,
+            pengajuan, bab, laporan, kartu, arsip, messages, logs
+        ] = await Promise.all([
+            User.findAll({ attributes: { exclude: ['password'] } }),
+            ProgramStudi.findAll(),
+            Mahasiswa.findAll(),
+            Dosen.findAll(),
+            PeriodeSkripsi.findAll(),
+            PengajuanJudul.findAll(),
+            BabSubmission.findAll(),
+            LaporanAkhir.findAll(),
+            KartuBimbingan.findAll(),
+            Arsip.findAll(),
+            Message.findAll(),
+            LogAktivitas.findAll({ order: [['createdAt', 'DESC']], limit: 1000 }),
+        ]);
+
+        const backup = {
+            exportedAt: new Date().toISOString(),
+            exportedBy: req.session.userId,
+            system: "Bimbingan Skripsi Online",
+            tables: {
+                users,
+                program_studi: prodi,
+                mahasiswa,
+                dosen,
+                periode_skripsi: periode,
+                pengajuan_judul: pengajuan,
+                bab_submission: bab,
+                laporan_akhir: laporan,
+                kartu_bimbingan: kartu,
+                arsip,
+                messages,
+                log_aktivitas: logs,
+            },
+        };
+
+        const fileName = `backup-bimbingan-${new Date().toISOString().slice(0, 10)}.json`;
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.status(200).send(JSON.stringify(backup, null, 2));
+    } catch (error) {
+        console.error('Error in exportDatabase:', error);
         res.status(500).json({
             success: false,
             message: "Internal server error",

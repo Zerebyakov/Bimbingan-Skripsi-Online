@@ -4,9 +4,31 @@ import LogAktivitas from "../models/LogAktivitas.js";
 import { Op } from "sequelize";
 import db from "../config/Database.js";
 
+// Penjaga konsistensi: sistem hanya boleh punya SATU periode aktif.
+// Jika karena data lama / kondisi balapan ada lebih dari satu,
+// pertahankan yang terakhir diubah dan nonaktifkan sisanya.
+export const enforceSingleActivePeriode = async () => {
+    const actives = await PeriodeSkripsi.findAll({
+        where: { isActive: true },
+        order: [["updatedAt", "DESC"]],
+    });
+
+    if (actives.length > 1) {
+        const keepId = actives[0].id_periode;
+        await PeriodeSkripsi.update(
+            { isActive: false },
+            { where: { isActive: true, id_periode: { [Op.ne]: keepId } } }
+        );
+        console.warn(
+            `[periode] Ditemukan ${actives.length} periode aktif; hanya id ${keepId} yang dipertahankan.`
+        );
+    }
+};
+
 // Get all periode skripsi dengan filter dan pagination
 export const getAllPeriode = async (req, res) => {
     try {
+        await enforceSingleActivePeriode();
         const {
             page = 1,
             limit = 10,
@@ -53,6 +75,8 @@ export const getAllPeriode = async (req, res) => {
 // Get periode aktif
 export const getPeriodeAktif = async (req, res) => {
     try {
+        await enforceSingleActivePeriode();
+
         const periodeAktif = await PeriodeSkripsi.findOne({
             where: { isActive: true }
         });
@@ -249,8 +273,13 @@ export const updatePeriode = async (req, res) => {
             }
         }
 
-        // Jika isActive = true, nonaktifkan periode lain
-        if (isActive === true) {
+        // Normalisasi nilai (boolean true / string "true" / angka 1) agar
+        // pengaktifan tidak lolos tanpa menonaktifkan periode lain.
+        const willActivate =
+            isActive === true || isActive === "true" || isActive === 1;
+
+        // Jika periode ini akan aktif, nonaktifkan periode lain
+        if (willActivate) {
             await PeriodeSkripsi.update(
                 { isActive: false },
                 {
@@ -267,7 +296,7 @@ export const updatePeriode = async (req, res) => {
         await periode.update({
             tahun_akademik: tahun_akademik || periode.tahun_akademik,
             semester: semester || periode.semester,
-            isActive: isActive !== undefined ? isActive : periode.isActive
+            isActive: isActive !== undefined ? willActivate : periode.isActive
         }, { transaction });
 
         // Log aktivitas
