@@ -34,24 +34,53 @@ USE_SEMANTIC_NORM = bool(threshold_config.get("use_semantic_norm", False))
 
 # ---- normalisasi lexicon (opsional, identik dgn training v8) ----
 def _build_lexicon_map(path):
-    if not (USE_SEMANTIC_NORM and os.path.exists(path)):
+    if not USE_SEMANTIC_NORM:
+        return {}
+    if not os.path.exists(path):
+        print(f"[lexicon] use_semantic_norm aktif tetapi file tidak ditemukan: {path}")
         return {}
     try:
         import pandas as pd
         lex = pd.read_csv(path)
-    except Exception:
+    except Exception as e:
+        print(f"[lexicon] gagal membaca {path}: {e}")
+        return {}
+    # Toleran terhadap variasi nama kolom hasil ekspor notebook
+    src_col = next((c for c in lex.columns if c.lower() in ("source_phrase", "source", "phrase", "variant")), None)
+    can_col = next((c for c in lex.columns if c.lower() in ("canonical_phrase", "canonical", "target")), None)
+    if not src_col or not can_col:
+        print(f"[lexicon] kolom tidak dikenali di {path}: {list(lex.columns)}")
         return {}
     def n(x):
         return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", str(x).lower())).strip()
     mapping = {}
     for _, r in lex.iterrows():
-        s, c = n(r["source_phrase"]), n(r["canonical_phrase"])
+        s, c = n(r[src_col]), n(r[can_col])
         if s and c and s != c:
             mapping[s] = c
     return dict(sorted(mapping.items(), key=lambda kv: -len(kv[0])))
 
 
 LEXICON_MAP = _build_lexicon_map(LEXICON_PATH)
+if USE_SEMANTIC_NORM and not LEXICON_MAP:
+    print("[lexicon] PERINGATAN: normalisasi semantik aktif tetapi lexicon kosong — "
+          "preprocessing berjalan tanpa substitusi frasa.")
+
+
+# ---- cache embedding kandidat: hanya encode judul yang belum pernah dilihat ----
+EMBED_CACHE_MAX = 20000
+_embed_cache = {}
+
+
+def encode_candidates_cached(clean_titles):
+    missing = [t for t in clean_titles if t not in _embed_cache]
+    if missing:
+        vecs = model.encode(missing, normalize_embeddings=True, batch_size=64)
+        if len(_embed_cache) + len(missing) > EMBED_CACHE_MAX:
+            _embed_cache.clear()
+        for t, v in zip(missing, vecs):
+            _embed_cache[t] = np.asarray(v, dtype=np.float32)
+    return np.stack([_embed_cache[t] for t in clean_titles])
 
 
 def preprocess_text(text: str) -> str:
@@ -130,7 +159,10 @@ class SearchRequest(BaseModel):
 @app.get("/health")
 def health_check():
     return {"status": "ok", "model_path": MODEL_PATH, "threshold": DEFAULT_THRESHOLD,
-            "z_threshold": Z_THRESHOLD, "use_semantic_norm": USE_SEMANTIC_NORM}
+            "z_threshold": Z_THRESHOLD, "strong_threshold": STRONG_THRESHOLD,
+            "use_semantic_norm": USE_SEMANTIC_NORM,
+            "lexicon_path": LEXICON_PATH, "lexicon_loaded": bool(LEXICON_MAP),
+            "lexicon_size": len(LEXICON_MAP), "embed_cache_size": len(_embed_cache)}
 
 
 @app.post("/similarity/pair")
@@ -166,10 +198,11 @@ def similarity_search(payload: SearchRequest):
                 "total_candidates": 0, "max_score": 0, "robust_z": 0.0,
                 "status": "AMAN", "results": []}
 
-    q = model.encode(query_clean, convert_to_tensor=True, normalize_embeddings=True)
-    cemb = model.encode([c["clean_title"] for c in candidates],
-                        convert_to_tensor=True, normalize_embeddings=True, batch_size=64)
-    scores = util.cos_sim(q, cemb)[0].cpu().numpy()
+    # Query selalu di-encode; kandidat diambil dari cache (embedding sudah dinormalisasi,
+    # sehingga cosine similarity = dot product).
+    q = np.asarray(model.encode(query_clean, normalize_embeddings=True), dtype=np.float32)
+    cemb = encode_candidates_cached([c["clean_title"] for c in candidates])
+    scores = cemb @ q
 
     ranked = sorted(zip(candidates, scores), key=lambda x: float(x[1]), reverse=True)
     sorted_scores = [float(s) for _, s in ranked]
