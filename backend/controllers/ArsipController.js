@@ -101,13 +101,13 @@ export const createArsip = async (req, res) => {
             console.warn(`Kartu bimbingan tidak ditemukan untuk pengajuan ${id_pengajuan}`);
         }
 
-        // Create arsip
+        // Create arsip (kartuBimbinganFile = nama file PDF di uploads/kartu)
         const arsip = await Arsip.create({
             id_pengajuan,
             tanggalSelesai: new Date(),
             status: 'SELESAI',
             fileFinal: laporanAkhir.finalFile || null,
-            kartuBimbinganFile: kartuBimbingan?.nomorKartu || null
+            kartuBimbinganFile: kartuBimbingan?.filePath || null
         });
 
         // Log aktivitas

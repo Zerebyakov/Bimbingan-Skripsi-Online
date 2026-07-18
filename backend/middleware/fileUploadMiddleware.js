@@ -39,6 +39,12 @@ const storageConfig = {
         limit: 5 * 1024 * 1024, // 5MB
         filter: [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".txt"],
     },
+    kartu: {
+        folder: "uploads/kartu/",
+        prefix: "kartu-",
+        limit: 10 * 1024 * 1024, // 10MB
+        filter: [".pdf"],
+    },
     fotoDosen: {
         folder: "uploads/users/dosen/",
         prefix: "dosen-",

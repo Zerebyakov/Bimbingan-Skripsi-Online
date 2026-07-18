@@ -61,12 +61,21 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Produksi (HTTPS): set COOKIE_SECURE=true di .env agar session cookie
+// hanya dikirim lewat HTTPS. Default false untuk pengembangan lokal.
+const useSecureCookie = process.env.COOKIE_SECURE === 'true';
+if (useSecureCookie) {
+    app.set('trust proxy', 1); // di belakang reverse proxy (nginx, dsb.)
+}
+
 app.use(session({
     secret: process.env.SESS_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false
+        secure: useSecureCookie,
+        sameSite: useSecureCookie ? 'none' : 'lax'
     },
     name: 'sessionId'
 }));
@@ -119,7 +128,11 @@ app.get('/', (req, res) => {
 
 // Listen menggunakan server, bukan app
 const PORT = process.env.PORT_APP;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🔌 Socket.IO ready for connections`);
+
+    // Pengingat deadline periode bimbingan (H-30/14/7/3/1)
+    const { startDeadlineReminder } = await import('./services/deadlineReminder.js');
+    startDeadlineReminder(io);
 });

@@ -5,8 +5,10 @@ import {
     deleteBab,
     generateKartuBimbingan,
     getMahasiswaDashboard,
+    getRiwayatPeriode,
     updatePengajuanJudul,
     uploadBab,
+    uploadKartuBimbingan,
     uploadLaporanAkhir,
 } from "../controllers/MahasiswaController.js";
 import upload, { handleUploadError } from "../middleware/fileUploadMiddleware.js";
@@ -67,6 +69,18 @@ router.get(
     logActivity("GENERATE_KARTU", "Mahasiswa generate kartu bimbingan"),
     generateKartuBimbingan
 );
+
+// Simpan file PDF kartu bimbingan (untuk arsip admin)
+router.post(
+    "/kartu-bimbingan/upload",
+    upload("kartu"),
+    handleUploadError,
+    logActivity("UPLOAD_KARTU", "Mahasiswa menyimpan file kartu bimbingan"),
+    uploadKartuBimbingan
+);
+
+// Riwayat periode skripsi
+router.get("/periode", getRiwayatPeriode);
 
 // Laporan Akhir
 router.post("/laporan-akhir",

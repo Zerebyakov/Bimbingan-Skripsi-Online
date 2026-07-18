@@ -491,6 +491,95 @@ export const deleteBab = async (req, res) => {
     }
 };
 
+// Simpan file PDF kartu bimbingan hasil generate frontend agar
+// tersedia di arsip (halaman admin) dan bisa diunduh kapan pun.
+export const uploadKartuBimbingan = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "Tidak ada file kartu yang diunggah",
+            });
+        }
+
+        const mahasiswaData = await Mahasiswa.findOne({
+            where: { id_user: req.session.userId },
+        });
+
+        if (!mahasiswaData) {
+            return res.status(404).json({
+                success: false,
+                message: "Data mahasiswa tidak ditemukan",
+            });
+        }
+
+        const pengajuan = await PengajuanJudul.findOne({
+            where: { id_mahasiswa: mahasiswaData.id_mahasiswa, status: "diterima" },
+        });
+
+        const kartu = pengajuan
+            ? await KartuBimbingan.findOne({
+                where: { id_pengajuan: pengajuan.id_pengajuan },
+            })
+            : null;
+
+        if (!kartu) {
+            return res.status(404).json({
+                success: false,
+                message: "Kartu bimbingan belum digenerate",
+            });
+        }
+
+        // Ganti file lama jika ada
+        if (kartu.filePath) {
+            deleteOldFile(`uploads/kartu/${kartu.filePath}`);
+        }
+
+        await kartu.update({ filePath: req.file.filename });
+
+        // Sinkronkan ke arsip jika skripsi sudah diarsipkan
+        const arsip = await Arsip.findOne({
+            where: { id_pengajuan: pengajuan.id_pengajuan },
+        });
+        if (arsip) {
+            await arsip.update({ kartuBimbinganFile: req.file.filename });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "File kartu bimbingan berhasil disimpan",
+            data: { filePath: req.file.filename },
+        });
+    } catch (error) {
+        console.error("Upload Kartu Bimbingan Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan pada server",
+        });
+    }
+};
+
+// Riwayat periode skripsi (dibaca mahasiswa untuk konteks lintas semester)
+export const getRiwayatPeriode = async (req, res) => {
+    try {
+        const periode = await PeriodeSkripsi.findAll({
+            attributes: [
+                "id_periode", "tahun_akademik", "semester", "isActive",
+                "tanggalMulaiBimbingan", "tanggalSelesaiBimbingan"
+            ],
+            order: [["tahun_akademik", "DESC"], ["semester", "DESC"]],
+        });
+
+        res.status(200).json({ success: true, data: periode });
+    } catch (error) {
+        console.error("Riwayat Periode Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan pada server",
+        });
+    }
+};
+
 // Generate kartu bimbingan
 export const generateKartuBimbingan = async (req, res) => {
     try {
