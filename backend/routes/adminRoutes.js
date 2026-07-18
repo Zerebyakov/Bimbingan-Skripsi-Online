@@ -1,5 +1,5 @@
 import express from 'express'
-import { assignDosenPembimbing, createUser, deleteUser, exportDatabase, getAllDosen, getAllMahasiswa, getDashboardStats, getKonfigurasi, toggleUserStatus, updateKonfigurasi, updateUser } from '../controllers/AdminController.js';
+import { assignDosenPembimbing, backupDatabaseSQL, createUser, deleteUser, exportDatabase, getAllDosen, getAllMahasiswa, getDashboardStats, getKonfigurasi, toggleUserStatus, updateKonfigurasi, updateUser } from '../controllers/AdminController.js';
 import { logActivity } from '../middleware/loggingMiddleware.js';
 import { verifyAdmin, verifySession } from '../middleware/authMiddleware.js';
 import { validateAssignDosen, validateCreatePeriode, validateCreateUser, validatePagination, validateUpdatePeriode, validateUpdateUser } from '../middleware/validationMiddleware.js';
@@ -23,6 +23,12 @@ router.get('/dashboard', getDashboardStats);
 router.get('/export-database',
     logActivity('EXPORT_DATABASE', 'Admin mengekspor backup database'),
     exportDatabase
+);
+
+// Backup database penuh format SQL (mysqldump)
+router.get('/export-database-sql',
+    logActivity('BACKUP_SQL', 'Admin membuat backup SQL database'),
+    backupDatabaseSQL
 );
 
 // Konfigurasi routes

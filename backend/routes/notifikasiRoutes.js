@@ -1,6 +1,6 @@
 import express from 'express'
 import { verifyAllRoles, verifySession } from '../middleware/authMiddleware.js';
-import { getNotifikasi, getUnreadCount, markAllAsRead, markAsRead } from '../controllers/NotifikasiController.js';
+import { getNotifikasi, getPushPublicKey, getUnreadCount, markAllAsRead, markAsRead, subscribePush, unsubscribePush } from '../controllers/NotifikasiController.js';
 import { validatePagination } from '../middleware/validationMiddleware.js';
 
 
@@ -23,5 +23,10 @@ router.put('/:id_notif/read', markAsRead);
 
 // Mark all as read
 router.put('/read-all', markAllAsRead);
+
+// Web Push
+router.get('/push/public-key', getPushPublicKey);
+router.post('/push/subscribe', subscribePush);
+router.post('/push/unsubscribe', unsubscribePush);
 
 export default router;

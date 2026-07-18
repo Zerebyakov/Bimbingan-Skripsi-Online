@@ -12,6 +12,7 @@ import PeriodeSkripsi from "../models/PeriodeSkripsi.js";
 import LaporanAkhir from "../models/LaporanAkhir.js";
 import KartuBimbingan from "../models/KartuBimbingan.js";
 import Message from "../models/Message.js";
+import { spawn } from "child_process";
 
 
 // Dashboard admin - statistik global
@@ -136,6 +137,58 @@ export const exportDatabase = async (req, res) => {
             success: false,
             message: "Internal server error",
         });
+    }
+};
+
+// Backup database penuh dalam format SQL via mysqldump.
+// Butuh mysqldump di PATH server, atau set MYSQLDUMP_PATH di .env
+// (contoh XAMPP: C:\xampp\mysql\bin\mysqldump.exe).
+export const backupDatabaseSQL = async (req, res) => {
+    const dumpCmd = process.env.MYSQLDUMP_PATH || "mysqldump";
+    const args = [
+        `-h${process.env.DB_HOST || "localhost"}`,
+        `-u${process.env.DB_USER}`,
+    ];
+    if (process.env.DB_PASS) args.push(`-p${process.env.DB_PASS}`);
+    args.push("--single-transaction", "--routines", process.env.DB_NAME);
+
+    const chunks = [];
+    let errOutput = "";
+    let responded = false;
+
+    const fail = (message) => {
+        if (responded) return;
+        responded = true;
+        console.error("Backup SQL gagal:", message);
+        res.status(500).json({ success: false, message });
+    };
+
+    try {
+        const dump = spawn(dumpCmd, args);
+
+        dump.stdout.on("data", (chunk) => chunks.push(chunk));
+        dump.stderr.on("data", (chunk) => { errOutput += chunk.toString(); });
+
+        dump.on("error", (err) => {
+            fail(
+                `Tidak dapat menjalankan mysqldump (${err.message}). ` +
+                `Pastikan mysqldump tersedia di PATH atau set MYSQLDUMP_PATH di .env`
+            );
+        });
+
+        dump.on("close", (code) => {
+            if (responded) return;
+            if (code !== 0) {
+                return fail(`mysqldump keluar dengan kode ${code}: ${errOutput.slice(0, 300)}`);
+            }
+            responded = true;
+            const fileName = `backup-bimbingan-${new Date().toISOString().slice(0, 10)}.sql`;
+            res.setHeader("Content-Type", "application/sql");
+            res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+            res.status(200).send(Buffer.concat(chunks));
+        });
+    } catch (error) {
+        fail(error.message);
     }
 };
 

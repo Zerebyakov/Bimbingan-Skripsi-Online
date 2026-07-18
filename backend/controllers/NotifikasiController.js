@@ -1,4 +1,5 @@
 import Notifikasi from "../models/Notifikasi.js";
+import PushSubscription from "../models/PushSubscription.js";
 
 
 
@@ -85,6 +86,79 @@ export const markAllAsRead = async (req, res) => {
             message: "Semua notifikasi ditandai telah dibaca"
         });
     } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+// === Web Push ===
+
+// Public key VAPID untuk frontend
+export const getPushPublicKey = async (req, res) => {
+    res.status(200).json({
+        success: true,
+        data: { publicKey: process.env.VAPID_PUBLIC_KEY || null },
+    });
+};
+
+// Simpan/refresh langganan push perangkat user
+export const subscribePush = async (req, res) => {
+    try {
+        const { endpoint, keys } = req.body;
+
+        if (!endpoint || !keys?.p256dh || !keys?.auth) {
+            return res.status(400).json({
+                success: false,
+                message: "Data langganan push tidak lengkap",
+            });
+        }
+
+        // Satu endpoint = satu perangkat; jika sudah ada, perbarui pemiliknya
+        const [subscription, created] = await PushSubscription.findOrCreate({
+            where: { endpoint },
+            defaults: {
+                id_user: req.session.userId,
+                endpoint,
+                p256dh: keys.p256dh,
+                auth: keys.auth,
+            },
+        });
+
+        if (!created) {
+            await subscription.update({
+                id_user: req.session.userId,
+                p256dh: keys.p256dh,
+                auth: keys.auth,
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Langganan push notification tersimpan",
+        });
+    } catch (error) {
+        console.error("Subscribe push error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+// Hapus langganan push perangkat ini
+export const unsubscribePush = async (req, res) => {
+    try {
+        const { endpoint } = req.body;
+        if (endpoint) {
+            await PushSubscription.destroy({
+                where: { endpoint, id_user: req.session.userId },
+            });
+        }
+        res.status(200).json({ success: true, message: "Langganan push dihapus" });
+    } catch (error) {
+        console.error("Unsubscribe push error:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",

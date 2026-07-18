@@ -135,4 +135,8 @@ server.listen(PORT, async () => {
     // Pengingat deadline periode bimbingan (H-30/14/7/3/1)
     const { startDeadlineReminder } = await import('./services/deadlineReminder.js');
     startDeadlineReminder(io);
+
+    // Web Push notification (VAPID); setiap Notifikasi.create otomatis dipush
+    const { initPushService } = await import('./services/pushService.js');
+    initPushService();
 });
