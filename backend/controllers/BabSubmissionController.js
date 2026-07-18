@@ -23,7 +23,6 @@ export const getBabSubmissions = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -55,7 +54,6 @@ export const getBabSubmissionById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -88,7 +86,6 @@ export const downloadBabFile = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };

@@ -6,6 +6,8 @@ import {
     getMessages,
     sendMessage,
     exportChatHistory,
+    updateMessage,
+    deleteMessage,
 } from "../controllers/ChatController.js";
 import {
     validateSendMessage,
@@ -33,6 +35,19 @@ router.get(
     "/pengajuan/:id_pengajuan/messages",
     validatePagination,
     getMessages
+);
+
+// Edit & hapus pesan (hanya pengirim, divalidasi di controller)
+router.put(
+    "/message/:id_message",
+    logActivity("EDIT_MESSAGE", (req) => `User mengedit pesan ${req.params.id_message}`),
+    updateMessage
+);
+
+router.delete(
+    "/message/:id_message",
+    logActivity("DELETE_MESSAGE", (req) => `User menghapus pesan ${req.params.id_message}`),
+    deleteMessage
 );
 
 // Export chat history

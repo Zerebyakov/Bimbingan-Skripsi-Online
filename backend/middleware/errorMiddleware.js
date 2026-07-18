@@ -30,9 +30,12 @@ export const errorHandler = (err, req, res, next) => {
         });
     }
 
-    res.status(err.status || 500).json({
+    // Pesan error internal (Sequelize/axios/dll) hanya masuk log server;
+    // klien menerima pesan generik kecuali error operasional yang menyetel err.status.
+    const status = err.status || 500;
+    res.status(status).json({
         success: false,
-        message: err.message || 'Internal Server Error'
+        message: status < 500 && err.message ? err.message : 'Internal Server Error'
     });
 };
 

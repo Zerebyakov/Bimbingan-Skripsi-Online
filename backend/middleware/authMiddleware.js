@@ -121,7 +121,6 @@ export const verifyPembimbing = async (req, res, next) => {
         return res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -149,7 +148,6 @@ export const verifyPembimbing1Only = async (req, res, next) => {
         return res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };

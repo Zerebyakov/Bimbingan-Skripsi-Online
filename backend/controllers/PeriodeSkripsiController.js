@@ -46,7 +46,6 @@ export const getAllPeriode = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -83,7 +82,6 @@ export const getPeriodeAktif = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -131,7 +129,6 @@ export const getPeriodeById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -211,7 +208,6 @@ export const createPeriode = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -293,7 +289,6 @@ export const updatePeriode = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -353,7 +348,6 @@ export const togglePeriodeStatus = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -409,7 +403,6 @@ export const deletePeriode = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -469,7 +462,6 @@ export const getPeriodeStatistics = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };

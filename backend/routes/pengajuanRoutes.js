@@ -1,5 +1,5 @@
 import express from 'express'
-import { verifyAdminOrDosen, verifyAllRoles, verifySession } from '../middleware/authMiddleware.js';
+import { verifyAdminOrDosen, verifyAllRoles, verifyMahasiswa, verifySession } from '../middleware/authMiddleware.js';
 import { 
     getAllPengajuanJudul, 
     getPengajuanJudulById, 
@@ -25,6 +25,7 @@ router.get('/:id_pengajuan', verifyAllRoles, getPengajuanJudulById);
 
 // Update pengajuan (mahasiswa only)
 router.put('/:id_pengajuan',
+    verifyMahasiswa,
     validatePengajuanJudul,
     logActivity('UPDATE_JUDUL', req => `User update pengajuan judul: ${req.body.title}`),
     updatePengajuanJudul

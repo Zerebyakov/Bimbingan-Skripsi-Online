@@ -308,7 +308,6 @@ export const reviewLaporanAkhir = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -345,7 +344,6 @@ export const getLaporanAkhir = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -384,7 +382,6 @@ export const getLaporanAkhirById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -433,7 +430,6 @@ export const getAllLaporanAkhir = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };

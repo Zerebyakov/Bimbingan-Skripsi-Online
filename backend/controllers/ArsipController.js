@@ -158,7 +158,6 @@ export const createArsip = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -240,7 +239,6 @@ export const getAllArsip = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -293,7 +291,6 @@ export const getArsipById = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -365,7 +362,6 @@ export const updateArsip = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -420,7 +416,6 @@ export const deleteArsip = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -498,7 +493,6 @@ export const exportArsip = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -575,7 +569,6 @@ export const getArsipStatistics = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };

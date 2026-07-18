@@ -6,6 +6,20 @@ import Message from "../models/Message.js";
 import Notifikasi from "../models/Notifikasi.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import User from "../models/User.js";
+import { deleteOldFile } from "../middleware/fileUploadMiddleware.js";
+
+// Include standar untuk pesan: pengirim beserta nama dosen/mahasiswa
+const messageInclude = [
+    {
+        model: User,
+        as: "User",
+        attributes: ["email", "role"],
+        include: [
+            { model: Dosen, attributes: ["nama"] },
+            { model: Mahasiswa, attributes: ["nama_lengkap"] },
+        ],
+    },
+];
 
 export const sendMessage = async (req, res) => {
     try {
@@ -50,17 +64,7 @@ export const sendMessage = async (req, res) => {
 
         // Ambil pesan lengkap dengan relasi
         const fullMsg = await Message.findByPk(newMsg.id_message, {
-            include: [
-                {
-                    model: User,
-                    as: "User",
-                    attributes: ["email", "role"],
-                    include: [
-                        { model: Dosen, attributes: ["nama"] },
-                        { model: Mahasiswa, attributes: ["nama_lengkap"] },
-                    ],
-                },
-            ],
+            include: messageInclude,
         });
 
         //  Emit ke room
@@ -101,7 +105,7 @@ export const sendMessage = async (req, res) => {
         res.status(201).json({ success: true, message: "Pesan berhasil dikirim", data: fullMsg });
     } catch (error) {
         console.error(" Send message error:", error);
-        res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };
 
@@ -144,7 +148,6 @@ export const getMessages = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -159,15 +162,18 @@ export const exportChatHistory = async (req, res) => {
                 { model: Mahasiswa },
                 {
                     model: Message,
+                    as: "Messages",
                     include: [{
                         model: User,
+                        as: "User",
                         include: [
                             { model: Dosen, attributes: ['nama'] },
                             { model: Mahasiswa, attributes: ['nama_lengkap'] }
                         ]
                     }]
                 }
-            ]
+            ],
+            order: [[{ model: Message, as: "Messages" }, 'createdAt', 'ASC']]
         });
 
         if (!pengajuan) {
@@ -178,10 +184,11 @@ export const exportChatHistory = async (req, res) => {
         }
 
         // Generate formatted chat history
+        // Catatan: asosiasi User-Dosen adalah hasOne, jadi propertinya "Dosen" (tunggal)
         const chatHistory = pengajuan.Messages.map(msg => ({
             timestamp: msg.createdAt,
             sender: msg.User.role === 'dosen' ?
-                (msg.User.Dosens[0]?.nama || 'Dosen') :
+                (msg.User.Dosen?.nama || 'Dosen') :
                 (msg.User.Mahasiswa?.nama_lengkap || 'Mahasiswa'),
             role: msg.User.role,
             content: msg.content,
@@ -203,7 +210,90 @@ export const exportChatHistory = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
+    }
+};
+
+// Edit pesan (hanya pengirim, hanya isi teks)
+export const updateMessage = async (req, res) => {
+    try {
+        const { id_message } = req.params;
+        const { content } = req.body;
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Isi pesan tidak boleh kosong",
+            });
+        }
+
+        const message = await Message.findByPk(id_message);
+        if (!message) {
+            return res.status(404).json({ success: false, message: "Pesan tidak ditemukan" });
+        }
+
+        if (Number(message.senderId) !== Number(req.session.userId)) {
+            return res.status(403).json({
+                success: false,
+                message: "Anda hanya dapat mengedit pesan Anda sendiri",
+            });
+        }
+
+        await message.update({ content: content.trim() });
+
+        const fullMsg = await Message.findByPk(id_message, { include: messageInclude });
+        io.to(`room_${message.id_pengajuan}`).emit("message:updated", fullMsg);
+
+        res.status(200).json({
+            success: true,
+            message: "Pesan berhasil diperbarui",
+            data: fullMsg,
+        });
+    } catch (error) {
+        console.error(" Update message error:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+// Hapus pesan (hanya pengirim; lampiran ikut dihapus)
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id_message } = req.params;
+
+        const message = await Message.findByPk(id_message);
+        if (!message) {
+            return res.status(404).json({ success: false, message: "Pesan tidak ditemukan" });
+        }
+
+        if (Number(message.senderId) !== Number(req.session.userId)) {
+            return res.status(403).json({
+                success: false,
+                message: "Anda hanya dapat menghapus pesan Anda sendiri",
+            });
+        }
+
+        // Hanya hapus file yang memang milik folder chat.
+        // attachmentPath yang mengandung "/" (mis. "bab/xxx.pdf") menunjuk file
+        // fitur lain (upload bab) dan tidak boleh ikut terhapus.
+        if (message.attachmentPath && !message.attachmentPath.includes("/")) {
+            deleteOldFile(`uploads/chat/${message.attachmentPath}`);
+        }
+
+        const payload = {
+            id_message: message.id_message,
+            id_pengajuan: message.id_pengajuan,
+        };
+
+        await message.destroy();
+        io.to(`room_${payload.id_pengajuan}`).emit("message:deleted", payload);
+
+        res.status(200).json({
+            success: true,
+            message: "Pesan berhasil dihapus",
+            data: payload,
+        });
+    } catch (error) {
+        console.error(" Delete message error:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 };

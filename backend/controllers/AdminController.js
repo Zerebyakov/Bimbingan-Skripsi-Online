@@ -31,6 +31,12 @@ export const getDashboardStats = async (req, res) => {
         // Statistik arsip
         const totalArsip = await Arsip.count();
 
+        // Mahasiswa yang sudah menyelesaikan skripsi = pengajuan yang telah diarsipkan
+        const mahasiswaSelesai = await Arsip.count({
+            distinct: true,
+            col: 'id_pengajuan'
+        });
+
         // Progress bimbingan (berdasarkan bab yang diterima)
         const progressData = await PengajuanJudul.findAll({
             where: { status: 'diterima' },
@@ -58,6 +64,7 @@ export const getDashboardStats = async (req, res) => {
                     pengajuanMenunggu,
                     totalMahasiswa,
                     mahasiswaAktif,
+                    mahasiswaSelesai, // Baru: jumlah mahasiswa yang sudah menyelesaikan skripsi
                     totalDosen,
                     dosenAktif,
                     totalArsip
@@ -70,7 +77,6 @@ export const getDashboardStats = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -97,7 +103,6 @@ export const getKonfigurasi = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -141,7 +146,6 @@ export const updateKonfigurasi = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -182,7 +186,6 @@ export const createUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -317,7 +320,6 @@ export const updateUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -378,7 +380,6 @@ export const deleteUser = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -436,7 +437,6 @@ export const toggleUserStatus = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -475,7 +475,6 @@ export const assignDosenPembimbing = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -569,7 +568,6 @@ export const getAllDosen = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -662,7 +660,6 @@ export const getAllMahasiswa = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };

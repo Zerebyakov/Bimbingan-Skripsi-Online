@@ -97,7 +97,6 @@ export const login = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -152,7 +151,6 @@ export const getProfile = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat mengambil data profil",
-            error: error.message,
         });
     }
 };
@@ -183,7 +181,6 @@ export const updatePassword = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -284,7 +281,6 @@ export const updateProfile = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat memperbarui profil",
-            error: error.message,
         });
     }
 };

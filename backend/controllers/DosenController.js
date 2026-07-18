@@ -8,6 +8,7 @@ import PengajuanJudul from "../models/PengajuanJudul.js";
 import { Op } from "sequelize";
 import User from "../models/User.js";
 import LaporanAkhir from "../models/LaporanAkhir.js";
+import Arsip from "../models/Arsip.js";
 import PengajuanSimilarityCheck from "../models/PengajuanSimilarityCheck.js";
 import PengajuanSimilarityResult from "../models/PengajuanSimilarityResult.js";
 
@@ -47,7 +48,21 @@ export const getDosenDashboard = async (req, res) => {
             }
         });
 
-        const bimbinganAktif = await PengajuanJudul.count({
+        //  NEW: Bimbingan selesai = pengajuan dosen ini yang sudah diarsipkan
+        const bimbinganSelesai = await Arsip.count({
+            include: [{
+                model: PengajuanJudul,
+                required: true,
+                where: {
+                    [Op.or]: [
+                        { dosenId1: dosenData.id_dosen },
+                        { dosenId2: dosenData.id_dosen }
+                    ]
+                }
+            }]
+        });
+
+        const bimbinganDiterima = await PengajuanJudul.count({
             where: {
                 status: 'diterima',
                 [Op.or]: [
@@ -56,6 +71,9 @@ export const getDosenDashboard = async (req, res) => {
                 ]
             }
         });
+
+        // Aktif = diterima tetapi belum diarsipkan
+        const bimbinganAktif = Math.max(bimbinganDiterima - bimbinganSelesai, 0);
 
         // Statistik berdasarkan role
         const sebagaiPembimbing1 = await PengajuanJudul.count({
@@ -74,8 +92,8 @@ export const getDosenDashboard = async (req, res) => {
             }
         });
 
-        // Mahasiswa bimbingan dengan progress
-        const mahasiswaBimbingan = await PengajuanJudul.findAll({
+        // Mahasiswa bimbingan dengan progress (yang sudah selesai/diarsipkan tidak ikut)
+        const mahasiswaBimbinganAll = await PengajuanJudul.findAll({
             where: {
                 status: 'diterima',
                 [Op.or]: [
@@ -85,9 +103,12 @@ export const getDosenDashboard = async (req, res) => {
             },
             include: [
                 { model: Mahasiswa },
-                { model: BabSubmission }
+                { model: BabSubmission },
+                { model: Arsip }
             ]
         });
+
+        const mahasiswaBimbingan = mahasiswaBimbinganAll.filter((p) => !p.Arsip);
 
         // Mahasiswa yang stagnan (tidak aktif >14 hari)
         const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -120,6 +141,7 @@ export const getDosenDashboard = async (req, res) => {
                 statistics: {
                     totalBimbingan,
                     bimbinganAktif,
+                    bimbinganSelesai, // Baru: jumlah mahasiswa yang sudah selesai (diarsipkan)
                     sebagaiPembimbing1,
                     sebagaiPembimbing2,
                     menungguReview // Baru
@@ -133,7 +155,6 @@ export const getDosenDashboard = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -319,7 +340,6 @@ export const reviewPengajuanJudul = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -448,7 +468,6 @@ export const reviewBabSubmission = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -501,6 +520,7 @@ export const getMahasiswaBimbingan = async (req, res) => {
                     ]
                 },
                 { model: LaporanAkhir },
+                { model: Arsip }, // ada baris Arsip = bimbingan sudah selesai
                 { model: Dosen, as: 'Pembimbing1', attributes: ['id_dosen', 'nama', 'gelar'] },
                 { model: Dosen, as: 'Pembimbing2', attributes: ['id_dosen', 'nama', 'gelar'] },
                 {
@@ -533,7 +553,8 @@ export const getMahasiswaBimbingan = async (req, res) => {
                 ...pengajuan.toJSON(),
                 myRole: isPembimbing1 ? 'pembimbing_utama' : 'pembimbing_pendamping',
                 canApprove: isPembimbing1, // Hanya pembimbing 1 bisa approve
-                canComment: true
+                canComment: true,
+                isSelesai: Boolean(pengajuan.Arsip) // sudah diarsipkan = selesai bimbingan
             };
         });
 
@@ -557,7 +578,6 @@ export const getMahasiswaBimbingan = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };

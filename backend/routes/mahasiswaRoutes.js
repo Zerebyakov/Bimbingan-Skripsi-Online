@@ -2,6 +2,7 @@ import express from "express";
 import { verifyMahasiswa, verifySession } from "../middleware/authMiddleware.js";
 import {
     ajukanJudul,
+    deleteBab,
     generateKartuBimbingan,
     getMahasiswaDashboard,
     updatePengajuanJudul,
@@ -51,6 +52,13 @@ router.post(
     validateUploadBab,
     logActivity("UPLOAD_BAB", (req) => `Mahasiswa upload Bab ${req.body.chapter_number}`),
     uploadBab
+);
+
+// Hapus Bab (hanya status revisi)
+router.delete(
+    "/delete-bab/:id_bab",
+    logActivity("DELETE_BAB", (req) => `Mahasiswa menghapus bab ${req.params.id_bab}`),
+    deleteBab
 );
 
 // Generate Kartu Bimbingan

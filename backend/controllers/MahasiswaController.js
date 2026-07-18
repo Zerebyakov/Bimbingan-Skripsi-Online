@@ -18,6 +18,8 @@ import ProgramStudi from "../models/ProgramStudi.js";
 import PengajuanSimilarityCheck from "../models/PengajuanSimilarityCheck.js";
 import PengajuanSimilarityResult from "../models/PengajuanSimilarityResult.js";
 import { runAndSaveSimilarityForPengajuan } from "../services/titleSimilarityWorkflow.js";
+import { deleteOldFile } from "../middleware/fileUploadMiddleware.js";
+import { io } from "../index.js";
 
 // Setup multer untuk upload file
 const storage = multer.diskStorage({
@@ -127,7 +129,6 @@ export const getMahasiswaDashboard = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -193,7 +194,6 @@ export const ajukanJudul = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan server",
-            error: error.message,
         });
     }
 };
@@ -275,7 +275,6 @@ export const updatePengajuanJudul = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan server",
-            error: error.message,
         });
     }
 };
@@ -375,6 +374,34 @@ export const uploadBab = async (req, res) => {
             description: `Mahasiswa upload Bab ${chapter_number}`,
         });
 
+        // Kirim notifikasi ke chat lengkap dengan lampiran file bab
+        // (attachmentPath "bab/..." disajikan dari uploads/bab, bukan uploads/chat)
+        try {
+            const babMessage = await Message.create({
+                id_pengajuan: pengajuan.id_pengajuan,
+                senderId: req.session.userId,
+                content: `📄 Bab ${chapter_number} telah diupload`,
+                attachmentPath: `bab/${req.file.filename}`,
+                attachmentName: req.file.originalname,
+            });
+
+            const fullMsg = await Message.findByPk(babMessage.id_message, {
+                include: [{
+                    model: User,
+                    as: "User",
+                    attributes: ["email", "role"],
+                    include: [
+                        { model: Dosen, attributes: ["nama"] },
+                        { model: Mahasiswa, attributes: ["nama_lengkap"] },
+                    ],
+                }],
+            });
+
+            io.to(`room_${pengajuan.id_pengajuan}`).emit("message:new", fullMsg);
+        } catch (chatError) {
+            console.error("Gagal mengirim notifikasi chat upload bab:", chatError);
+        }
+
         res.status(201).json({
             success: true,
             message: `Bab ${chapter_number} berhasil diupload`,
@@ -385,7 +412,73 @@ export const uploadBab = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan pada server",
-            error: error.message,
+        });
+    }
+};
+
+// Hapus bab (hanya milik sendiri, hanya status revisi)
+export const deleteBab = async (req, res) => {
+    try {
+        const { id_bab } = req.params;
+
+        const mahasiswaData = await Mahasiswa.findOne({
+            where: { id_user: req.session.userId },
+        });
+
+        if (!mahasiswaData) {
+            return res.status(404).json({
+                success: false,
+                message: "Data mahasiswa tidak ditemukan",
+            });
+        }
+
+        const bab = await BabSubmission.findByPk(id_bab, {
+            include: [{ model: PengajuanJudul }],
+        });
+
+        if (!bab) {
+            return res.status(404).json({
+                success: false,
+                message: "Bab tidak ditemukan",
+            });
+        }
+
+        if (bab.PengajuanJudul?.id_mahasiswa !== mahasiswaData.id_mahasiswa) {
+            return res.status(403).json({
+                success: false,
+                message: "Anda tidak memiliki akses ke bab ini",
+            });
+        }
+
+        if (bab.status !== "revisi") {
+            return res.status(400).json({
+                success: false,
+                message: "Hanya bab berstatus revisi yang dapat dihapus",
+            });
+        }
+
+        if (bab.file_path) {
+            deleteOldFile(`uploads/bab/${bab.file_path}`);
+        }
+
+        await bab.destroy();
+
+        await LogAktivitas.create({
+            id_user: req.session.userId,
+            id_pengajuan: bab.id_pengajuan,
+            type: "DELETE_BAB",
+            description: `Mahasiswa menghapus Bab ${bab.chapter_number}`,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Bab ${bab.chapter_number} berhasil dihapus`,
+        });
+    } catch (error) {
+        console.error("Delete Bab Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan pada server",
         });
     }
 };
@@ -512,7 +605,6 @@ export const generateKartuBimbingan = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -644,7 +736,6 @@ export const uploadLaporanAkhir = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan pada server",
-            error: error.message,
         });
     }
 };

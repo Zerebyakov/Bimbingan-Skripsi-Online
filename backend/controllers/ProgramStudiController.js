@@ -19,7 +19,6 @@ export const getAllProgramStudi = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -43,7 +42,6 @@ export const createProgramStudi = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 };
@@ -65,7 +63,6 @@ export const deleteProgramStudi = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Internal server error",
-            error: error.message
         });
     }
 }

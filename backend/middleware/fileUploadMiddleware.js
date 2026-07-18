@@ -28,6 +28,10 @@ const storageConfig = {
         prefix: "laporan-",
         limit: 20 * 1024 * 1024, // 20MB
         filter: [".pdf", ".doc", ".docx"],
+        // Filter khusus per field (file presentasi boleh PPT/PPTX)
+        fieldFilter: {
+            presentasiFile: [".pdf", ".ppt", ".pptx"],
+        },
     },
     chat: {
         folder: "uploads/chat/",
@@ -66,10 +70,12 @@ const upload = (type = "bab") => {
 
     const fileFilter = (req, file, cb) => {
         const fileExt = path.extname(file.originalname).toLowerCase();
-        if (config.filter.includes(fileExt)) {
+        // Pakai filter khusus field jika ada (mis. presentasiFile boleh PPT/PPTX)
+        const allowed = config.fieldFilter?.[file.fieldname] || config.filter;
+        if (allowed.includes(fileExt)) {
             cb(null, true);
         } else {
-            cb(new Error(`File tidak didukung (${config.filter.join(", ")})`), false);
+            cb(new Error(`File tidak didukung (${allowed.join(", ")})`), false);
         }
     };
 
@@ -94,6 +100,11 @@ const upload = (type = "bab") => {
     // === Khusus untuk foto user (dosen & mahasiswa)
     if (type === "fotoDosen" || type === "fotoMahasiswa") {
         return multerInstance.single("foto"); // field sesuai FormData di frontend
+    }
+
+    // === Khusus chat: frontend mengirim field bernama "file"
+    if (type === "chat") {
+        return multerInstance.single("file");
     }
 
     // === Default: single file umum

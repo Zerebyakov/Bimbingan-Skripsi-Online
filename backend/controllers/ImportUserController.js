@@ -335,7 +335,6 @@ export const importDosenExcel = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat import dosen",
-            error: error.message,
         });
     }
 };
@@ -541,7 +540,6 @@ export const importMahasiswaExcel = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat import mahasiswa",
-            error: error.message,
         });
     }
 };

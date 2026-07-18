@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import db from "../config/Database.js";
 import PengajuanJudul from "../models/PengajuanJudul.js";
 import Arsip from "../models/Arsip.js";
 import Mahasiswa from "../models/Mahasiswa.js";
@@ -149,56 +150,63 @@ export const checkSimilarityOnly = async ({ title, topK = 10, excludePengajuanId
 };
 
 export const saveSimilarityResult = async ({ id_pengajuan, title, similarityResult }) => {
-    const oldChecks = await PengajuanSimilarityCheck.findAll({
-        where: { id_pengajuan },
-        attributes: ["id_check"],
-    });
-
-    const oldCheckIds = oldChecks.map((item) => item.id_check);
-
-    if (oldCheckIds.length > 0) {
-        await PengajuanSimilarityResult.destroy({
-            where: {
-                id_check: {
-                    [Op.in]: oldCheckIds,
-                },
-            },
-        });
-
-        await PengajuanSimilarityCheck.destroy({
+    // Seluruh hapus-tulis dalam satu transaction: jika gagal di tengah,
+    // hasil pengecekan lama tidak ikut hilang.
+    return db.transaction(async (t) => {
+        const oldChecks = await PengajuanSimilarityCheck.findAll({
             where: { id_pengajuan },
+            attributes: ["id_check"],
+            transaction: t,
         });
-    }
 
-    const check = await PengajuanSimilarityCheck.create({
-        id_pengajuan,
-        query_title: title,
-        max_score: similarityResult.max_score || 0,
-        threshold_value: similarityResult.threshold || 0,
-        status_similarity: similarityResult.status || "AMAN",
-        checkedAt: new Date(),
+        const oldCheckIds = oldChecks.map((item) => item.id_check);
+
+        if (oldCheckIds.length > 0) {
+            await PengajuanSimilarityResult.destroy({
+                where: {
+                    id_check: {
+                        [Op.in]: oldCheckIds,
+                    },
+                },
+                transaction: t,
+            });
+
+            await PengajuanSimilarityCheck.destroy({
+                where: { id_pengajuan },
+                transaction: t,
+            });
+        }
+
+        const check = await PengajuanSimilarityCheck.create({
+            id_pengajuan,
+            query_title: title,
+            max_score: similarityResult.max_score || 0,
+            threshold_value: similarityResult.threshold || 0,
+            status_similarity: similarityResult.status || "AMAN",
+            checkedAt: new Date(),
+        }, { transaction: t });
+
+        const resultRows = (similarityResult.results || []).map((item, index) => ({
+            id_check: check.id_check,
+            source_id: String(item.id),
+            source_table: item.source || null,
+            matched_title: item.title,
+            source_author: item.author || null,
+            source_year: item.year || null,
+            similarity_score: item.similarity_score || 0,
+            is_similar: Boolean(item.is_similar),
+            rank_position: index + 1,
+        }));
+
+        if (resultRows.length > 0) {
+            await PengajuanSimilarityResult.bulkCreate(resultRows, { transaction: t });
+        }
+
+        return {
+            check,
+            results: resultRows,
+        };
     });
-
-    const resultRows = (similarityResult.results || []).map((item, index) => ({
-        id_check: check.id_check,
-        source_id: String(item.id),
-        source_table: item.source || null,
-        matched_title: item.title,
-        source_author: item.author || null,
-        source_year: item.year || null,
-        similarity_score: item.similarity_score || 0,
-        is_similar: Boolean(item.is_similar),
-        rank_position: index + 1,
-    }));
-
-    if (resultRows.length > 0) {
-        await PengajuanSimilarityResult.bulkCreate(resultRows);
-    }
-
-    return {
-        check,
-        results: resultRows,
-    };
 };
 
 export const runAndSaveSimilarityForPengajuan = async ({ pengajuan, title }) => {

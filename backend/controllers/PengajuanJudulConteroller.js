@@ -10,67 +10,39 @@ import ProgramStudi from "../models/ProgramStudi.js";
 
 import PengajuanSimilarityCheck from "../models/PengajuanSimilarityCheck.js";
 import PengajuanSimilarityResult from "../models/PengajuanSimilarityResult.js";
-import { checkSimilarityOnly } from "../services/titleSimilarityWorkflow.js";
+import { checkSimilarityOnly, runAndSaveSimilarityForPengajuan } from "../services/titleSimilarityWorkflow.js";
 
 
 // Get all pengajuan judul (untuk admin/dosen)
-export const getAllPengajuanJudul = async (req, res) => {
+export const getAllPengajuanJudul = async (req, res, next) => {
     try {
         const { status, search, page = 1, limit = 10 } = req.query;
 
         const whereCondition = {};
-        const mahasiswaWhereCondition = {};
 
         // Filter by status
         if (status) {
             whereCondition.status = status;
         }
 
-        // Search functionality
+        // Search functionality: satu Op.or gabungan (judul ATAU nama/nim mahasiswa).
+        // Kolom relasi memakai sintaks $Model.kolom$; butuh subQuery: false agar bekerja dengan limit.
         if (search) {
-            // Search di judul pengajuan atau nama mahasiswa
             whereCondition[Op.or] = [
-                {
-                    title: {
-                        [Op.like]: `%${search}%`
-                    }
-                },
-                {
-                    description: {
-                        [Op.like]: `%${search}%`
-                    }
-                },
-                {
-                    bidang_topik: {
-                        [Op.like]: `%${search}%`
-                    }
-                }
-            ];
-
-            // Search di nama mahasiswa
-            mahasiswaWhereCondition[Op.or] = [
-                {
-                    nama_lengkap: {
-                        [Op.like]: `%${search}%`
-                    }
-                },
-                {
-                    nim: {
-                        [Op.like]: `%${search}%`
-                    }
-                }
+                { title: { [Op.like]: `%${search}%` } },
+                { description: { [Op.like]: `%${search}%` } },
+                { bidang_topik: { [Op.like]: `%${search}%` } },
+                { '$Mahasiswa.nama_lengkap$': { [Op.like]: `%${search}%` } },
+                { '$Mahasiswa.nim$': { [Op.like]: `%${search}%` } },
             ];
         }
 
         const pengajuan = await PengajuanJudul.findAndCountAll({
             where: whereCondition,
+            subQuery: false,
             include: [
                 {
                     model: Mahasiswa,
-                    where: Object.keys(mahasiswaWhereCondition).length > 0
-                        ? mahasiswaWhereCondition
-                        : undefined,
-                    required: Object.keys(mahasiswaWhereCondition).length > 0, // INNER JOIN jika ada search
                     include: [{ model: ProgramStudi }]
                 },
                 {
@@ -92,6 +64,12 @@ export const getAllPengajuanJudul = async (req, res) => {
                         {
                             model: PengajuanSimilarityResult,
                             as: "Results",
+                            // hanya kolom yang dibutuhkan tampilan admin
+                            attributes: [
+                                'id_result', 'matched_title', 'similarity_score',
+                                'is_similar', 'rank_position', 'source_table',
+                                'source_author', 'source_year'
+                            ],
                         },
                     ],
                 }
@@ -116,16 +94,12 @@ export const getAllPengajuanJudul = async (req, res) => {
         });
     } catch (error) {
         console.error('Error in getAllPengajuanJudul:', error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message
-        });
+        next(error);
     }
 };
 
 // Get pengajuan judul by ID
-export const getPengajuanJudulById = async (req, res) => {
+export const getPengajuanJudulById = async (req, res, next) => {
     try {
         const { id_pengajuan } = req.params;
 
@@ -136,7 +110,19 @@ export const getPengajuanJudulById = async (req, res) => {
                 { model: Dosen, as: 'Pembimbing2' },
                 { model: BabSubmission },
                 { model: KartuBimbingan },
-                { model: LaporanAkhir }
+                { model: LaporanAkhir },
+                {
+                    model: PengajuanSimilarityCheck,
+                    as: "SimilarityChecks",
+                    separate: true, // index [0] = pengecekan terbaru
+                    order: [["checkedAt", "DESC"]],
+                    include: [
+                        {
+                            model: PengajuanSimilarityResult,
+                            as: "Results",
+                        },
+                    ],
+                }
             ]
         });
 
@@ -152,16 +138,13 @@ export const getPengajuanJudulById = async (req, res) => {
             data: pengajuan
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message
-        });
+        console.error('Error in getPengajuanJudulById:', error);
+        next(error);
     }
 };
 
 // Update pengajuan judul (untuk mahasiswa)
-export const updatePengajuanJudul = async (req, res) => {
+export const updatePengajuanJudul = async (req, res, next) => {
     try {
         const { id_pengajuan } = req.params;
         const { title, description, bidang_topik, keywords } = req.body;
@@ -172,6 +155,18 @@ export const updatePengajuanJudul = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Pengajuan tidak ditemukan"
+            });
+        }
+
+        // Verifikasi kepemilikan: pengajuan harus milik mahasiswa yang sedang login
+        const mahasiswaData = await Mahasiswa.findOne({
+            where: { id_user: req.session.userId },
+        });
+
+        if (!mahasiswaData || pengajuan.id_mahasiswa !== mahasiswaData.id_mahasiswa) {
+            return res.status(403).json({
+                success: false,
+                message: "Anda tidak memiliki akses ke pengajuan ini"
             });
         }
 
@@ -191,6 +186,14 @@ export const updatePengajuanJudul = async (req, res) => {
             status: 'diajukan'
         });
 
+        // Jalankan ulang cek kemiripan agar hasil lama tidak menempel pada judul baru.
+        // Kegagalan ML service tidak boleh menggagalkan penyimpanan judul.
+        try {
+            await runAndSaveSimilarityForPengajuan({ pengajuan, title });
+        } catch (similarityError) {
+            console.error("Similarity check gagal:", similarityError.message);
+        }
+
         // Log aktivitas
         await LogAktivitas.create({
             id_user: req.session.userId,
@@ -205,16 +208,13 @@ export const updatePengajuanJudul = async (req, res) => {
             data: pengajuan
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "Internal server error",
-            error: error.message
-        });
+        console.error('Error in updatePengajuanJudul:', error);
+        next(error);
     }
 };
 
 
-export const cekKemiripanJudul = async (req, res) => {
+export const cekKemiripanJudul = async (req, res, next) => {
     try {
         const { title, topK = 10 } = req.body;
 
@@ -237,10 +237,6 @@ export const cekKemiripanJudul = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in cekKemiripanJudul:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Gagal mengecek kemiripan judul",
-            error: error.message,
-        });
+        next(error);
     }
 };
