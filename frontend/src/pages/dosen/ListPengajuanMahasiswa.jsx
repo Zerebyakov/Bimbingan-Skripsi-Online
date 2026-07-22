@@ -19,7 +19,11 @@ import Swal from "sweetalert2";
 import PageMeta from "../../components/PageMeta";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { SIMILARITY_STYLES } from "../../components/ui/SimilarityBadge";
-import { formatPercent } from "../../utils/format";
+import {
+    formatPercent,
+    getSimilarityLevel,
+    SIMILARITY_LEVEL_META,
+} from "../../utils/format";
 
 const ListPengajuanMahasiswa = () => {
     const [pengajuanList, setPengajuanList] = useState([]);
@@ -239,13 +243,27 @@ const ListPengajuanMahasiswa = () => {
                                         {r.source_table === "arsip" ? " · Arsip" : ""}
                                     </p>
                                 </div>
-                                <span
-                                    className={`shrink-0 font-semibold ${r.is_similar ? "text-red-600" : "text-gray-500"
-                                        }`}
-                                    title={r.is_similar ? "Di atas ambang batas" : "Di bawah ambang batas"}
-                                >
-                                    {formatPercent(r.similarity_score)}
-                                </span>
+                                {(() => {
+                                    const level = getSimilarityLevel(
+                                        r.similarity_score,
+                                        check.threshold_value
+                                    );
+                                    const meta = SIMILARITY_LEVEL_META[level];
+                                    const warna =
+                                        level === "sangat_mirip"
+                                            ? "text-red-600"
+                                            : level === "perlu_ditinjau"
+                                                ? "text-yellow-600"
+                                                : "text-gray-500";
+                                    return (
+                                        <span
+                                            className={`shrink-0 font-semibold ${warna}`}
+                                            title={meta.label}
+                                        >
+                                            {formatPercent(r.similarity_score)}
+                                        </span>
+                                    );
+                                })()}
                             </li>
                         ))}
                     </ul>

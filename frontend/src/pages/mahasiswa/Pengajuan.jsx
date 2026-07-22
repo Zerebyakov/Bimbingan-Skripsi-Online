@@ -14,7 +14,11 @@ import {
 } from "lucide-react";
 import PageMeta from "../../components/PageMeta";
 import SimilarityBadge from "../../components/ui/SimilarityBadge";
-import { formatPercent } from "../../utils/format";
+import {
+  formatPercent,
+  getSimilarityLevel,
+  SIMILARITY_LEVEL_META,
+} from "../../utils/format";
 
 const Pengajuan = () => {
   const [pengajuan, setPengajuan] = useState(null);
@@ -559,12 +563,21 @@ const Pengajuan = () => {
                           <p className="text-sm text-gray-600">
                             Kemiripan: {formatPercent(item.similarity_score)}
                           </p>
-                          <p
-                            className={`text-sm font-medium ${item.is_similar ? "text-red-600" : "text-green-600"
-                              }`}
-                          >
-                            {item.is_similar ? "Mirip" : "Tidak Mirip"}
-                          </p>
+                          {(() => {
+                            const level = getSimilarityLevel(
+                              item.similarity_score,
+                              similarityResult.threshold,
+                              similarityResult.strong_threshold
+                            );
+                            const meta = SIMILARITY_LEVEL_META[level];
+                            return (
+                              <span
+                                className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium ${meta.className}`}
+                              >
+                                {meta.label}
+                              </span>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>

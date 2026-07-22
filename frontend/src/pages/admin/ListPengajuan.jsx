@@ -20,7 +20,11 @@ import ExportToExcel from "./components/ExportToExcel";
 import PageMeta from "../../components/PageMeta";
 import StatusBadge from "../../components/ui/StatusBadge";
 import SimilarityBadge from "../../components/ui/SimilarityBadge";
-import { formatPercent } from "../../utils/format";
+import {
+  formatPercent,
+  getSimilarityLevel,
+  SIMILARITY_LEVEL_META,
+} from "../../utils/format";
 
 const ListPengajuan = () => {
   const [pengajuan, setPengajuan] = useState([]);
@@ -556,15 +560,18 @@ const ListPengajuan = () => {
                                         {formatPercent(r.similarity_score)}
                                       </td>
                                       <td className="px-3 py-2 text-center">
-                                        {r.is_similar ? (
-                                          <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 font-medium">
-                                            Di atas threshold
-                                          </span>
-                                        ) : (
-                                          <span className="px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">
-                                            Di bawah threshold
-                                          </span>
-                                        )}
+                                        {(() => {
+                                          const level = getSimilarityLevel(
+                                            r.similarity_score,
+                                            item.SimilarityChecks[0].threshold_value
+                                          );
+                                          const meta = SIMILARITY_LEVEL_META[level];
+                                          return (
+                                            <span className={`px-2 py-0.5 rounded font-medium ${meta.className}`}>
+                                              {meta.label}
+                                            </span>
+                                          );
+                                        })()}
                                       </td>
                                     </tr>
                                   ))}
