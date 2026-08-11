@@ -12,7 +12,7 @@ load_dotenv()
 
 MODEL_PATH = os.getenv("MODEL_PATH")
 THRESHOLD_PATH = os.getenv("THRESHOLD_PATH")
-LEXICON_PATH = os.getenv("LEXICON_PATH", "semantic_lexicon_enriched.csv")
+LEXICON_PATH = os.getenv("LEXICON_PATH", "models/semantic_lexicon_baru.csv")
 
 # Keluarga lexicon yang DIKECUALIKAN di produksi (dipisah koma).
 # Default "task_synonym": hasil error analysis pada korpus produksi menunjukkan
@@ -53,6 +53,10 @@ def normalize_text_basic(text):
     text = re.sub(r"[^a-z0-9A-ZÀ-ÖØ-öø-ÿ\s\-_/]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
+
+
+# Peta frasa -> keluarga asalnya, diisi saat lexicon dimuat (dipakai /lexicon)
+LEXICON_FAMILY_OF = {}
 
 
 def _build_lexicon_map(path):
@@ -98,12 +102,18 @@ def _build_lexicon_map(path):
             print(f"[lexicon] kolom tidak dikenali di {path}: {list(lex.columns)}")
             return {}
 
+    # Catat asal keluarga tiap frasa (untuk endpoint diagnostik /lexicon)
+    fam_col = next((c for c in lex.columns if c.lower() == "family"), None)
+
     mapping = {}
-    for _, r in lex[[key_col, value_col]].dropna().iterrows():
+    for _, r in lex[[key_col, value_col] + ([fam_col] if fam_col else [])].dropna(
+        subset=[key_col, value_col]
+    ).iterrows():
         k = normalize_text_basic(r[key_col])
         v = normalize_text_basic(r[value_col])
         if k and v and k != v:
             mapping[k] = v
+            LEXICON_FAMILY_OF[k] = str(r[fam_col]) if fam_col else "unknown"
     # Frasa panjang lebih dulu agar tidak kalah oleh token pendek (identik notebook)
     return dict(sorted(mapping.items(), key=lambda kv: len(kv[0]), reverse=True))
 
@@ -130,27 +140,41 @@ def encode_candidates_cached(clean_titles):
     return np.stack([_embed_cache[t] for t in clean_titles])
 
 
+def _semantic_normalize_traced(text, mapping):
+    """Inti substitusi satu-pass; mengembalikan (hasil, daftar aturan yang aktif).
+    Perilaku identik dengan semantic_normalize_one_pass di notebook."""
+    text = normalize_text_basic(text)
+    if not mapping:
+        return text, []
+    placeholders = {}
+    applied = []
+    tmp = text
+    for i, (src, tgt) in enumerate(mapping.items()):
+        pattern = r"(?<!\w)" + re.escape(src) + r"(?!\w)"
+        ph = f" __SEMTERM_{i}__ "
+        new_tmp, n_sub = re.subn(pattern, ph, tmp)
+        if n_sub:
+            placeholders[ph.strip()] = tgt
+            applied.append({
+                "source_phrase": src,
+                "canonical_phrase": tgt,
+                "family": LEXICON_FAMILY_OF.get(src, "unknown"),
+                "matches": n_sub,
+            })
+            tmp = new_tmp
+    for ph, tgt in placeholders.items():
+        tmp = tmp.replace(ph, tgt)
+    tmp = re.sub(r"\s+", " ", tmp).strip()
+    return tmp, applied
+
+
 def semantic_normalize_one_pass(text, mapping=None):
     """Identik dengan semantic_normalize_one_pass di notebook (substitusi satu-pass
     dengan placeholder agar hasil substitusi tidak disubstitusi ulang)."""
     if mapping is None:
         mapping = LEXICON_MAP
-    text = normalize_text_basic(text)
-    if not mapping:
-        return text
-    placeholders = {}
-    tmp = text
-    for i, (src, tgt) in enumerate(mapping.items()):
-        pattern = r"(?<!\w)" + re.escape(src) + r"(?!\w)"
-        ph = f" __SEMTERM_{i}__ "
-        new_tmp = re.sub(pattern, ph, tmp)
-        if new_tmp != tmp:
-            placeholders[ph.strip()] = tgt
-            tmp = new_tmp
-    for ph, tgt in placeholders.items():
-        tmp = tmp.replace(ph, tgt)
-    tmp = re.sub(r"\s+", " ", tmp).strip()
-    return tmp
+    result, _ = _semantic_normalize_traced(text, mapping)
+    return result
 
 
 def preprocess_text(text: str) -> str:
@@ -196,6 +220,17 @@ def decide_status(sorted_scores, threshold, z_thr=Z_THRESHOLD, strong=STRONG_THR
     return status, info, is_similar
 
 
+def similarity_level(score, threshold, strong=STRONG_THRESHOLD):
+    """Tingkat kemiripan per kandidat (sistem tiga tingkat, selaras dengan UI):
+    sangat_mirip (>= strong) | perlu_ditinjau (>= threshold) | aman."""
+    s = float(score)
+    if s >= strong:
+        return "sangat_mirip"
+    if s >= threshold:
+        return "perlu_ditinjau"
+    return "aman"
+
+
 class PairRequest(BaseModel):
     title_1: str
     title_2: str
@@ -213,6 +248,12 @@ class SearchRequest(BaseModel):
     candidates: List[CandidateTitle]
     top_k: int = Field(default=10, ge=1, le=50)
     threshold: Optional[float] = None
+
+
+class NormalizeRequest(BaseModel):
+    text: str
+    # Bandingkan hasil dengan/tanpa lexicon dalam satu response
+    compare: bool = True
 
 
 @app.get("/health")
@@ -238,6 +279,8 @@ def similarity_pair(payload: PairRequest):
     return {"title_1": payload.title_1, "title_2": payload.title_2,
             "title_1_clean": t1, "title_2_clean": t2,
             "similarity_score": score, "threshold": threshold,
+            "strong_threshold": STRONG_THRESHOLD,
+            "level": similarity_level(score, threshold),
             "prediction": pred, "label": "Mirip" if pred == 1 else "Tidak Mirip"}
 
 
@@ -255,7 +298,8 @@ def similarity_search(payload: SearchRequest):
 
     if not candidates:
         return {"query_title": payload.query_title, "query_clean": query_clean,
-                "threshold": threshold, "top_k": payload.top_k,
+                "threshold": threshold, "strong_threshold": STRONG_THRESHOLD,
+                "top_k": payload.top_k,
                 "total_candidates": 0, "max_score": 0, "robust_z": 0.0,
                 "status": "AMAN", "results": []}
 
@@ -273,7 +317,9 @@ def similarity_search(payload: SearchRequest):
     for item, score in ranked[:payload.top_k]:
         score = float(score)
         results.append({"id": item["id"], "title": item["title"], "source": item["source"],
-                        "similarity_score": score, "is_similar": is_similar(score)})
+                        "clean_title": item["clean_title"],
+                        "similarity_score": score, "is_similar": is_similar(score),
+                        "level": similarity_level(score, threshold)})
 
     return {"query_title": payload.query_title, "query_clean": query_clean,
             "threshold": threshold, "strong_threshold": STRONG_THRESHOLD,
@@ -282,3 +328,211 @@ def similarity_search(payload: SearchRequest):
             "max_score": info["max_score"], "median_latar": info["median_latar"],
             "robust_z": info["robust_z"], "z_threshold": info["z_threshold"],
             "status": status, "results": results}
+
+
+# ============================================================
+# ENDPOINT DIAGNOSTIK — untuk pengujian manual (REST Client)
+# dan dokumentasi skripsi. Tidak dipakai oleh backend produksi.
+# ============================================================
+
+@app.get("/config")
+def get_config():
+    """Konfigurasi efektif yang sedang dipakai service."""
+    return {
+        "model_path": MODEL_PATH,
+        "threshold_path": THRESHOLD_PATH,
+        "threshold_config_file": threshold_config,
+        "effective": {
+            "threshold": DEFAULT_THRESHOLD,
+            "strong_threshold": STRONG_THRESHOLD,
+            "z_threshold": Z_THRESHOLD,
+            "use_semantic_norm": USE_SEMANTIC_NORM,
+        },
+        "text_variant": "semantic" if (USE_SEMANTIC_NORM and LEXICON_MAP) else "basic",
+        "lexicon": {
+            "path": LEXICON_PATH,
+            "loaded": bool(LEXICON_MAP),
+            "active_mappings": len(LEXICON_MAP),
+            "excluded_families": sorted(LEXICON_EXCLUDE_FAMILIES),
+        },
+        "decision_rule": {
+            "per_kandidat": f"skor >= {DEFAULT_THRESHOLD} -> mirip (aturan tervalidasi notebook)",
+            "level": {
+                "sangat_mirip": f"skor >= {STRONG_THRESHOLD}",
+                "perlu_ditinjau": f"{DEFAULT_THRESHOLD} <= skor < {STRONG_THRESHOLD}",
+                "aman": f"skor < {DEFAULT_THRESHOLD}",
+            },
+        },
+        "embed_cache_size": len(_embed_cache),
+    }
+
+
+@app.get("/lexicon")
+def get_lexicon(q: Optional[str] = None, family: Optional[str] = None, limit: int = 50):
+    """Telusuri isi lexicon aktif. Contoh: /lexicon?q=yolo  /lexicon?family=domain_bilingual"""
+    items = [
+        {"source_phrase": k, "canonical_phrase": v,
+         "family": LEXICON_FAMILY_OF.get(k, "unknown")}
+        for k, v in LEXICON_MAP.items()
+    ]
+
+    if q:
+        ql = q.lower()
+        items = [it for it in items
+                 if ql in it["source_phrase"] or ql in it["canonical_phrase"]]
+    if family:
+        items = [it for it in items if it["family"] == family]
+
+    family_counts = {}
+    for fam in LEXICON_FAMILY_OF.values():
+        family_counts[fam] = family_counts.get(fam, 0) + 1
+
+    return {
+        "path": LEXICON_PATH,
+        "total_active": len(LEXICON_MAP),
+        "excluded_families": sorted(LEXICON_EXCLUDE_FAMILIES),
+        "family_counts": family_counts,
+        "matched": len(items),
+        "returned": min(limit, len(items)),
+        "items": items[:limit],
+    }
+
+
+@app.post("/debug/normalize")
+def debug_normalize(payload: NormalizeRequest):
+    """Lihat bagaimana teks dinormalisasi sebelum di-embed, lengkap dengan
+    aturan lexicon mana saja yang aktif. Berguna untuk kurasi lexicon."""
+    basic = normalize_text_basic(payload.text)
+    semantic, applied = _semantic_normalize_traced(payload.text, LEXICON_MAP)
+    final = semantic if (USE_SEMANTIC_NORM and LEXICON_MAP) else basic
+
+    out = {
+        "raw": payload.text,
+        "basic": basic,
+        "final_used_for_embedding": final,
+        "text_variant": "semantic" if (USE_SEMANTIC_NORM and LEXICON_MAP) else "basic",
+        "applied_rules_count": len(applied),
+        "applied_rules": applied,
+    }
+    if payload.compare:
+        out["semantic"] = semantic
+        out["changed_by_lexicon"] = semantic != basic
+    return out
+
+
+@app.post("/similarity/explain")
+def similarity_explain(payload: PairRequest):
+    """Versi rinci dari /similarity/pair: menampilkan normalisasi kedua judul,
+    aturan lexicon yang aktif, tumpang tindih kata, dan keputusan tiga tingkat."""
+    threshold = payload.threshold if payload.threshold is not None else DEFAULT_THRESHOLD
+
+    c1, applied1 = _semantic_normalize_traced(payload.title_1, LEXICON_MAP)
+    c2, applied2 = _semantic_normalize_traced(payload.title_2, LEXICON_MAP)
+    if not (USE_SEMANTIC_NORM and LEXICON_MAP):
+        c1, c2 = normalize_text_basic(payload.title_1), normalize_text_basic(payload.title_2)
+        applied1, applied2 = [], []
+
+    e1 = np.asarray(model.encode(c1, normalize_embeddings=True), dtype=np.float32)
+    e2 = np.asarray(model.encode(c2, normalize_embeddings=True), dtype=np.float32)
+    score = float(np.dot(e1, e2))
+
+    tok1, tok2 = set(c1.split()), set(c2.split())
+    shared = sorted(tok1 & tok2)
+    jaccard = len(tok1 & tok2) / max(1, len(tok1 | tok2))
+    level = similarity_level(score, threshold)
+
+    return {
+        "title_1": {"raw": payload.title_1, "clean": c1,
+                    "applied_rules": applied1, "tokens": len(tok1)},
+        "title_2": {"raw": payload.title_2, "clean": c2,
+                    "applied_rules": applied2, "tokens": len(tok2)},
+        "lexical": {
+            "shared_tokens": shared,
+            "shared_count": len(shared),
+            "jaccard": round(jaccard, 4),
+            "only_in_title_1": sorted(tok1 - tok2),
+            "only_in_title_2": sorted(tok2 - tok1),
+        },
+        "semantic": {
+            "similarity_score": score,
+            "similarity_percent": f"{score * 100:.1f}%",
+            "threshold": threshold,
+            "strong_threshold": STRONG_THRESHOLD,
+            "level": level,
+            "interpretation": {
+                "sangat_mirip": "Hampir duplikat, judul perlu diganti",
+                "perlu_ditinjau": "Ada kemiripan yang perlu dinilai dosen",
+                "aman": "Di bawah ambang keputusan",
+            }[level],
+        },
+        "catatan": "jaccard = kemiripan kata (leksikal); similarity_score = kemiripan makna (embedding). "
+                   "Skor makna bisa tinggi walau kata berbeda, dan sebaliknya.",
+    }
+
+
+@app.post("/admin/cache/clear")
+def clear_embed_cache():
+    """Kosongkan cache embedding. Jalankan setelah mengubah lexicon
+    agar judul lama di-encode ulang dengan normalisasi terbaru."""
+    n = len(_embed_cache)
+    _embed_cache.clear()
+    return {"success": True, "cleared_entries": n, "embed_cache_size": len(_embed_cache)}
+
+
+@app.get("/debug/self-test")
+def self_test():
+    """Uji cepat kewarasan service: pasangan kanonik dengan ekspektasi masing-masing.
+    Semua kasus harus 'PASS' bila model, lexicon, dan threshold terpasang benar."""
+    cases = [
+        {
+            "nama": "Judul identik",
+            "title_1": "Sistem Informasi Penjualan Berbasis Web",
+            "title_2": "Sistem Informasi Penjualan Berbasis Web",
+            "expected_level": "sangat_mirip",
+        },
+        {
+            "nama": "Terjemahan Inggris-Indonesia (uji lexicon bilingual)",
+            "title_1": "Classification of Curly Chili Ripeness Level Based on Color Using KNN Algorithm",
+            "title_2": "Klasifikasi Tingkat Kematangan Cabai Keriting Berdasarkan Warna Menggunakan Algoritma KNN",
+            "expected_level": "sangat_mirip",
+        },
+        {
+            "nama": "Alias metode (YOLO versi berbeda)",
+            "title_1": "Deteksi Kendaraan Menggunakan YOLOv11",
+            "title_2": "Deteksi Kendaraan Menggunakan YOLOv8",
+            "expected_level": "sangat_mirip",
+        },
+        {
+            "nama": "Topik berbeda total",
+            "title_1": "Sistem Informasi Penjualan Baju Berbasis Website",
+            "title_2": "Deteksi Penyakit Daun Padi Menggunakan CNN",
+            "expected_level": "aman",
+        },
+    ]
+
+    results = []
+    for c in cases:
+        t1 = preprocess_text(c["title_1"])
+        t2 = preprocess_text(c["title_2"])
+        e1 = np.asarray(model.encode(t1, normalize_embeddings=True), dtype=np.float32)
+        e2 = np.asarray(model.encode(t2, normalize_embeddings=True), dtype=np.float32)
+        score = float(np.dot(e1, e2))
+        level = similarity_level(score, DEFAULT_THRESHOLD)
+        results.append({
+            "nama": c["nama"],
+            "similarity_percent": f"{score * 100:.1f}%",
+            "level": level,
+            "expected_level": c["expected_level"],
+            "status": "PASS" if level == c["expected_level"] else "PERIKSA",
+            "clean_1": t1,
+            "clean_2": t2,
+        })
+
+    passed = sum(1 for r in results if r["status"] == "PASS")
+    return {
+        "summary": f"{passed}/{len(results)} kasus PASS",
+        "all_passed": passed == len(results),
+        "text_variant": "semantic" if (USE_SEMANTIC_NORM and LEXICON_MAP) else "basic",
+        "lexicon_active": len(LEXICON_MAP),
+        "cases": results,
+    }
