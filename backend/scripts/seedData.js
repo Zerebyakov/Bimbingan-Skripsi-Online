@@ -229,56 +229,56 @@ export const seedMahasiswa = async () => {
 };
 
 // Seed Sample Pengajuan Judul
-export const seedSamplePengajuan = async () => {
-    try {
-        console.log(' Seeding Sample Pengajuan...');
+// export const seedSamplePengajuan = async () => {
+//     try {
+//         console.log(' Seeding Sample Pengajuan...');
 
-        const mahasiswa1 = await Mahasiswa.findOne({ where: { nim: '210001' } });
-        const mahasiswa2 = await Mahasiswa.findOne({ where: { nim: '210002' } });
-        const dosen1 = await Dosen.findOne({ where: { nidn: '0123456789' } });
-        const dosen2 = await Dosen.findOne({ where: { nidn: '0123456790' } });
+//         const mahasiswa1 = await Mahasiswa.findOne({ where: { nim: '210001' } });
+//         const mahasiswa2 = await Mahasiswa.findOne({ where: { nim: '210002' } });
+//         const dosen1 = await Dosen.findOne({ where: { nidn: '0123456789' } });
+//         const dosen2 = await Dosen.findOne({ where: { nidn: '0123456790' } });
 
-        const pengajuanData = [
-            {
-                id_mahasiswa: mahasiswa1.id_mahasiswa,
-                title: 'Sistem Rekomendasi Film Menggunakan Machine Learning dengan Algoritma Collaborative Filtering',
-                description: 'Penelitian ini bertujuan untuk mengembangkan sistem rekomendasi film yang dapat memberikan rekomendasi film yang sesuai dengan preferensi pengguna menggunakan teknik machine learning. Sistem akan menggunakan algoritma collaborative filtering untuk menganalisis pola perilaku pengguna dan memberikan rekomendasi yang akurat.',
-                bidang_topik: 'Machine Learning',
-                keywords: 'machine learning, collaborative filtering, sistem rekomendasi, film',
-                status: 'diterima',
-                dosenId1: dosen1.id_dosen,
-                dosenId2: dosen2.id_dosen,
-                approvedAt: new Date()
-            },
-            {
-                id_mahasiswa: mahasiswa2.id_mahasiswa,
-                title: 'Aplikasi E-Commerce Berbasis Web dengan Fitur Augmented Reality untuk Virtual Try-On',
-                description: 'Penelitian ini mengembangkan aplikasi e-commerce yang memungkinkan pelanggan untuk mencoba produk secara virtual menggunakan teknologi augmented reality. Aplikasi akan dibangun berbasis web dengan framework modern dan integrasi AR untuk meningkatkan pengalaman berbelanja online.',
-                bidang_topik: 'Web Development',
-                keywords: 'e-commerce, augmented reality, web application, virtual try-on',
-                status: 'diajukan'
-            }
-        ];
+//         const pengajuanData = [
+//             {
+//                 id_mahasiswa: mahasiswa1.id_mahasiswa,
+//                 title: 'Sistem Rekomendasi Film Menggunakan Machine Learning dengan Algoritma Collaborative Filtering',
+//                 description: 'Penelitian ini bertujuan untuk mengembangkan sistem rekomendasi film yang dapat memberikan rekomendasi film yang sesuai dengan preferensi pengguna menggunakan teknik machine learning. Sistem akan menggunakan algoritma collaborative filtering untuk menganalisis pola perilaku pengguna dan memberikan rekomendasi yang akurat.',
+//                 bidang_topik: 'Machine Learning',
+//                 keywords: 'machine learning, collaborative filtering, sistem rekomendasi, film',
+//                 status: 'diterima',
+//                 dosenId1: dosen1.id_dosen,
+//                 dosenId2: dosen2.id_dosen,
+//                 approvedAt: new Date()
+//             },
+//             {
+//                 id_mahasiswa: mahasiswa2.id_mahasiswa,
+//                 title: 'Aplikasi E-Commerce Berbasis Web dengan Fitur Augmented Reality untuk Virtual Try-On',
+//                 description: 'Penelitian ini mengembangkan aplikasi e-commerce yang memungkinkan pelanggan untuk mencoba produk secara virtual menggunakan teknologi augmented reality. Aplikasi akan dibangun berbasis web dengan framework modern dan integrasi AR untuk meningkatkan pengalaman berbelanja online.',
+//                 bidang_topik: 'Web Development',
+//                 keywords: 'e-commerce, augmented reality, web application, virtual try-on',
+//                 status: 'diajukan'
+//             }
+//         ];
 
-        for (const data of pengajuanData) {
-            const exists = await PengajuanJudul.findOne({
-                where: {
-                    id_mahasiswa: data.id_mahasiswa,
-                    title: data.title
-                }
-            });
-            if (!exists) {
-                await PengajuanJudul.create(data);
-                console.log(`Created pengajuan: ${data.title.substring(0, 50)}...`);
-            }
-        }
+//         for (const data of pengajuanData) {
+//             const exists = await PengajuanJudul.findOne({
+//                 where: {
+//                     id_mahasiswa: data.id_mahasiswa,
+//                     title: data.title
+//                 }
+//             });
+//             if (!exists) {
+//                 await PengajuanJudul.create(data);
+//                 console.log(`Created pengajuan: ${data.title.substring(0, 50)}...`);
+//             }
+//         }
 
-        console.log('Sample Pengajuan seeding completed!');
-    } catch (error) {
-        console.error('Error seeding Sample Pengajuan:', error);
-        throw error;
-    }
-};
+//         console.log('Sample Pengajuan seeding completed!');
+//     } catch (error) {
+//         console.error('Error seeding Sample Pengajuan:', error);
+//         throw error;
+//     }
+// };
 
 // Main seeder function
 export const runAllSeeders = async () => {
@@ -291,7 +291,7 @@ export const runAllSeeders = async () => {
         await seedProgramStudi();
         await seedDosen();
         await seedMahasiswa();
-        await seedSamplePengajuan();
+        // await seedSamplePengajuan();
 
         console.log('\n🎉 All seeders completed successfully!');
         console.log('\n📋 Summary:');
